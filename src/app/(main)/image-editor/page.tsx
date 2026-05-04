@@ -1909,7 +1909,7 @@ export default function ImageEditorPage() {
                                             onLoad={(e) => {
                                                 if (aspect) {
                                                     const { width, height } = e.currentTarget;
-                                                    setCrop(centerCrop(width, height, aspect));
+                                                    setCrop(centerAspectCrop(width, height, aspect));
                                                 }
                                             }}
                                             width={800} height={600}
