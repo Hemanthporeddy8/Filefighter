@@ -453,7 +453,7 @@ export default function IdCopierPage() {
                 }
                 
                 if(currentY + imgHeightOnPdf > a4Height - margin) {
-                    toast({title: "Layout Limit", description: "Not all images fit on one page.", variant: "secondary"});
+                    toast({title: "Layout Limit", description: "Not all images fit on one page."});
                     break;
                 }
 

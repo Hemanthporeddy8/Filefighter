@@ -414,7 +414,7 @@ export default function VideoEditorPage() {
         const splitTimeInClip = globalTime - cumulativeTime + clipToSplit.trim.start;
     
         if (clipToSplit.type !== 'video' || splitTimeInClip <= clipToSplit.trim.start + 0.1 || splitTimeInClip >= clipToSplit.trim.end - 0.1) {
-            toast({ title: "Cannot Split", description: "Cannot split an image or at the very start/end of a video clip.", variant: "secondary" });
+            toast({ title: "Cannot Split", description: "Cannot split an image or at the very start/end of a video clip." });
             return;
         }
     
@@ -434,7 +434,7 @@ export default function VideoEditorPage() {
     
     const handleDeleteLayer = () => {
         if (!activeLayer) {
-            toast({ title: "No layer selected", description: "Please select a layer to delete.", variant: "secondary" });
+            toast({ title: "No layer selected", description: "Please select a layer to delete." });
             return;
         }
         if (activeLayer.type === 'video') {
