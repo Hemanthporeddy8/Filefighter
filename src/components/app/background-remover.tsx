@@ -26,7 +26,7 @@ export const BackgroundRemover = ({ imageSrc, onComplete, onCancel }: { imageSrc
                 setStatus('Processing image...');
                 
                 const blob = await removeBackground(imageSrc, {
-                    onProgress: (progress) => {
+                    onProgress: (progress: any) => {
                          if (isCancelled) return;
                          // The progress gives valuable info, e.g., about model downloading
                          if(progress.type === 'download' && progress.total > 0){
