@@ -47,7 +47,7 @@ type InteractionMode =
   | null;
 
 // Template Definitions
-type TemplateLayerDef = Omit<Partial<ImageLayer> & Partial<TextLayer> & Partial<ShapeLayer>, 'id' | 'image'>;
+type TemplateLayerDef = any;
 interface Template {
     id: string;
     name: string;
