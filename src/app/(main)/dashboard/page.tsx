@@ -143,7 +143,7 @@ export default function DashboardPage() {
   const [batchToView, setBatchToView] = useState<DocumentQueueItem | null>(null);
   const [selectedBatchFileNames, setSelectedBatchFileNames] = useState<Set<string>>(new Set());
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisResult | null>(null);
+
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
