@@ -19,7 +19,7 @@ export const BackgroundRemover = ({ imageSrc, onComplete, onCancel }: { imageSrc
             
             try {
                 // Dynamically import the heavy library
-                const { default: removeBackground } = await import('@imgly/background-removal');
+                const { default: removeBackground } = (await import('@imgly/background-removal')) as any;
                 
                 if (isCancelled) return;
 
