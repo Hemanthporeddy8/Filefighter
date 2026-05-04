@@ -1203,15 +1203,16 @@ export default function DesignStudioPage() {
     };
 
     const handleFontSizeCommit = () => {
-        if (!lastSelectedLayer) return;
+        if (!lastSelectedLayer || lastSelectedLayer.type !== 'text') return;
+        const textLayer = lastSelectedLayer as TextLayer;
         const newSize = parseInt(localFontSize, 10);
         if (!isNaN(newSize) && newSize > 0) {
-            if (newSize !== lastSelectedLayer.fontSize) {
-                updateAndCommit(lastSelectedLayer.id, { fontSize: newSize });
+            if (newSize !== textLayer.fontSize) {
+                updateAndCommit(textLayer.id, { fontSize: newSize });
             }
         } else {
             // Reset to original value if input is invalid
-            setLocalFontSize(lastSelectedLayer.fontSize.toString());
+            setLocalFontSize(textLayer.fontSize.toString());
         }
     };
     
