@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['onnxruntime-node', '@imgly/background-removal'],
+  experimental: {
+    serverComponentsExternalPackages: ['onnxruntime-node', '@imgly/background-removal'],
+  },
   images: {
     remotePatterns: [
       {
