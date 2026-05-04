@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Text, Image as ImageIcon, Download, Trash2, Layers, Move, Bold, Italic, Type, Palette, Baseline, ArrowUp, ArrowDown, RotateCcw, Percent, Wand2, LayoutTemplate, X, Check, Square, Circle as CircleIcon, Copy as CopyIcon, PlusCircle, Presentation, ChevronLeft, ChevronRight, Video as VideoIcon, Undo, Redo, Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut, Minus } from 'lucide-react';
+import { Text, Image as ImageIcon, Download, Trash2, Layers, Move, Bold, Italic, Type, Palette, Baseline, ArrowUp, ArrowDown, RotateCcw, Percent, Wand2, LayoutTemplate, X, Check, Square, Circle as CircleIcon, Copy as CopyIcon, PlusCircle, Presentation, ChevronLeft, ChevronRight, Video as VideoIcon, Undo, Redo, Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut, Minus, Group, Ungroup } from 'lucide-react';
 import type { DesignLayer, ImageLayer, TextLayer, ShapeLayer, VideoLayer, GroupLayer } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -1413,7 +1413,7 @@ export default function DesignStudioPage() {
                                                             )}
                                                         >
                                                             <div className="flex items-center gap-2 overflow-hidden">
-                                                                {layer.type === 'group' && <ObjectGroup className="h-4 w-4 shrink-0" />}
+                                                                {layer.type === 'group' && <Group className="h-4 w-4 shrink-0" />}
                                                                 {layer.type === 'image' && <ImageIcon className="h-4 w-4 shrink-0" />}
                                                                 {layer.type === 'video' && <VideoIcon className="h-4 w-4 shrink-0" />}
                                                                 {layer.type === 'text' && <Type className="h-4 w-4 shrink-0" />}
@@ -1443,12 +1443,12 @@ export default function DesignStudioPage() {
                                             {selectedLayerIds.length > 1 ? (
                                                 <div>
                                                     <h3 className="text-lg font-semibold mb-4">{selectedLayerIds.length} Layers Selected</h3>
-                                                    <Button variant="outline" className="w-full" onClick={handleGroupLayers}><ObjectGroup className="mr-2"/> Group</Button>
+                                                    <Button variant="outline" className="w-full" onClick={handleGroupLayers}><Group className="mr-2"/> Group</Button>
                                                 </div>
                                             ) : isUngroupable ? (
                                                 <div>
                                                     <h3 className="text-lg font-semibold mb-4">Group Selected</h3>
-                                                    <Button variant="outline" className="w-full" onClick={handleUngroupLayers}><ObjectUngroup className="mr-2"/> Ungroup</Button>
+                                                    <Button variant="outline" className="w-full" onClick={handleUngroupLayers}><Ungroup className="mr-2"/> Ungroup</Button>
                                                 </div>
                                             ) : lastSelectedLayer ? (
                                                 <div className="space-y-6">
