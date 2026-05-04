@@ -118,7 +118,7 @@ export function useWebRTC(isHost: boolean, sessionId: string | null) {
     let signalingInterval: NodeJS.Timeout;
 
     async function startSignaling() {
-      if (isHost) {
+      if (isHost && pc) {
         setStatusMessage('Waiting for peer...');
         const dataChannel = pc.createDataChannel('fileTransfer');
         dataChannel.binaryType = 'arraybuffer';
@@ -145,7 +145,7 @@ export function useWebRTC(isHost: boolean, sessionId: string | null) {
           const signal = await response.json();
           if (isCancelled || !signal) return;
 
-          if (signal.sdp && !pc.currentRemoteDescription) {
+          if (signal.sdp && pc && !pc.currentRemoteDescription) {
             await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
             if (signal.sdp.type === 'offer' && !isHost) {
               const answer = await pc.createAnswer();
@@ -157,7 +157,7 @@ export function useWebRTC(isHost: boolean, sessionId: string | null) {
             }
           }
 
-          if (signal.candidates) {
+          if (signal.candidates && pc) {
             for (const candidate of signal.candidates) {
                 if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error("Error adding ICE candidate:", e));
             }
