@@ -308,7 +308,6 @@ export const teluguDictionary: Record<string, string> = {
   'ardhamaindi': 'అర్థమైంది',
   'sare': 'సరే',
   'kani': 'కానీ',
-  'kaani': 'కానీ',
   'kaavalante': 'కావాలంటే',
   'kavali': 'కావాలి',
   'vaddu': 'వద్దు',
