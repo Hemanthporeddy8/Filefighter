@@ -288,6 +288,26 @@ function formatFileSize(bytes: number): string {
 
 
 export default function ImageEditorPage() {
+  function centerAspectCrop(
+    mediaWidth: number,
+    mediaHeight: number,
+    aspect: number,
+  ) {
+    return centerCrop(
+      makeAspectCrop(
+        {
+          unit: '%',
+          width: 90,
+        },
+        aspect,
+        mediaWidth,
+        mediaHeight,
+      ),
+      mediaWidth,
+      mediaHeight,
+    )
+  }
+
   const [imgSrc, setImgSrc] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageState, setImageState] = useState<{
