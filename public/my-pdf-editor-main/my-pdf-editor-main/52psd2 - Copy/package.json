@@ -1,0 +1,22 @@
+{
+  "name": "pdf-engine",
+  "version": "1.0.0",
+  "description": "100% client-side, offline, dependency-free PDF Engine",
+  "type": "module",
+  "scripts": {
+    "test": "node test/test_image.js",
+    "start": "npx http-server public"
+  },
+  "dependencies": {
+    "canvas": "^3.2.1",
+    "pako": "^2.1.0",
+    "puppeteer": "^24.37.5"
+  },
+  "main": "cmap.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

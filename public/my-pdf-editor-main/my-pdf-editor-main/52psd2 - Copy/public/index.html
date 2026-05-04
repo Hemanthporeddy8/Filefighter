@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Engine Demo</title>
+    <link rel="icon" href="data:,">
+    <style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #64748b;
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls {
+            padding: 12px 24px;
+            margin: 0 20px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            color: #1e293b;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        button.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        button.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        button.success {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+
+        #file-input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #canvas-container {
+            flex: 1;
+            margin: 0 20px 20px;
+            overflow: auto;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        canvas {
+            background: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+        }
+
+        #status {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Toolbar Row */
+        .marquee-tools {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px;
+        }
+
+        .marquee-tools::-webkit-scrollbar { display: none; }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+    </style>
+    </style>
+    <!--
+    --text-color: #2d3748;
+    }
+
+    body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    margin: 0;
+    background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+    background-size: 200% 200%;
+    animation: gradientBG 15s ease infinite;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--text-color);
+    overflow: hidden;
+    }
+
+    @keyframes gradientBG {
+    0% {
+    background-position: 0% 50%;
+    }
+
+    50% {
+    background-position: 100% 50%;
+    }
+
+    100% {
+    background-position: 0% 50%;
+    }
+    }
+
+    /* Status Overlay */
+    #status-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    }
+
+    .spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #764ba2;
+    border-radius: 50%;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes spin {
+    100% {
+    transform: rotate(360deg);
+    }
+    }
+
+    #status-text {
+    font-size: 1.25rem;
+    color: #4a5568;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    }
+
+    h1 {
+    color: #fff;
+    margin: 20px 0;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    }
+
+    /* Glassmorphism Containers */
+    .controls,
+    #toolbar,
+    #main-nav {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 16px;
+    }
+
+    .controls {
+    padding: 15px 25px;
+    margin: 0 20px 20px 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    }
+
+    #file-input {
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s;
+    }
+
+    #file-input:hover {
+    background: #fff;
+    }
+
+    #canvas-container {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    margin: 0 20px;
+    overflow: auto;
+    flex: 1;
+    position: relative;
+    }
+
+    canvas {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    margin: 20px auto;
+    display: block;
+    }
+
+    /* Buttons */
+    button {
+    padding: 10px 20px;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+    letter-spacing: 0.5px;
+    }
+
+    button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+    filter: brightness(110%);
+    }
+
+    button:active {
+    transform: translateY(1px);
+    }
+
+    /* Toolbar */
+    #toolbar {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 0 20px 20px 20px;
+    width: auto;
+    position: relative;
+    /* Not sticky, let layout handle */
+    z-index: 100;
+    }
+
+    .toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    }
+
+    .tool-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    padding: 10px 15px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .tool-btn:hover {
+    background: white;
+    color: #764ba2;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(118, 75, 162, 0.1);
+    }
+
+    .tool-btn.active {
+    background: #fff;
+    color: #764ba2;
+    /* Purple match */
+    border: 2px solid #764ba2;
+    box-shadow: 0 0 15px rgba(118, 75, 162, 0.2);
+    }
+
+    .tool-btn svg {
+    width: 20px;
+    height: 20px;
+    }
+
+    button:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    }
+
+    #status {
+    font-weight: 500;
+    color: #4a5568;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 5px 12px;
+    border-radius: 20px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    }
+
+    ::-webkit-scrollbar-thumb {
+    background: rgba(118, 75, 162, 0.3);
+    border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+    background: rgba(118, 75, 162, 0.6);
+    }
+    -->
+</head>
+
+<body>
+    <h1>PDF Engine Demo</h1>
+
+    <div id="main-nav" class="controls glass-panel">
+        <input type="file" id="file-input" accept=".pdf" />
+        
+        <div class="marquee-tools">
+            <button id="convert-docx-btn" class="primary">
+                Word
+            </button>
+            <button id="convert-xlsx-btn" class="primary">
+                Excel
+            </button>
+            <div class="tag">AI Extraction</div>
+        </div>
+
+        <button id="all-tools-nav-btn" onclick="window.toggleDashboard(true)">
+            Dashboard
+        </button>
+
+        <div style="flex:1"></div>
+
+        <button id="show-merge-tool-btn" onclick="activateTool('merge')" style="background:#4f46e5; color:white;">Merge</button>
+        <button id="show-split-tool-btn" onclick="activateTool('split')" style="background:#db2777; color:white;">Split</button>
+        <button id="show-encrypt-tool-btn" onclick="activateTool('encrypt')" style="background:#059669; color:white;">Encrypt</button>
+        <button id="show-decrypt-tool-btn" onclick="activateTool('decrypt')" style="background:#dc2626; color:white;">Decrypt</button>
+
+        <span id="status">Engine Active</span>
+    </div>
+
+    <!-- Merge Tool Container -->
+    <div id="merge-tool-container" class="tool-panel"
+        style="display: none; width: 100%; max-width: 800px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0;">Merge PDFs</h2>
+        <p style="color: #666; margin-bottom: 20px;">Select multiple PDF files to combine them into one document.</p>
+
+        <div id="merge-file-list"
+            style="border: 2px dashed #ccc; padding: 20px; min-height: 100px; margin-bottom: 20px; border-radius: 4px; display: flex; flex-direction: column; gap: 10px;">
+            <div id="merge-placeholder" style="text-align: center; color: #999; margin-top: 30px;">No files selected
+            </div>
+            <!-- File items will go here -->
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <input type="file" id="merge-file-input" multiple accept=".pdf" style="display: none;">
+            <button onclick="document.getElementById('merge-file-input').click()"
+                style="padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: 1px solid #0056b3; border-radius: 4px;">Add
+                Files</button>
+            <button id="execute-merge-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #6f42c1; color: white; border: none; border-radius: 4px;">Merge
+                PDFs</button>
+            <button id="download-merged-btn"
+                style="display: none; padding: 10px 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 4px;">Download
+                Merged PDF</button>
+            <button id="cancel-merge-btn"
+                style="padding: 10px 20px; cursor: pointer; background: transparent; border: 1px solid #ccc; border-radius: 4px;">Close</button>
+            <button class="back-to-tools-btn"
+                style="padding: 10px 20px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 4px;">Back
+                to Tools</button>
+        </div>
+        <div id="merge-status" style="margin-top: 10px; color: #666;"></div>
+    </div>
+
+    <!-- Split Tool Container -->
+    <div id="split-tool-container" class="tool-panel"
+        style="display: none; width: 100%; max-width: 800px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0;">Split PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Extract specific pages from a PDF file.</p>
+
+        <div style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 4px;">
+            <div id="split-file-name" style="margin-bottom: 10px; font-weight: bold;">No file selected</div>
+            <input type="file" id="split-file-input" accept=".pdf" style="display: none;">
+            <button onclick="document.getElementById('split-file-input').click()"
+                style="padding: 8px 15px; background: #007bff; color: white; border: 1px solid #0056b3; border-radius: 4px; cursor: pointer;">Select
+                PDF</button>
+        </div>
+
+        <!-- Visual Selection Grid -->
+        <div id="split-grid-controls" style="display: none; margin-bottom: 10px; gap: 10px;">
+            <button id="split-select-all" style="padding: 5px 10px; font-size: 12px;">Select All</button>
+            <button id="split-deselect-all" style="padding: 5px 10px; font-size: 12px;">Deselect All</button>
+            <span id="split-selection-count" style="margin-left: auto; color: #666; font-size: 14px;">0 pages
+                selected</span>
+        </div>
+        <div id="split-grid"
+            style="display: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; max-height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 20px;">
+            <!-- Thumbnails inserted here -->
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Page Range (Auto-updates):</label>
+            <input type="text" id="split-range" placeholder="e.g. 1-5, 8, 10-12"
+                style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+        </div>
+
+
+
+        <div style="display: flex; gap: 10px;">
+            <button id="execute-split-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #e83e8c; color: white; border: none; border-radius: 4px;">Split
+                PDF</button>
+            <button id="download-split-btn"
+                style="display: none; padding: 10px 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 4px;">Download
+                Extracted PDF</button>
+            <button id="cancel-split-btn"
+                style="padding: 10px 20px; cursor: pointer; background: transparent; border: 1px solid #ccc; border-radius: 4px;">Close</button>
+            <button class="back-to-tools-btn"
+                style="padding: 10px 20px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 4px;">Back
+                to Tools</button>
+        </div>
+        <div id="split-status" style="margin-top: 10px; color: #666;"></div>
+    </div>
+
+
+    <!-- Encrypt Tool Container -->
+    <div id="encrypt-tool-container" class="tool-panel"
+        style="display: none; width: 100%; max-width: 800px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0; color: #dc3545;">Encrypt PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Protect your PDF with a password.</p>
+
+        <div style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 4px;">
+            <div id="encrypt-file-name" style="margin-bottom: 10px; font-weight: bold;">No file selected</div>
+            <input type="file" id="encrypt-file-input" accept=".pdf" style="display: none;">
+            <button onclick="document.getElementById('encrypt-file-input').click()"
+                style="padding: 8px 15px; background: #007bff; color: white; border: 1px solid #0056b3; border-radius: 4px; cursor: pointer;">Select
+                PDF</button>
+        </div>
+
+        <form onsubmit="return false;">
+            <!-- Hidden username field to satisfy accessibility tools -->
+            <input type="text" name="username" autocomplete="username" style="display:none" aria-hidden="true">
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">User Password (Required):</label>
+                <div style="position: relative;">
+                    <input type="password" id="encrypt-user-pass" placeholder="Password to open the file"
+                        autocomplete="new-password"
+                        style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                    <span id="toggle-user-pass"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none;">👁️</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Confirm Password:</label>
+                <div style="position: relative;">
+                    <input type="password" id="encrypt-user-pass-confirm" placeholder="Re-enter password"
+                        autocomplete="new-password"
+                        style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                    <span id="toggle-user-pass-confirm"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none;">👁️</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Owner Password (Optional):</label>
+                <div style="position: relative;">
+                    <input type="password" id="encrypt-owner-pass" placeholder="Password to edit permissions"
+                        autocomplete="new-password"
+                        style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                    <span id="toggle-owner-pass"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none;">👁️</span>
+                </div>
+                <small style="color: #666;">If left blank, it defaults to the User Password.</small>
+            </div>
+        </form>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="execute-encrypt-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #dc3545; color: white; border: none; border-radius: 4px;">Encrypt
+                PDF</button>
+            <button id="download-encrypted-btn"
+                style="display: none; padding: 10px 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 4px;">Download
+                Secured PDF</button>
+            <button id="cancel-encrypt-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #6c757d; color: white; border: none; border-radius: 4px;">Home</button>
+        </div>
+        <div id="encrypt-status" style="margin-top: 10px; color: #28a745; display: none;">Encryption Complete.</div>
+    </div>
+
+    <!-- Decrypt Tool -->
+    <div id="decrypt-tool-container" class="tool-panel"
+        style="display: none; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px;">
+        <h2 style="color: #dc3545; margin-top: 0;">Decrypt PDF / Verify Password</h2>
+        <p style="color: #666; margin-bottom: 20px;">Check if a password is valid for an encrypted PDF.</p>
+
+        <div style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+            <input type="file" id="decrypt-file-upload" accept="application/pdf" style="display: none;">
+            <div id="decrypt-file-info" style="margin-bottom: 10px; font-weight: 500;">No file selected</div>
+            <button onclick="document.getElementById('decrypt-file-upload').click()"
+                style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Select PDF
+            </button>
+        </div>
+
+        <form onsubmit="return false;">
+            <!-- Hidden username field to satisfy accessibility tools -->
+            <input type="text" name="username" autocomplete="username" style="display:none" aria-hidden="true">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Password:</label>
+                <div style="position: relative; width: 300px; max-width: 100%;">
+                    <input type="password" id="decrypt-password" placeholder="Enter password to check"
+                        autocomplete="current-password"
+                        style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                    <span id="toggle-decrypt-pass"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none;">👁️</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Owner Password (Optional):</label>
+                <div style="position: relative; width: 300px; max-width: 100%;">
+                    <input type="password" id="decrypt-owner-password" placeholder="Enter Owner password"
+                        autocomplete="current-password"
+                        style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                    <span id="toggle-decrypt-owner-pass"
+                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none;">👁️</span>
+                </div>
+            </div>
+        </form>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="check-password-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #dc3545; color: white; border: none; border-radius: 4px;">
+                Check Password
+            </button>
+            <button id="cancel-decrypt-btn"
+                style="padding: 10px 20px; cursor: pointer; background: transparent; border: 1px solid #ccc; border-radius: 4px; color: #555;">Close</button>
+            <button class="back-to-tools-btn"
+                style="padding: 10px 20px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 4px;">Back
+                to Tools</button>
+        </div>
+        <div id="decrypt-status" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <!-- Markdown to PDF Tool Container -->
+    <div id="markdown-tool-container" class="tool-panel"
+        style="display: none; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="color: #667eea; margin-top: 0;">Markdown to PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Convert Markdown text or files to PDF.</p>
+
+        <div style="display:flex; gap: 20px; margin-bottom: 20px;">
+            <div style="flex:1;">
+                <label style="display:block; font-weight:500; margin-bottom:5px;">Input Source:</label>
+                <select id="md-input-type" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd;">
+                    <option value="text">Direct Text Input</option>
+                    <option value="file">Upload .md File</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="md-text-input-area">
+            <textarea id="md-text-content" placeholder="# Heading&#10;&#10;Type your markdown here..."
+                style="width:100%; height:300px; padding:10px; border:1px solid #ccc; border-radius:4px; font-family: monospace;"></textarea>
+        </div>
+
+        <div id="md-file-input-area"
+            style="display:none; padding: 40px; border: 2px dashed #ddd; border-radius: 8px; text-align: center; background: #fafafa;">
+            <p style="margin-bottom:10px; color:#666;">Drag & drop your .md file here or click to browse</p>
+            <input type="file" id="md-file-upload" accept=".md,.markdown,.txt" style="display:none;">
+            <button onclick="document.getElementById('md-file-upload').click()"
+                style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Select
+                Markdown File</button>
+            <div id="md-file-name" style="margin-top:10px; font-weight:bold; color:#333;"></div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button id="convert-md-btn"
+                style="padding: 10px 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 4px;">
+                Convert to PDF
+            </button>
+            <button id="download-md-pdf-btn"
+                style="display: none; padding: 10px 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px;">
+                Download PDF
+            </button>
+            <button id="cancel-md-btn" class="back-to-tools-btn"
+                style="padding: 10px 20px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 4px;">Back
+                to Tools</button>
+        </div>
+        <div id="md-status" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+
+    <!-- Image to PDF Tool Container -->
+    <div id="image-tool-container" class="tool-panel"
+        style="display: none; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="color: #667eea; margin-top: 0;">Image to PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Convert JPG or PNG images to PDF documents.</p>
+
+        <div
+            style="margin-bottom: 20px; padding: 30px; background: #f8f9fa; border-radius: 8px; text-align: center; border: 2px dashed #dee2e6;">
+            <input type="file" id="image-tool-input" accept="image/png, image/jpeg" multiple style="display: none;">
+            <div id="image-tool-preview"
+                style="margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; color: #aaa;">
+                No Image Selected
+            </div>
+            <button onclick="document.getElementById('image-tool-input').click()" class="secondary">
+                Choose Image
+            </button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="execute-image-pdf-btn" disabled>Convert to PDF</button>
+            <button id="download-image-pdf-btn"
+                style="display: none; background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 10px 20px; cursor: pointer;">Download
+                PDF</button>
+            <button id="preview-image-pdf-btn"
+                style="display: none; background-color: #007bff; color: white; border: none; border-radius: 4px; padding: 10px 20px; cursor: pointer;">Preview
+                in Editor</button>
+            <button class="back-to-tools-btn" style="background: #6c757d;">Back to Tools</button>
+        </div>
+    </div>
+
+    <!-- Text to PDF Tool Container -->
+    <div id="text-tool-container" class="tool-panel"
+        style="display: none; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="color: #667eea; margin-top: 0;">Text to PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Convert basic text files (.txt) to PDF.</p>
+
+        <div style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <textarea id="text-tool-editor"
+                style="width: 100%; height: 200px; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-family: monospace;"
+                placeholder="Enter text here or upload a file..."></textarea>
+            <div style="margin-top: 10px; text-align: right;">
+                <input type="file" id="text-tool-input" accept=".txt" style="display: none;">
+                <button onclick="document.getElementById('text-tool-input').click()" class="secondary"
+                    style="font-size: 0.8rem; padding: 5px 10px;">Load from File</button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="execute-txt-pdf-btn">Convert to PDF</button>
+            <button id="download-txt-pdf-btn"
+                style="display: none; background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 10px 20px; cursor: pointer;">Download
+                PDF</button>
+            <button id="preview-txt-pdf-btn"
+                style="display: none; background-color: #007bff; color: white; border: none; border-radius: 4px; padding: 10px 20px; cursor: pointer;">Preview
+                in Editor</button>
+            <button class="back-to-tools-btn" style="background: #6c757d;">Back to Tools</button>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Universal Tool Container -->
+    <div id="universal-tool-container" class="tool-panel"
+        style="display: none; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 id="uni-tool-title" style="color: #667eea; margin-top: 0;">PDF Tool</h2>
+        <p id="uni-tool-desc" style="color: #666; margin-bottom: 20px;">Process your PDF file.</p>
+
+        <div
+            style="margin-bottom: 20px; padding: 30px; background: #f8f9fa; border-radius: 8px; text-align: center; border: 2px dashed #dee2e6;">
+            <input type="file" id="uni-tool-input" accept=".pdf" style="display: none;">
+            <div id="uni-tool-file-info" style="margin-bottom: 15px; font-weight: bold; color: #555;">No file selected
+            </div>
+            <button onclick="document.getElementById('uni-tool-input').click()" class="secondary">
+                Select PDF File
+            </button>
+        </div>
+
+        <div id="uni-tool-params-container" style="margin-bottom: 20px; display: none;">
+            <label id="uni-tool-params-label"
+                style="display: block; font-weight: bold; margin-bottom: 5px;">Parameters</label>
+            <input type="text" id="uni-tool-params"
+                style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+                placeholder="e.g. 1-3, 5">
+            <select id="uni-tool-params-select"
+                style="display: none; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="jpeg">JPEG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WEBP</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="uni-tool-execute-btn" disabled>Run Tool</button>
+            <button class="back-to-tools-btn" style="background: #6c757d;">Back to Tools</button>
+        </div>
+
+        <div id="uni-tool-result"
+            style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+            <div id="uni-tool-preview-container" style="margin-bottom: 15px;">
+                <!-- Image Preview Will Go Here -->
+            </div>
+            <button id="uni-tool-download-btn" style="background-color: #28a745; color: white;">Download Result</button>
+        </div>
+    </div>
+
+    <div id="docx-editor-container" style="display: none; background: #eee; padding: 20px;">
+        <!-- DOCX Toolbar -->
+        <div id="docx-toolbar"
+            style="padding: 10px; background: #f0f0f0; border-bottom: 1px solid #ccc; display: flex; gap: 10px; margin-bottom: 20px; border-radius: 4px;">
+            <button onclick="document.execCommand('bold')" style="font-weight: bold; width: 30px;">B</button>
+            <button onclick="document.execCommand('italic')" style="font-style: italic; width: 30px;">I</button>
+            <button onclick="document.execCommand('underline')"
+                style="text-decoration: underline; width: 30px;">U</button>
+            <select onchange="document.execCommand('formatBlock', false, this.value)" style="padding: 5px;">
+                <option value="p">Normal</option>
+                <option value="h1">Heading 1</option>
+                <option value="h2">Heading 2</option>
+            </select>
+            <button onclick="document.execCommand('justifyLeft')">Left</button>
+            <button onclick="document.execCommand('justifyCenter')">Center</button>
+            <button onclick="document.execCommand('justifyRight')">Right</button>
+        </div>
+        <div id="docx-content" contenteditable="true"
+            style="background: white; width: 800px; min-height: 1000px; margin: 0 auto; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); outline: none;">
+        </div>
+    </div>
+
+    <div id="xlsx-editor-container"
+        style="display: none; height: 800px; border: 1px solid #ccc; flex-direction: column;">
+        <!-- XLSX Toolbar -->
+        <div id="xlsx-toolbar"
+            style="padding: 10px; background: #f0f0f0; border-bottom: 1px solid #ccc; display: flex; gap: 10px;">
+            <button id="xlsx-bold" style="font-weight: bold; width: 30px;">B</button>
+            <button id="xlsx-italic" style="font-style: italic; width: 30px;">I</button>
+            <div style="width: 1px; background: #ccc;"></div>
+            <button id="xlsx-add-row">Add Row</button>
+            <button id="xlsx-add-col">Add Column</button>
+        </div>
+        <div id="xlsx-grid-container" style="flex: 1; overflow: auto;">
+            <!-- Grid will be rendered here -->
+        </div>
+    </div>
+
+    <div id="controls" class="controls" style="display: none; margin-top: 0px;">
+        <button id="prev-page">Previous</button>
+        <span id="page-num" style="margin: 0 10px;"></span>
+        <button id="next-page">Next</button>
+        <span style="margin-left: 20px;">
+            <button id="zoom-out" title="Zoom Out">-</button>
+            <span id="zoom-level" style="display: inline-block; width: 45px; text-align: center;">100%</span>
+            <button id="zoom-in" title="Zoom In">+</button>
+            <button id="fit-width-btn" style="margin-left: 5px; font-size: 12px;" title="Fit Width">↔</button>
+            <button id="fit-page-btn" style="font-size: 12px;" title="Fit Page">↕</button>
+        </span>
+        <span style="margin-left: 20px;">
+            <input type="text" id="search-input" placeholder="Find..." style="padding: 5px;">
+            <button id="search-btn">Find</button>
+        </span>
+    </div>
+
+    <!-- Editor Toolbar -->
+
+    <div id="toolbar">
+        <div class="toolbar-row">
+            <button class="tool-btn" data-tool="text" title="Add Text">
+                <svg viewBox="0 0 24 24">
+                    <path d="M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9z" />
+                </svg>
+                Text
+            </button>
+
+            <div id="text-controls"
+                style="display: none; align-items: center; gap: 5px; border-left: 1px solid #e0e0e0; padding-left: 10px; margin-left: 5px;">
+                <select id="font-family"
+                    style="padding: 5px; border-radius: 4px; border: 1px solid #ced4da; width: 120px;">
+                    <option value="Helvetica" style="font-family: Helvetica, Arial, sans-serif;">Helvetica</option>
+                    <option value="Arial" style="font-family: Arial, Helvetica, sans-serif;">Arial</option>
+                    <option value="Verdana" style="font-family: Verdana, Geneva, sans-serif;">Verdana</option>
+                    <option value="Times-Roman" style="font-family: 'Times New Roman', Times, serif;">Times New Roman
+                    </option>
+                    <option value="Georgia" style="font-family: Georgia, serif;">Georgia</option>
+                    <option value="Courier" style="font-family: 'Courier New', Courier, monospace;">Courier New</option>
+                    <option value="Trebuchet MS" style="font-family: 'Trebuchet MS', sans-serif;">Trebuchet MS</option>
+                </select>
+                <input type="number" id="font-size" value="12" min="8" max="72"
+                    style="width: 50px; padding: 5px; border-radius: 4px; border: 1px solid #ced4da;">
+                <button id="bold-btn" class="tool-btn" style="padding: 5px 10px; font-weight: bold;">B</button>
+                <button id="italic-btn" class="tool-btn" style="padding: 5px 10px; font-style: italic;">I</button>
+                <input type="color" id="text-color" value="#000000"
+                    style="border: none; width: 30px; height: 30px; cursor: pointer;">
+            </div>
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <button id="edit-image-btn" class="tool-btn" data-tool="select" title="Edit Image">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+                Edit Image
+            </button>
+
+            <button id="add-image-btn" class="tool-btn" title="Add Image">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                </svg>
+                Add Image
+            </button>
+
+            <button id="delete-element-btn" class="tool-btn" title="Delete Selected Element" style="color: #dc3545;">
+                <svg viewBox="0 0 24 24">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+                Delete
+            </button>
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <div style="display: flex; align-items: center;">
+                <button class="tool-btn" data-tool="shape" title="Add Shape">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                    </svg>
+                    Shape
+                </button>
+                <select id="shape-select"
+                    style="margin-left: 5px; padding: 5px; border-radius: 4px; border: 1px solid #ced4da;">
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle</option>
+                </select>
+            </div>
+
+            <button class="tool-btn" data-tool="draw" title="Freehand Draw">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+                Draw
+            </button>
+
+            <button class="tool-btn" data-tool="highlight" title="Highlighter">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M9 11l-6 6v3h9l3-3" />
+                    <path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+                </svg>
+                Highlight
+            </button>
+        </div>
+
+        <div style="width: 100%; height: 1px; background: #e0e0e0; margin: 5px 0;"></div>
+
+        <div class="toolbar-row">
+            <button id="undo-btn" class="tool-btn" title="Undo">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+                </svg>
+            </button>
+            <button id="redo-btn" class="tool-btn" title="Redo">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" />
+                </svg>
+            </button>
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <button id="move-up-btn" class="tool-btn" title="Move Page Up">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+                </svg>
+            </button>
+            <button id="move-down-btn" class="tool-btn" title="Move Page Down">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+                </svg>
+            </button>
+
+            <button id="split-btn" class="tool-btn">
+
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                </svg>
+                Split PDF
+            </button>
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+            <button id="encrypt-btn" class="tool-btn">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                </svg>
+                Encrypt PDF
+            </button>
+            <button id="decrypt-btn" class="tool-btn">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                </svg>
+                Decrypt PDF
+            </button>
+
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <button id="delete-page-btn" class="tool-btn" style="color: #dc3545;" title="Delete Pages">
+                <svg viewBox="0 0 24 24">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+                Delete Page
+            </button>
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <button id="bottom-save-btn" class="tool-btn"
+                style="background: #4CAF50; color: white; border-color: #4CAF50;" title="Save PDF">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
+                </svg>
+                Save
+            </button>
+
+            <div style="width: 1px; background: #e0e0e0; height: 24px; margin: 0 5px;"></div>
+
+            <div style="display: flex; align-items: center;">
+                <input type="text" id="sidebar-search-input" placeholder="Search..."
+                    style="width: 150px; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+            </div>
+        </div>
+    </div>
+
+    <div id="main-container" style="display: flex; flex: 1; overflow: hidden;">
+        <div id="sidebar"
+            style="width: 200px; overflow-y: auto; border-right: 1px solid #ccc; padding: 10px; background: #f5f5f5;">
+            <!-- Thumbnails will go here -->
+        </div>
+        <div id="canvas-wrapper"
+            style="flex: 1; overflow: auto; padding: 20px; background: #e0e0e0; position: relative;">
+            <div id="canvas-container"
+                style="position: relative; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin: 0 auto; display: inline-block;">
+                <canvas id="pdf-canvas" style="display: block;"></canvas>
+                <div id="text-layer"
+                    style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: auto;">
+                </div>
+                <div id="annotation-layer"
+                    style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu"
+        style="display: none; position: absolute; background: white; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 10px; z-index: 2000; border-radius: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <select id="ctx-font-family" style="padding: 5px;">
+                <option value="Helvetica">Helvetica</option>
+                <option value="Arial">Arial</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Times-Roman">Times New Roman</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Courier">Courier New</option>
+                <option value="Trebuchet MS">Trebuchet MS</option>
+            </select>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="ctx-font-size" value="12" min="8" max="72" style="width: 50px; padding: 5px;">
+                <input type="color" id="ctx-text-color" value="#000000"
+                    style="border: none; width: 30px; height: 30px; cursor: pointer;">
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <button id="ctx-bold-btn" style="flex: 1; padding: 5px; font-weight: bold;">B</button>
+                <button id="ctx-italic-btn" style="flex: 1; padding: 5px; font-style: italic;">I</button>
+                <button id="ctx-underline-btn" style="flex: 1; padding: 5px; text-decoration: underline;">U</button>
+                <button id="ctx-strike-btn" style="flex: 1; padding: 5px; text-decoration: line-through;">S</button>
+            </div>
+            <button id="ctx-delete-btn"
+                style="background: #dc3545; color: white; border: none; padding: 5px; margin-top: 5px; cursor: pointer;">Delete</button>
+        </div>
+    </div>
+
+    <!-- Tools Dashboard Modal Overlay -->
+    <div id="tools-dashboard" class="tool-panel"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 2000; overflow-y: auto; padding: 40px; box-sizing: border-box;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="color: #4a5568; margin: 0; font-size: 2rem;">All Document Tools</h2>
+                <button id="close-dashboard-btn" onclick="window.toggleDashboard(false)"
+                    style="background:none; color: #4a5568; font-size: 2.5rem; border: none; cursor: pointer; padding: 10px;">&times;</button>
+            </div>
+
+
+            <!-- Universal Converter Hero -->
+            <div class="universal-converter-container"
+                style="position: relative; width: 100%; max-width: 500px; height: 400px; margin: 0 auto 40px auto; display: flex; justify-content: center; align-items: center;">
+
+                <!-- Connecting Ring (Visual) -->
+                <div
+                    style="position: absolute; width: 280px; height: 280px; border: 2px dashed #e2e8f0; border-radius: 50%; animation: spin-slow 60s linear infinite;">
+                </div>
+
+                <!-- Center Text -->
+                <div style="text-align: center; z-index: 10;">
+                    <h2 style="margin: 0; color: #2d3748; font-size: 1.8rem;">Convert Files</h2>
+                    <p style="margin: 5px 0 0 0; color: #718096; font-size: 0.9rem;">Select format</p>
+                </div>
+
+                <!-- Orbit Items -->
+                <div class="orbit-item" id="orbit-pdf" style="--angle: 270deg; --color: #dc3545;" title="PDF"
+                    onclick="handleOrbitClick('pdf')">
+                    <span>📄</span>
+                    <div class="label">PDF</div>
+                </div>
+                <div class="orbit-item" id="orbit-word" style="--angle: 321.4deg; --color: #007bff;" title="Word"
+                    onclick="handleOrbitClick('word')">
+                    <span>📝</span>
+                    <div class="label">Word</div>
+                </div>
+                <div class="orbit-item" id="orbit-excel" style="--angle: 12.8deg; --color: #28a745;" title="Excel"
+                    onclick="handleOrbitClick('excel')">
+                    <span>📊</span>
+                    <div class="label">Excel</div>
+                </div>
+                <div class="orbit-item" id="orbit-ppt" style="--angle: 64.2deg; --color: #fd7e14;" title="PPT"
+                    onclick="handleOrbitClick('ppt')">
+                    <span>📽️</span>
+                    <div class="label">PPT</div>
+                </div>
+                <div class="orbit-item" id="orbit-image" style="--angle: 115.6deg; --color: #6f42c1;" title="Image"
+                    onclick="handleOrbitClick('image')">
+                    <span>🖼️</span>
+                    <div class="label">Image</div>
+                </div>
+                <div class="orbit-item" id="orbit-html" style="--angle: 167deg; --color: #17a2b8;" title="HTML"
+                    onclick="handleOrbitClick('html')">
+                    <span>🌐</span>
+                    <div class="label">HTML</div>
+                </div>
+                <div class="orbit-item" id="orbit-txt" style="--angle: 218.4deg; --color: #6c757d;" title="Text"
+                    onclick="handleOrbitClick('txt')">
+                    <span>📃</span>
+                    <div class="label">TXT</div>
+                </div>
+
+
+                <script>
+                    let conversionSource = null;
+
+                    function handleOrbitClick(format) {
+                        const centerTitle = document.querySelector('.universal-converter-container h2');
+                        const centerDesc = document.querySelector('.universal-converter-container p');
+                        const items = document.querySelectorAll('.orbit-item');
+
+                        if (!conversionSource) {
+                            // Select Source
+                            conversionSource = format;
+                            centerTitle.textContent = 'To Format';
+                            centerDesc.textContent = `Convert ${format.toUpperCase()} to...`;
+
+                            // Visual update: Dim all initially
+                            items.forEach(el => {
+                                el.style.opacity = '0.3';
+                                el.style.pointerEvents = 'none'; // Disable click temporarily
+                                el.style.filter = 'grayscale(100%)';
+                            });
+
+                            // Highlight Source
+                            const activeEl = document.getElementById(`orbit-${format}`);
+                            if (activeEl) {
+                                activeEl.style.opacity = '1';
+                                activeEl.style.transform = `rotate(${activeEl.style.getPropertyValue('--angle')}) translate(140px) rotate(calc(-1 * ${activeEl.style.getPropertyValue('--angle')})) scale(1.2)`;
+                                activeEl.style.borderColor = '#2d3748';
+                                activeEl.style.zIndex = '200';
+                                activeEl.style.filter = 'none';
+                                activeEl.onclick = () => handleOrbitClick(format); // Allow re-click to cancel
+                                activeEl.style.pointerEvents = 'auto';
+                            }
+
+                            // Determine Valid Targets
+                            items.forEach(el => {
+                                const targetFormat = el.id.replace('orbit-', '');
+                                if (targetFormat === conversionSource) return; // Skip self
+
+                                let isValid = false;
+
+                                if (conversionSource === 'pdf') {
+                                    // PDF can convert to almost anything supported
+                                    isValid = true;
+                                } else {
+                                    // Other formats usually only convert back to PDF
+                                    if (targetFormat === 'pdf') isValid = true;
+                                    // Allow Word -> Excel
+                                    if (conversionSource === 'word' && targetFormat === 'excel') isValid = true;
+                                    // Allow Excel -> Word
+                                    if (conversionSource === 'excel' && targetFormat === 'word') isValid = true;
+                                }
+
+                                if (isValid) {
+                                    el.style.opacity = '1';
+                                    el.style.pointerEvents = 'auto';
+                                    el.style.filter = 'none';
+                                    el.style.cursor = 'pointer';
+                                }
+                            });
+
+
+                        } else {
+                            // Select Target
+                            if (conversionSource === format) {
+                                // Cancel/Reset if clicking same
+                                resetOrbitSelection();
+                                return;
+                            }
+
+                            const target = format;
+                            centerTitle.textContent = 'Launching...';
+                            centerDesc.textContent = `${conversionSource.toUpperCase()} ➔ ${target.toUpperCase()}`;
+
+                            // Determine Tool ID
+                            let toolId = null;
+                            if (target === 'pdf') {
+                                if (conversionSource === 'word') toolId = 'word-to-pdf';
+                                else if (conversionSource === 'excel') toolId = 'excel-to-pdf';
+                                else if (conversionSource === 'ppt') toolId = 'ppt-to-pdf';
+                                else if (conversionSource === 'image') toolId = 'image-to-pdf';
+                                else if (conversionSource === 'txt') toolId = 'ktxt-to-pdf';
+                                else if (conversionSource === 'html') toolId = 'html-to-pdf';
+                                else if (conversionSource === 'md') toolId = 'md-to-pdf';
+                            } else if (conversionSource === 'word' && target === 'excel') {
+                                toolId = 'word-to-excel';
+                            } else if (conversionSource === 'excel' && target === 'word') {
+                                toolId = 'excel-to-word';
+                            } else if (conversionSource === 'pdf') {
+                                if (target === 'word') toolId = 'pdf-to-word';
+                                else if (target === 'excel') toolId = 'pdf-to-excel';
+                                else if (target === 'ppt') toolId = 'pdf-to-ppt';
+                                else if (target === 'image') toolId = 'pdf-to-image'; // Default to JPG/Generic
+                                else if (target === 'txt') toolId = 'pdf-to-text';
+                                else if (target === 'html') toolId = 'pdf-to-html';
+                                else if (target === 'json') toolId = 'pdf-to-json';
+                            }
+
+                            if (toolId) {
+                                window.activateTool(toolId);
+                            } else {
+                                // Should not happen due to validation, but safeguard
+                                alert(`Conversion from ${conversionSource.toUpperCase()} to ${target.toUpperCase()} is not available.`);
+                                resetOrbitSelection();
+                            }
+
+                            // Reset after short delay
+                            setTimeout(resetOrbitSelection, 1500);
+                        }
+                    }
+
+                    function resetOrbitSelection() {
+                        conversionSource = null;
+                        const centerTitle = document.querySelector('.universal-converter-container h2');
+                        const centerDesc = document.querySelector('.universal-converter-container p');
+                        if (centerTitle) centerTitle.textContent = 'Convert Files';
+                        if (centerDesc) centerDesc.textContent = 'Select format';
+
+                        const items = document.querySelectorAll('.orbit-item');
+                        items.forEach(el => {
+                            el.style.opacity = '1';
+                            el.style.transform = '';
+                            el.style.borderColor = el.style.getPropertyValue('--color');
+                            el.style.zIndex = '';
+                            el.style.pointerEvents = 'auto';
+                            el.style.filter = 'none';
+                            el.style.cursor = 'pointer';
+                        });
+                    }
+                </script>
+
+                <style>
+                    .orbit-item {
+                        position: absolute;
+                        width: 60px;
+                        height: 60px;
+                        background: white;
+                        border-radius: 50%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border: 2px solid var(--color);
+
+                        /* Positioning */
+                        top: 50%;
+                        left: 50%;
+                        margin-left: -30px;
+                        margin-top: -30px;
+                        transform: rotate(var(--angle)) translate(140px) rotate(calc(-1 * var(--angle)));
+                    }
+
+                    .orbit-item:hover {
+                        transform: rotate(var(--angle)) translate(150px) rotate(calc(-1 * var(--angle))) scale(1.1);
+                        background: var(--color);
+                        color: white;
+                        border-color: white;
+                        z-index: 100;
+                    }
+
+                    .orbit-item span {
+                        font-size: 24px;
+                    }
+
+                    .orbit-item .label {
+                        font-size: 10px;
+                        font-weight: bold;
+                        margin-top: 2px;
+                        color: #4a5568;
+                    }
+
+                    .orbit-item:hover .label {
+                        color: white;
+                    }
+
+                    @keyframes spin-slow {
+                        from {
+                            transform: rotate(0deg);
+                        }
+
+                        to {
+                            transform: rotate(360deg);
+                        }
+                    }
+                </style>
+            </div>
+
+            <div id="tools-categories">
+
+                <!-- 1. ORGANIZE PDF -->
+                <h3 class="category-header">Organize PDF</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.activateTool('merge')">
+                        <div class="icon">📑</div>
+                        <h3>Merge PDF</h3>
+                        <p>Combine PDFs</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('split')">
+                        <div class="icon">✂️</div>
+                        <h3>Split PDF</h3>
+                        <p>Separate pages</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('delete-pages')">
+                        <div class="icon">🗑️</div>
+                        <h3>Delete Pages</h3>
+                        <p>Remove pages</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('extract-pages')">
+                        <div class="icon">📤</div>
+                        <h3>Extract Pages</h3>
+                        <p>Get specific pages</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('rotate-pdf')">
+                        <div class="icon">🔄</div>
+                        <h3>Rotate PDF</h3>
+                        <p>Rotate pages</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('reorder-pdf')">
+                        <div class="icon">⇄</div>
+                        <h3>Reorder PDF</h3>
+                        <p>Sort pages</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('crop-pdf')">
+                        <div class="icon">📐</div>
+                        <h3>Crop PDF</h3>
+                        <p>Trim margins</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('resize-pdf')">
+                        <div class="icon">📏</div>
+                        <h3>Resize PDF</h3>
+                        <p>Change page size</p>
+                    </div>
+                </div>
+
+                <!-- 2. CONVERT TO PDF -->
+                <h3 class="category-header">Convert To PDF</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.activateTool('word-to-pdf')">
+                        <div class="icon">📄</div>
+                        <h3>Word to PDF</h3>
+                        <p>DOCX to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('excel-to-pdf')">
+                        <div class="icon">📊</div>
+                        <h3>Excel to PDF</h3>
+                        <p>XLSX to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('ppt-to-pdf')">
+                        <div class="icon">📽️</div>
+                        <h3>PPT to PDF</h3>
+                        <p>PPTX to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('image-to-pdf')">
+                        <div class="icon">📸</div>
+                        <h3>Image to PDF</h3>
+                        <p>JPG/PNG to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.activateTool('ktxt-to-pdf')">
+                        <div class="icon">📝</div>
+                        <h3>Text to PDF</h3>
+                        <p>TXT to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('html-to-pdf')">
+                        <div class="icon">🌐</div>
+                        <h3>HTML to PDF</h3>
+                        <p>Web to PDF</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('md-to-pdf')">
+                        <div class="icon">⬇️</div>
+                        <h3>Markdown to PDF</h3>
+                        <p>MD to PDF</p>
+                    </div>
+                </div>
+
+                <!-- 3. CONVERT FROM PDF -->
+                <h3 class="category-header">Convert From PDF</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-word')">
+                        <div class="icon">📝</div>
+                        <h3>PDF to Word</h3>
+                        <p>PDF to DOCX</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-excel')">
+                        <div class="icon">📊</div>
+                        <h3>PDF to Excel</h3>
+                        <p>PDF to XLSX</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-ppt')">
+                        <div class="icon">📽️</div>
+                        <h3>PDF to PPT</h3>
+                        <p>PDF to PPTX</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-jpg')">
+                        <div class="icon">🖼️</div>
+                        <h3>PDF to JPG</h3>
+                        <p>Save as Images</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-png')">
+                        <div class="icon">🖼️</div>
+                        <h3>PDF to PNG</h3>
+                        <p>High Quality Images</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-text')">
+                        <div class="icon">📄</div>
+                        <h3>PDF to Text</h3>
+                        <p>Extract Content</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-html')">
+                        <div class="icon">🌐</div>
+                        <h3>PDF to HTML</h3>
+                        <p>Embeddable HTML</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('pdf-to-json')">
+                        <div class="icon">{}</div>
+                        <h3>PDF to JSON</h3>
+                        <p>Data Extraction</p>
+                    </div>
+                </div>
+
+                <!-- 4. EDIT & OPTIMIZE -->
+                <h3 class="category-header">Edit & Optimize</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('compress-pdf')">
+                        <div class="icon">🗜️</div>
+                        <h3>Compress PDF</h3>
+                        <p>Reduce file size</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('repair-pdf')">
+                        <div class="icon">🔧</div>
+                        <h3>Repair PDF</h3>
+                        <p>Fix broken files</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('grayscale-pdf')">
+                        <div class="icon">⚫</div>
+                        <h3>Grayscale</h3>
+                        <p>Remove colors</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('flatten-pdf')">
+                        <div class="icon">🚜</div>
+                        <h3>Flatten PDF</h3>
+                        <p>Merge layers</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('page-numbers')">
+                        <div class="icon">🔢</div>
+                        <h3>Page Numbers</h3>
+                        <p>Add pagination</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('watermark')">
+                        <div class="icon">💧</div>
+                        <h3>Watermark</h3>
+                        <p>Add text/image</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('header-footer')">
+                        <div class="icon">📑</div>
+                        <h3>Header/Footer</h3>
+                        <p>Add labels</p>
+                    </div>
+                </div>
+
+                <!-- 5. SECURITY -->
+                <h3 class="category-header">Security</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('encrypt')">
+                        <div class="icon">🔒</div>
+                        <h3>Protect PDF</h3>
+                        <p>Add Password</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('decrypt')">
+                        <div class="icon">🔓</div>
+                        <h3>Unlock PDF</h3>
+                        <p>Remove Password</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('sign-pdf')">
+                        <div class="icon">✍️</div>
+                        <h3>Sign PDF</h3>
+                        <p>Digital Signature</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('redact-pdf')">
+                        <div class="icon">██</div>
+                        <h3>Redact PDF</h3>
+                        <p>Hide sensitive info</p>
+                    </div>
+                </div>
+
+                <!-- 6. ADVANCED -->
+                <h3 class="category-header">Advanced</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('compare-pdf')">
+                        <div class="icon">⚖️</div>
+                        <h3>Compare PDF</h3>
+                        <p>Find differences</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('ocr-pdf')">
+                        <div class="icon">👁️</div>
+                        <h3>OCR PDF</h3>
+                        <p>Text Recognition</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('metadata')">
+                        <div class="icon">ℹ️</div>
+                        <h3>Edit Metadata</h3>
+                        <p>Author, Title</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('font-analysis')">
+                        <div class="icon">🔤</div>
+                        <h3>Font Analysis</h3>
+                        <p>List fonts</p>
+                    </div>
+                </div>
+
+                <!-- 7. WORD TOOLS -->
+                <h3 class="category-header">Word Tools</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('word-watermark')">
+                        <div class="icon">🔖</div>
+                        <h3>Insert Watermark</h3>
+                        <p>Add to DOCX</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('word-merge')">
+                        <div class="icon">📑</div>
+                        <h3>Merge Word</h3>
+                        <p>Combine Docs</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('word-split')">
+                        <div class="icon">✂️</div>
+                        <h3>Split Document</h3>
+                        <p>Separate Pages</p>
+                    </div>
+                </div>
+
+                <!-- 8. EXCEL TOOLS -->
+                <h3 class="category-header">Excel Tools</h3>
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-csv')">
+                        <div class="icon">🔄</div>
+                        <h3>Excel ⇄ CSV</h3>
+                        <p>Convert Format</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-merge')">
+                        <div class="icon">📑</div>
+                        <h3>Merge Excel</h3>
+                        <p>Combine Workbooks</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-split')">
+                        <div class="icon">✂️</div>
+                        <h3>Split Sheets</h3>
+                        <p>Extract Sheets</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-pivot')">
+                        <div class="icon">📈</div>
+                        <h3>Pivot Table</h3>
+                        <p>Analyze Data</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-clean')">
+                        <div class="icon">🧹</div>
+                        <h3>Data Cleaning</h3>
+                        <p>Remove Dups/Empty</p>
+                    </div>
+                    <div class="tool-card" onclick="window.loadDashboardTool('excel-formula')">
+                        <div class="icon">🧮</div>
+                        <h3>Formula Debugger</h3>
+                        <p>Check Errors</p>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .category-header {
+                    color: #4a5568;
+                    margin-top: 30px;
+                    margin-bottom: 15px;
+                    font-size: 1.2rem;
+                    border-bottom: 2px solid #e2e8f0;
+                    padding-bottom: 10px;
+                }
+
+                .tools-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 15px;
+                }
+            </style>
+        </div>
+    </div>
+
+    <style>
+        .tool-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            border-color: #667eea;
+        }
+
+        .tool-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .tool-card h3 {
+            margin: 0 0 10px 0;
+            color: #2d3748;
+        }
+
+        .tool-card p {
+            font-size: 0.9rem;
+            color: #718096;
+            margin: 0;
+        }
+    </style>
+
+
+    <script type="module" src="app.js?v=4"></script>
+</body>
+
+</html>

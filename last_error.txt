@@ -1,0 +1,19 @@
+npm : npm warn Unknown cli 
+config "--scripts". This 
+will stop working in the 
+next major version of npm.
+At line:1 char:1
++ npm install 
+--legacy-peer-deps 
+--no-scripts 2>&1 | 
+Out-File -FilePath ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (npm w  
+  arn Unknow...version of   
+  npm.:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
