@@ -72,7 +72,7 @@ export default function MultiLanguageTyperPage() {
                 }
 
                 const varName = `${lang}Dictionary`;
-                const dictionary = dictionaryModule[varName];
+                const dictionary = (dictionaryModule as any)[varName];
 
                 if (dictionary) {
                     (window as any).dictionaries[lang] = dictionary;
