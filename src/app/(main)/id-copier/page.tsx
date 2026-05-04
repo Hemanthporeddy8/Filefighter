@@ -337,6 +337,26 @@ export default function IdCopierPage() {
     }
   }, [draggedItem, handleDragMove, handleDragEnd]);
 
+  function centerAspectCrop(
+    mediaWidth: number,
+    mediaHeight: number,
+    aspect: number | undefined,
+  ) {
+    return centerCrop(
+      makeAspectCrop(
+        {
+          unit: '%',
+          width: 90,
+        },
+        aspect || 1,
+        mediaWidth,
+        mediaHeight,
+      ),
+      mediaWidth,
+      mediaHeight,
+    )
+  }
+
   const onImageLoadForCrop = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
     setCrop(centerAspectCrop(width, height, aspect));
