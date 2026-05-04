@@ -382,8 +382,9 @@ export default function ImageEditorPage() {
   const [overlayOpacity, setOverlayOpacity] = useState(1);
   const [overlayRotation, setOverlayRotation] = useState(0);
   const [overlayRect, setOverlayRect] = useState({ x: 10, y: 10, width: 30, height: 30 }); // in %
+  type OverlayDragType = 'move' | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
   const [dragInfo, setDragInfo] = useState<{
-    type: 'move' | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+    type: OverlayDragType;
     startX: number; // percentage
     startY: number; // percentage
     initialRect: typeof overlayRect;
@@ -1677,7 +1678,7 @@ export default function ImageEditorPage() {
     const handleOverlayMouseDown = useCallback((e: MouseEvent | TouchEvent) => {
         if (!previewContainerRef.current) return;
         const target = e.target as HTMLElement;
-        const handleType = target.dataset.handle as typeof dragInfo.type;
+        const handleType = target.dataset.handle as OverlayDragType;
         if (!handleType) return;
         
         e.preventDefault();
