@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-export type DocumentSource = 'Direct Upload' | 'Gmail' | 'System' | 'QR Upload';
+export type DocumentSource = 'Direct Upload' | 'Gmail' | 'System' | 'QR Upload' | 'WhatsApp Bot';
 
 export interface DocumentQueueItem {
   id: string;

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Text, Image as ImageIcon, Download, Trash2, Layers, Move, Bold, Italic, Type, Palette, Baseline, ArrowUp, ArrowDown, RotateCcw, Percent, Wand2, LayoutTemplate, X, Check, Square, Circle as CircleIcon, Copy as CopyIcon, PlusCircle, Presentation, ChevronLeft, ChevronRight, Video as VideoIcon, ObjectGroup, ObjectUngroup, Undo, Redo, Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut, Minus } from 'lucide-react';
+import { Text, Image as ImageIcon, Download, Trash2, Layers, Move, Bold, Italic, Type, Palette, Baseline, ArrowUp, ArrowDown, RotateCcw, Percent, Wand2, LayoutTemplate, X, Check, Square, Circle as CircleIcon, Copy as CopyIcon, PlusCircle, Presentation, ChevronLeft, ChevronRight, Video as VideoIcon, Undo, Redo, Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut, Minus } from 'lucide-react';
 import type { DesignLayer, ImageLayer, TextLayer, ShapeLayer, VideoLayer, GroupLayer } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';

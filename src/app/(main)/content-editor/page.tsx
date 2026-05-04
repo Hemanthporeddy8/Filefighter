@@ -304,7 +304,7 @@ export default function ContentEditorPage() {
                 }
 
                 const resultBytes = await pdfDoc.save();
-                downloadBlob(new Blob([resultBytes], { type: 'application/pdf' }), originalFilename);
+                downloadBlob(new Blob([resultBytes as any], { type: 'application/pdf' }), originalFilename);
             } else {
                 // Word or Excel - Use jsPDF + html2canvas for "Print to PDF" effect
                 const html2canvas = (await import('html2canvas')).default;

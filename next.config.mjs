@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  swcMinify: false,
   experimental: {
     serverComponentsExternalPackages: ['onnxruntime-node', '@imgly/background-removal'],
   },
@@ -63,6 +64,7 @@ const nextConfig = {
       // Step 3: Global alias for node-specific modules used by libraries like xlsx/pptxgenjs
       config.resolve.alias = {
         ...config.resolve.alias,
+        'onnxruntime-node': false,
         'node:fs': false,
         'node:path': false,
         'node:http': false,
