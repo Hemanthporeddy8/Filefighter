@@ -666,7 +666,7 @@ export default function DesignStudioPage() {
                     updatedLayer.width = width;
                     updatedLayer.height = height;
                 }
-                return updatedLayer;
+                return updatedLayer as DesignLayer;
             });
             return { ...s, layers: newLayers };
         }));
@@ -701,7 +701,7 @@ export default function DesignStudioPage() {
                              updatedLayer.width = width;
                              updatedLayer.height = height;
                         }
-                        return updatedLayer;
+                        return updatedLayer as DesignLayer;
                     })
                 };
             });
@@ -715,7 +715,7 @@ export default function DesignStudioPage() {
         updateSlidesAndRecord(prev => prev.map(s => {
             if (s.id !== activeSlideId) return s;
             const newLayers = s.layers.map(l => 
-                l.id === layerId ? { ...l, [property]: !l[property] } : l
+                l.id === layerId ? { ...l, [property]: !l[property] } as DesignLayer : l
             );
             return { ...s, layers: newLayers };
         }));
@@ -841,7 +841,7 @@ export default function DesignStudioPage() {
             };
             
             const newLayers = s.layers.map(l => 
-                selectedLayerIds.includes(l.id) ? { ...l, isHidden: true } : l
+                selectedLayerIds.includes(l.id) ? { ...l, isHidden: true } as DesignLayer : l
             );
             newLayers.push(newGroup);
             setSelectedLayerIds([newGroup.id]);
@@ -858,7 +858,7 @@ export default function DesignStudioPage() {
             
             let newLayers = s.layers.filter(l => l.id !== group.id);
             newLayers = newLayers.map(l => 
-                group.childLayerIds.includes(l.id) ? { ...l, isHidden: false } : l
+                group.childLayerIds.includes(l.id) ? { ...l, isHidden: false } as DesignLayer : l
             );
             
             setSelectedLayerIds(group.childLayerIds);
@@ -1025,7 +1025,7 @@ export default function DesignStudioPage() {
                             newX = Math.max(0, Math.min(newX, CANVAS_WIDTH - layer.width));
                             newY = Math.max(0, Math.min(newY, CANVAS_HEIGHT - layer.height));
 
-                            return { ...layer, x: newX, y: newY };
+                            return { ...layer, x: newX, y: newY } as DesignLayer;
                         }
                     } else if (layer.id === dragStart.layer.id) {
                          if (interactionMode.type === 'resize') {
@@ -1053,12 +1053,12 @@ export default function DesignStudioPage() {
                             const newX = centerX - newWidth / 2;
                             const newY = centerY - newHeight / 2;
                             
-                            return { ...layer, x: newX, y: newY, width: newWidth, height: newHeight };
+                            return { ...layer, x: newX, y: newY, width: newWidth, height: newHeight } as DesignLayer;
                         } else if (interactionMode.type === 'rotate') {
                              const centerX = layer.x + layer.width / 2;
                              const centerY = layer.y + layer.height / 2;
                              const angle = Math.atan2(mouseY - centerY, mouseX - centerX) * 180 / Math.PI;
-                             return { ...layer, rotation: angle + 90 };
+                             return { ...layer, rotation: angle + 90 } as DesignLayer;
                         }
                     }
                     return layer;
@@ -1180,18 +1180,18 @@ export default function DesignStudioPage() {
               const newId = `layer-${Date.now()}-${Math.random()}`;
               if (layer.type === 'video') {
                   const videoElement = videoElements[layer.id];
-                  if (!videoElement) return { ...layer, id: newId };
+                  if (!videoElement) return { ...layer, id: newId } as DesignLayer;
                   
                   const newVideoElement = videoElement.cloneNode(true) as HTMLVideoElement;
                   newVideoElement.currentTime = 0;
                   newVideoElement.play();
                   setVideoElements(prev => ({...prev, [newId]: newVideoElement}));
-                  return { ...layer, id: newId };
+                  return { ...layer, id: newId } as DesignLayer;
               }
               if (layer.type === 'image' && layer.image) {
-                  return { ...layer, id: newId, image: layer.image };
+                  return { ...layer, id: newId, image: layer.image } as DesignLayer;
               }
-              return { ...layer, id: newId };
+              return { ...layer, id: newId } as DesignLayer;
           })
       };
 
