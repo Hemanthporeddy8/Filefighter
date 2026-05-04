@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentQueueItem, DocumentSource } from "@/types";
-import { Trash2, UploadCloud, CheckCircle, AlertTriangle, Loader2, Clock, FilePlus2, Mail, QrCode, Printer, Pencil, ImageIcon, Download, Eye, Settings, Bell, Send, X, RefreshCw, Share2, Copy, MessageSquare } from 'lucide-react';
+import { Trash2, UploadCloud, CheckCircle, AlertTriangle, Loader2, Clock, FilePlus, FilePlus2, Mail, QrCode, Printer, Pencil, ImageIcon, Download, Eye, Settings, Bell, Send, X, RefreshCw, Share2, Copy, MessageSquare, Merge } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { QrCodeDisplay } from "@/components/app/qr-code-display";
 import {
