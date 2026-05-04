@@ -1,7 +1,7 @@
 // src/app/share/page.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FileUpload } from '@/components/app/file-upload';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,7 @@ const StatusIndicator = ({ status, isConnected }: { status: string, isConnected:
     );
 };
 
-
-export default function SharePage() {
+function SharePageContent() {
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('sessionId');
     const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
@@ -152,7 +151,7 @@ export default function SharePage() {
                             </div>
                         )}
                         {webrtcError && (
-                            <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md flex items-center gap-2">
+                             <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md flex items-center gap-2">
                                 <AlertTriangle className="h-4 w-4" />
                                 <p>{webrtcError}</p>
                             </div>
@@ -165,5 +164,13 @@ export default function SharePage() {
                 </Card>
             </main>
         </div>
+    );
+}
+
+export default function SharePage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-8 w-8 text-primary"/></div>}>
+            <SharePageContent />
+        </Suspense>
     );
 }

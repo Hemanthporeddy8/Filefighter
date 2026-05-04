@@ -2,7 +2,7 @@
 // src/app/upload/page.tsx
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { FileUpload } from '@/components/app/file-upload';
@@ -59,8 +59,7 @@ const StatusIndicator = ({ status }: { status: DashboardStatus }) => {
     );
 };
 
-
-export default function UploadPage() {
+function UploadPageContent() {
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('sessionId');
     const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
@@ -409,6 +408,14 @@ export default function UploadPage() {
                 </div>
             </footer>
         </div>
+    );
+}
+
+export default function UploadPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-8 w-8 text-primary"/></div>}>
+            <UploadPageContent />
+        </Suspense>
     );
 }
 
