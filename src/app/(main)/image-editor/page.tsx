@@ -584,7 +584,7 @@ export default function ImageEditorPage() {
             const currentAspect = aspect || (image.naturalWidth / image.naturalHeight);
             const newCrop = centerAspectCrop(image.naturalWidth, image.naturalHeight, currentAspect);
             setCrop(newCrop);
-            setCompletedCrop(newCrop as PixelCrop);
+            setCompletedCrop(newCrop as unknown as PixelCrop);
         }
          if (showRetouchControls) {
             const canvas = retouchImageCanvasRef.current;
