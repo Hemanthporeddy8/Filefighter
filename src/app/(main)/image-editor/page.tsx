@@ -2542,16 +2542,13 @@ export default function ImageEditorPage() {
                 ) : (
                   <div className="space-y-10 animate-in fade-in duration-500">
                     <Tabs defaultValue="Essentials" className="w-full">
-                      <ScrollArea className="w-full">
-                        <TabsList className="w-max bg-muted/40 p-2 mb-8 h-14 rounded-2xl gap-2 shadow-inner">
-                          {Object.keys(toolCategories).map(category => (
-                            <TabsTrigger key={category} value={category} className="px-6 text-xs font-black data-[state=active]:bg-background data-[state=active]:shadow-lg rounded-xl transition-all uppercase tracking-widest">
-                              {category}
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-                        <ScrollBar orientation="horizontal" className="h-1" />
-                      </ScrollArea>
+                      <TabsList className="flex flex-wrap h-auto bg-muted/40 p-1 mb-6 rounded-xl gap-1 shadow-inner border border-primary/5">
+                        {Object.keys(toolCategories).map(category => (
+                          <TabsTrigger key={category} value={category} className="flex-1 min-w-[80px] px-3 py-2 text-[10px] font-black data-[state=active]:bg-background data-[state=active]:shadow-md rounded-lg transition-all uppercase tracking-tighter">
+                            {category === "Adjust & Retouch" ? "Adjust" : category === "Frames & Text" ? "Frames" : category}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
 
                       {Object.entries(toolCategories).map(([category, tools]) => (
                         <TabsContent key={category} value={category} className="focus-visible:outline-none">
@@ -2562,25 +2559,25 @@ export default function ImageEditorPage() {
                                 variant={activeToolName === tool.name ? 'default' : 'ghost'}
                                 onClick={() => handleToolAction(tool)}
                                 className={cn(
-                                  "flex flex-row items-center justify-start p-6 h-24 gap-6 transition-all rounded-[1.5rem] group relative overflow-hidden border-2 shadow-sm",
-                                  activeToolName === tool.name ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/30 border-primary scale-[1.02]" : "bg-card/50 hover:bg-muted/80 border-transparent hover:border-primary/20",
+                                  "flex flex-row items-center justify-start p-3 h-18 gap-4 transition-all rounded-xl group relative overflow-hidden border-2 shadow-sm",
+                                  activeToolName === tool.name ? "bg-primary text-primary-foreground shadow-xl shadow-primary/20 border-primary scale-[1.02]" : "bg-card/50 hover:bg-muted/80 border-transparent hover:border-primary/20",
                                   tool.className
                                 )}
                                 disabled={isProcessing}
                               >
                                 <div className={cn(
-                                  "p-4 rounded-2xl transition-all shadow-md",
-                                  activeToolName === tool.name ? "bg-white/20" : "bg-background group-hover:scale-110 ring-1 ring-primary/10"
+                                  "p-2.5 rounded-xl transition-all shadow-sm",
+                                  activeToolName === tool.name ? "bg-white/20" : "bg-background group-hover:scale-110 ring-1 ring-primary/5"
                                 )}>
-                                  <tool.icon className={cn("h-8 w-8", activeToolName === tool.name ? "text-white" : "text-primary")} />
+                                  <tool.icon className={cn("h-6 w-6", activeToolName === tool.name ? "text-white" : "text-primary")} />
                                 </div>
-                                <div className="flex flex-col items-start text-left gap-1">
-                                  <span className="text-lg font-black leading-none tracking-tighter uppercase">{tool.name}</span>
-                                  <span className="text-[11px] opacity-70 font-bold line-clamp-1 italic">{tool.description}</span>
+                                <div className="flex flex-col items-start text-left gap-0.5">
+                                  <span className="text-sm font-black leading-none tracking-tight uppercase">{tool.name}</span>
+                                  <span className="text-[10px] opacity-60 font-bold line-clamp-1 italic">{tool.description}</span>
                                 </div>
                                 {activeToolName === tool.name && (
-                                  <div className="absolute right-6">
-                                    <div className="h-3 w-3 rounded-full bg-white animate-pulse shadow-[0_0_10px_white]" />
+                                  <div className="absolute right-4">
+                                    <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
                                   </div>
                                 )}
                               </Button>
