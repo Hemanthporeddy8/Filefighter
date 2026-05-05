@@ -2039,13 +2039,13 @@ export default function ImageEditorPage() {
         </div>
 
         {/* Professional Sidebar (Right) */}
-        <div className="w-full lg:w-[400px] shrink-0 flex flex-col gap-6">
+        <div className="w-full lg:w-[350px] shrink-0 flex flex-col gap-5">
             {/* Main Tools Sidebar - NOW AT THE TOP */}
             <Card className="shadow-2xl border-none overflow-hidden flex flex-col flex-1 min-h-[600px] bg-background/80 backdrop-blur-xl ring-1 ring-primary/20">
-              <CardHeader className="bg-primary/5 border-b py-6">
+              <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex justify-between items-center">
-                  <div className="flex flex-col gap-1">
-                    <CardTitle className="text-2xl font-black flex items-center gap-3 tracking-tighter">
+                  <div className="flex flex-col gap-0.5">
+                    <CardTitle className="text-lg font-black flex items-center gap-2 tracking-tight">
                       {activeToolName ? (
                         <>
                           <Button variant="ghost" size="icon" onClick={resetAllToolStates} className="h-8 w-8 rounded-full bg-background/50 shadow-sm">
@@ -2062,7 +2062,7 @@ export default function ImageEditorPage() {
                         </>
                       )}
                     </CardTitle>
-                    <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-50 pl-1">
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest opacity-50 pl-1">
                       {activeToolName ? 'Customize your edit' : 'Choose an editing superpower'}
                     </CardDescription>
                   </div>
@@ -2552,32 +2552,32 @@ export default function ImageEditorPage() {
 
                       {Object.entries(toolCategories).map(([category, tools]) => (
                         <TabsContent key={category} value={category} className="focus-visible:outline-none">
-                          <div className="grid grid-cols-1 gap-4">
+                          <div className="grid grid-cols-1 gap-3">
                             {tools.map(tool => (
                               <Button
                                 key={tool.actionId}
                                 variant={activeToolName === tool.name ? 'default' : 'ghost'}
                                 onClick={() => handleToolAction(tool)}
                                 className={cn(
-                                  "flex flex-row items-center justify-start p-3 h-18 gap-4 transition-all rounded-xl group relative overflow-hidden border-2 shadow-sm",
-                                  activeToolName === tool.name ? "bg-primary text-primary-foreground shadow-xl shadow-primary/20 border-primary scale-[1.02]" : "bg-card/50 hover:bg-muted/80 border-transparent hover:border-primary/20",
+                                  "flex flex-row items-center justify-start p-2.5 h-14 gap-3 transition-all rounded-xl group relative overflow-hidden border-2 shadow-sm",
+                                  activeToolName === tool.name ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary scale-[1.01]" : "bg-card/50 hover:bg-muted/80 border-transparent hover:border-primary/20",
                                   tool.className
                                 )}
                                 disabled={isProcessing}
                               >
                                 <div className={cn(
-                                  "p-2.5 rounded-xl transition-all shadow-sm",
+                                  "p-2 rounded-lg transition-all shadow-sm", 
                                   activeToolName === tool.name ? "bg-white/20" : "bg-background group-hover:scale-110 ring-1 ring-primary/5"
                                 )}>
-                                  <tool.icon className={cn("h-6 w-6", activeToolName === tool.name ? "text-white" : "text-primary")} />
+                                  <tool.icon className={cn("h-5 w-5", activeToolName === tool.name ? "text-white" : "text-primary")} />
                                 </div>
-                                <div className="flex flex-col items-start text-left gap-0.5">
-                                  <span className="text-sm font-black leading-none tracking-tight uppercase">{tool.name}</span>
-                                  <span className="text-[10px] opacity-60 font-bold line-clamp-1 italic">{tool.description}</span>
+                                <div className="flex flex-col items-start text-left gap-0">
+                                  <span className="text-xs font-black leading-none tracking-tight uppercase">{tool.name}</span>
+                                  <span className="text-[9px] opacity-60 font-bold line-clamp-1 italic">{tool.description}</span>
                                 </div>
                                 {activeToolName === tool.name && (
-                                  <div className="absolute right-4">
-                                    <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                                  <div className="absolute right-3">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                                   </div>
                                 )}
                               </Button>
