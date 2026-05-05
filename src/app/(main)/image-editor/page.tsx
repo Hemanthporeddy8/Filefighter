@@ -63,6 +63,7 @@ import {
   Wand2 as RetouchIcon,
   GraduationCap,
   Eraser,
+  Palette,
   Palette as AdjustIcon,
   Move,
 } from 'lucide-react';
@@ -84,27 +85,27 @@ import Image from 'next/image';
 
 // Dynamically import heavy components
 const GradingTool = dynamic(
-    () => import('@/components/app/grading-tool').then(m => m.GradingTool),
-    { 
-        loading: () => <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin" /></div>,
-        ssr: false 
-    }
+  () => import('@/components/app/grading-tool').then(m => m.GradingTool),
+  {
+    loading: () => <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin" /></div>,
+    ssr: false
+  }
 );
 const BackgroundRemover = dynamic(
-    () => import('@/components/app/background-remover').then(m => m.BackgroundRemover),
-    {
-        loading: () => <div className="text-center"><Loader2 className="mx-auto h-8 w-8 text-primary animate-spin" /><p className="mt-2 font-medium">Loading AI Model...</p></div>,
-        ssr: false
-    }
+  () => import('@/components/app/background-remover').then(m => m.BackgroundRemover),
+  {
+    loading: () => <div className="text-center"><Loader2 className="mx-auto h-8 w-8 text-primary animate-spin" /><p className="mt-2 font-medium">Loading AI Model...</p></div>,
+    ssr: false
+  }
 );
-const ReactCrop = dynamic(() => import('react-image-crop'), { 
-    ssr: false, 
-    loading: () => (
-        <div className="min-h-[400px] flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="ml-2">Loading Cropper...</p>
-        </div>
-    )
+const ReactCrop = dynamic(() => import('react-image-crop'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-[400px] flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+      <p className="ml-2">Loading Cropper...</p>
+    </div>
+  )
 });
 
 
@@ -118,46 +119,46 @@ interface ToolDefinition {
 }
 
 const toolCategories: Record<string, ToolDefinition[]> = {
-    "Essentials": [
-        { name: "Crop", icon: CropIcon, actionId: "crop", description: "Visually select an area of the image to keep." },
-        { name: "Resize", icon: Expand, actionId: "resize", description: "Change the dimensions of the image." },
-        { name: "Rotate Left", icon: RotateCcw, actionId: "rotateLeft", description: "Rotate the image 90 degrees counter-clockwise." },
-        { name: "Rotate Right", icon: RotateCw, actionId: "rotateRight", description: "Rotate the image 90 degrees clockwise." },
-        { name: "Flip Horizontal", icon: FlipHorizontal, actionId: "flipHorizontal", description: "Flip the image horizontally." },
-        { name: "Flip Vertical", icon: FlipVertical, actionId: "flipVertical", description: "Flip the image vertically." },
-    ],
-    "AI": [
-        { name: "Generate Image", icon: Sparkles, actionId: "generateImage", description: "Create an image from a text prompt.", className: "text-purple-500 hover:bg-purple-500/10 border-purple-500/20" },
-    ],
-    "Adjust & Retouch": [
-        { name: "Adjustments", icon: AdjustIcon, actionId: "adjustments", description: "Adjust brightness, contrast, and saturation.", className: "text-blue-400 hover:bg-blue-400/10 border-blue-400/20" },
-        { name: "Remove BG", icon: Eraser, actionId: "removeBackground", description: "Remove the image background.", className: "text-purple-500 hover:bg-purple-500/10 border-purple-500/20" },
-        { name: "Retouch/Eraser", icon: RetouchIcon, actionId: "retouch", description: "Remove blemishes or objects from the image." },
-        { name: "Grading Tool", icon: GraduationCap, actionId: "nameGrading", description: "Advanced color grading and curve adjustments." },
-        { name: "Background", icon: ImageIconLucide, actionId: "backgroundColor", description: "Add a solid color background, useful for PNGs." },
-    ],
-    "Composition": [
-        { name: "Merge Images", icon: LayoutPanelLeft, actionId: "mergeImages", description: "Merge images side-by-side or top-to-bottom." },
-        { name: "Stitch Images", icon: GanttChartSquare, actionId: "stitchImages", description: "Stitch images vertically or horizontally (e.g., for screenshots)." },
-        { name: "Overlay Image", icon: Layers, actionId: "overlayImage", description: "Overlay one image on another with custom position & opacity." },
-        { name: "Collage Maker", icon: GalleryThumbnails, actionId: "collageMaker", description: "Create collages with multiple layouts (grid/freestyle)." },
-        { name: "Image in Image (PiP)", icon: PictureInPicture, actionId: "pipImage", description: "Place one image inside another (Picture-in-Picture)." },
-    ],
-    "Frames & Text": [
-        { name: "Watermark", icon: Copyright, actionId: "watermark", description: "Insert text or image watermarks." },
-        { name: "Add Frame/Border", icon: FrameIcon, actionId: "addFrame", description: "Add frames or borders to your image." },
-    ],
-    "Utilities": [
-        { name: "Compress Image", icon: Minimize2, actionId: "compressImage", description: "Reduce the file size of the image (JPEG)." },
-        { name: "Convert Format", icon: Replace, actionId: "convertFormat", description: "Convert image format (e.g., to PNG, JPEG, WebP)." },
-    ]
+  "Essentials": [
+    { name: "Crop", icon: CropIcon, actionId: "crop", description: "Visually select an area of the image to keep." },
+    { name: "Resize", icon: Expand, actionId: "resize", description: "Change the dimensions of the image." },
+    { name: "Rotate Left", icon: RotateCcw, actionId: "rotateLeft", description: "Rotate the image 90 degrees counter-clockwise." },
+    { name: "Rotate Right", icon: RotateCw, actionId: "rotateRight", description: "Rotate the image 90 degrees clockwise." },
+    { name: "Flip Horizontal", icon: FlipHorizontal, actionId: "flipHorizontal", description: "Flip the image horizontally." },
+    { name: "Flip Vertical", icon: FlipVertical, actionId: "flipVertical", description: "Flip the image vertically." },
+  ],
+  "AI": [
+    { name: "Generate Image", icon: Sparkles, actionId: "generateImage", description: "Create an image from a text prompt.", className: "text-purple-500 hover:bg-purple-500/10 border-purple-500/20" },
+  ],
+  "Adjust & Retouch": [
+    { name: "Adjustments", icon: AdjustIcon, actionId: "adjustments", description: "Adjust brightness, contrast, and saturation.", className: "text-blue-400 hover:bg-blue-400/10 border-blue-400/20" },
+    { name: "Remove BG", icon: Eraser, actionId: "removeBackground", description: "Remove the image background.", className: "text-purple-500 hover:bg-purple-500/10 border-purple-500/20" },
+    { name: "Retouch/Eraser", icon: RetouchIcon, actionId: "retouch", description: "Remove blemishes or objects from the image." },
+    { name: "Grading Tool", icon: GraduationCap, actionId: "nameGrading", description: "Advanced color grading and curve adjustments." },
+    { name: "Background", icon: ImageIconLucide, actionId: "backgroundColor", description: "Add a solid color background, useful for PNGs." },
+  ],
+  "Composition": [
+    { name: "Merge Images", icon: LayoutPanelLeft, actionId: "mergeImages", description: "Merge images side-by-side or top-to-bottom." },
+    { name: "Stitch Images", icon: GanttChartSquare, actionId: "stitchImages", description: "Stitch images vertically or horizontally (e.g., for screenshots)." },
+    { name: "Overlay Image", icon: Layers, actionId: "overlayImage", description: "Overlay one image on another with custom position & opacity." },
+    { name: "Collage Maker", icon: GalleryThumbnails, actionId: "collageMaker", description: "Create collages with multiple layouts (grid/freestyle)." },
+    { name: "Image in Image (PiP)", icon: PictureInPicture, actionId: "pipImage", description: "Place one image inside another (Picture-in-Picture)." },
+  ],
+  "Frames & Text": [
+    { name: "Watermark", icon: Copyright, actionId: "watermark", description: "Insert text or image watermarks." },
+    { name: "Add Frame/Border", icon: FrameIcon, actionId: "addFrame", description: "Add frames or borders to your image." },
+  ],
+  "Utilities": [
+    { name: "Compress Image", icon: Minimize2, actionId: "compressImage", description: "Reduce the file size of the image (JPEG)." },
+    { name: "Convert Format", icon: Replace, actionId: "convertFormat", description: "Convert image format (e.g., to PNG, JPEG, WebP)." },
+  ]
 };
 
 const baseImageNeededActions = [
-    "crop", "resize", "rotateLeft", "rotateRight", "mergeImages", "stitchImages", 
-    "flipHorizontal", "flipVertical", "compressImage", "overlayImage", "collageMaker", 
-    "imageToPdfSingle", "convertFormat", "pipImage", "watermark", "addFrame", 
-    "imageEnhancer", "adjustments", "retouch", "nameGrading", "backgroundColor", "removeBackground"
+  "crop", "resize", "rotateLeft", "rotateRight", "mergeImages", "stitchImages",
+  "flipHorizontal", "flipVertical", "compressImage", "overlayImage", "collageMaker",
+  "imageToPdfSingle", "convertFormat", "pipImage", "watermark", "addFrame",
+  "imageEnhancer", "adjustments", "retouch", "nameGrading", "backgroundColor", "removeBackground"
 ];
 
 
@@ -262,28 +263,28 @@ const dataURLtoFile = (dataurl: string, filename: string): File => {
 
 // Helper to convert Blob URL to Data URL
 const blobUrlToDataUrl = (blobUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        fetch(blobUrl)
-            .then(res => res.blob())
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    resolve(reader.result as string);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            })
-            .catch(reject);
-    });
+  return new Promise((resolve, reject) => {
+    fetch(blobUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result as string);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      })
+      .catch(reject);
+  });
 };
 
 
 function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 
@@ -341,7 +342,7 @@ export default function ImageEditorPage() {
       objectUrlsRef.current.add(url);
     }
   };
-  
+
   const [crop, setCrop] = useState<ReactCropType>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [scale, setScale] = useState(1);
@@ -351,6 +352,7 @@ export default function ImageEditorPage() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeToolName, setActiveToolName] = useState<string | null>(null);
+  const [isSourceOpen, setIsSourceOpen] = useState(false);
 
   const [showCropper, setShowCropper] = useState(false);
   const [showResizeControls, setShowResizeControls] = useState(false);
@@ -407,7 +409,7 @@ export default function ImageEditorPage() {
   const [pipScale, setPipScale] = useState(0.3);
   const [pipPreviewDataUrl, setPipPreviewDataUrl] = useState<string | null>(null);
   const [isAdjustingPip, setIsAdjustingPip] = useState(false);
-  const [pipRect, setPipRect] = useState({ x: 10, y: 10, width: 30, height: 30}); // x, y, width, height in % of container
+  const [pipRect, setPipRect] = useState({ x: 10, y: 10, width: 30, height: 30 }); // x, y, width, height in % of container
   const [dragPipInfo, setDragPipInfo] = useState<{ offsetX: number, offsetY: number } | null>(null);
 
   const [showWatermarkControls, setShowWatermarkControls] = useState(false);
@@ -430,7 +432,7 @@ export default function ImageEditorPage() {
 
   const [showBackgroundColorControls, setShowBackgroundColorControls] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-  
+
   // State for client-side adjustments
   const [showAdjustmentsControls, setShowAdjustmentsControls] = useState(false);
   const [adjustments, setAdjustments] = useState({
@@ -442,7 +444,7 @@ export default function ImageEditorPage() {
     invert: 0,
     hueRotate: 0,
   });
-  
+
   const [showBatchControls, setShowBatchControls] = useState(false);
   const [batchFiles, setBatchFiles] = useState<BatchFileItem[]>([]);
   const [batchAction, setBatchAction] = useState('compress');
@@ -492,10 +494,10 @@ export default function ImageEditorPage() {
   const updateImageAndHistory = (newSrc: string) => {
     setImgSrc(newSrc);
     setHistory(prev => {
-        // Cut off any future states if we are undoing and then making a new change
-        const newHistory = prev.slice(0, historyIndex + 1);
-        newHistory.push(newSrc);
-        return newHistory;
+      // Cut off any future states if we are undoing and then making a new change
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(newSrc);
+      return newHistory;
     });
     setHistoryIndex(prev => prev + 1);
   };
@@ -515,14 +517,14 @@ export default function ImageEditorPage() {
       setImgSrc(history[newIndex]);
     }
   };
-  
+
   const onSelectFile = useCallback((files: File[]) => {
     const file = files[0] || null;
     setImageFile(file);
     if (file) {
       setCrop(undefined);
       setCompletedCrop(undefined);
-      
+
       // Cleanup previous object URLs when a new file is explicitly selected
       objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
       objectUrlsRef.current.clear();
@@ -544,78 +546,78 @@ export default function ImageEditorPage() {
       setHistoryIndex(-1);
     }
   }, []);
-  
+
   useEffect(() => {
     const docId = searchParams.get('docId');
     if (docId) {
-        const doc = documents.find(d => d.id === docId);
-        if (doc) {
-            setSourceDocument(doc);
-            if (doc.dataUri) {
-                try {
-                    const file = dataURLtoFile(doc.dataUri, doc.name);
-                    onSelectFile([file]);
-                    toast({ title: "Image Loaded", description: "Ready for editing." });
-                } catch (error) {
-                    toast({ title: "Load Failed", description: "Could not load the transferred image.", variant: "destructive" });
-                }
-            } else {
-                 toast({ title: "Data Missing", description: "The selected document does not have loaded data. Please re-upload.", variant: "destructive" });
-                 router.push('/dashboard');
-            }
+      const doc = documents.find(d => d.id === docId);
+      if (doc) {
+        setSourceDocument(doc);
+        if (doc.dataUri) {
+          try {
+            const file = dataURLtoFile(doc.dataUri, doc.name);
+            onSelectFile([file]);
+            toast({ title: "Image Loaded", description: "Ready for editing." });
+          } catch (error) {
+            toast({ title: "Load Failed", description: "Could not load the transferred image.", variant: "destructive" });
+          }
+        } else {
+          toast({ title: "Data Missing", description: "The selected document does not have loaded data. Please re-upload.", variant: "destructive" });
+          router.push('/dashboard');
         }
+      }
     }
   }, [searchParams, documents, toast, onSelectFile, router]);
 
   useEffect(() => {
     if (!imgSrc) {
-        setImageState(null);
-        return;
+      setImageState(null);
+      return;
     }
     const image = new window.Image();
     image.src = imgSrc;
     image.crossOrigin = "anonymous";
     image.onload = () => {
-        setImageState({ image, width: image.naturalWidth, height: image.naturalHeight });
-        if (showResizeControls) {
-            setResizeWidth(image.naturalWidth.toString());
-            setResizeHeight(image.naturalHeight.toString());
+      setImageState({ image, width: image.naturalWidth, height: image.naturalHeight });
+      if (showResizeControls) {
+        setResizeWidth(image.naturalWidth.toString());
+        setResizeHeight(image.naturalHeight.toString());
+      }
+      if (showCropper) {
+        const currentAspect = aspect || (image.naturalWidth / image.naturalHeight);
+        const newCrop = centerAspectCrop(image.naturalWidth, image.naturalHeight, currentAspect);
+        setCrop(newCrop);
+        setCompletedCrop(newCrop as unknown as PixelCrop);
+      }
+      if (showRetouchControls) {
+        const canvas = retouchImageCanvasRef.current;
+        const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+        if (canvas && ctx) {
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          ctx.drawImage(image, 0, 0);
+          originalImageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
         }
-        if (showCropper) {
-            const currentAspect = aspect || (image.naturalWidth / image.naturalHeight);
-            const newCrop = centerAspectCrop(image.naturalWidth, image.naturalHeight, currentAspect);
-            setCrop(newCrop);
-            setCompletedCrop(newCrop as unknown as PixelCrop);
-        }
-         if (showRetouchControls) {
-            const canvas = retouchImageCanvasRef.current;
-            const ctx = canvas?.getContext('2d', { willReadFrequently: true });
-            if (canvas && ctx) {
-                canvas.width = image.naturalWidth;
-                canvas.height = image.naturalHeight;
-                ctx.drawImage(image, 0, 0);
-                originalImageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            }
-        }
+      }
     };
     image.onerror = () => {
-        console.error("Failed to load image programmatically.");
-        setImageState(null);
-        toast({ title: "Image Load Error", description: "Could not load the image.", variant: "destructive" });
+      console.error("Failed to load image programmatically.");
+      setImageState(null);
+      toast({ title: "Image Load Error", description: "Could not load the image.", variant: "destructive" });
     }
   }, [imgSrc, showResizeControls, showCropper, showRetouchControls, aspect, toast]);
 
   const handleSelectFromQueue = (doc: DocumentQueueItem) => {
     if (doc.dataUri) {
-        try {
-            setSourceDocument(doc);
-            const file = dataURLtoFile(doc.dataUri, doc.name);
-            onSelectFile([file]);
-            setIsQueueDialogOpen(false);
-            toast({ title: "Image Loaded", description: `Loaded ${doc.name} from the queue.` });
-        } catch (error) {
-            toast({ title: "Load Failed", description: "Could not load the selected image.", variant: "destructive" });
-        }
+      try {
+        setSourceDocument(doc);
+        const file = dataURLtoFile(doc.dataUri, doc.name);
+        onSelectFile([file]);
+        setIsQueueDialogOpen(false);
+        toast({ title: "Image Loaded", description: `Loaded ${doc.name} from the queue.` });
+      } catch (error) {
+        toast({ title: "Load Failed", description: "Could not load the selected image.", variant: "destructive" });
+      }
     }
   };
 
@@ -623,7 +625,7 @@ export default function ImageEditorPage() {
     debounce(async (currentCrop: PixelCrop) => {
       const previewCanvas = document.createElement('canvas'); // Create temporary canvas
       if (currentCrop.width && currentCrop.height && imgRef.current && previewCanvas) {
-       try {
+        try {
           await canvasPreview(imgRef.current, previewCanvas, currentCrop, scale, rotateState);
         } catch (error) { console.error("Error in canvasPreview debounce:", error) }
       }
@@ -637,7 +639,7 @@ export default function ImageEditorPage() {
     }
   }, [completedCrop, debouncedCanvasPreview, showCropper]);
 
-    const fileTypeFromDataURL = (dataURL: string | null): string => {
+  const fileTypeFromDataURL = (dataURL: string | null): string => {
     if (!dataURL) return 'image/png'; // Default if null
     const match = dataURL.match(/^data:(image\/[a-z]+);/);
     return match ? match[1] : 'image/png'; // Default if type not found
@@ -681,15 +683,15 @@ export default function ImageEditorPage() {
     setCollageSlotSrcs([imgSrc, null, null, null]);
     setScale(1);
     setRotateState(0);
-    setAdjustments({ 
-      brightness: 100, 
-      contrast: 100, 
+    setAdjustments({
+      brightness: 100,
+      contrast: 100,
       saturate: 100,
       grayscale: 0,
       sepia: 0,
       invert: 0,
       hueRotate: 0,
-     });
+    });
   };
 
   const handleRotateImage = async (degrees: number) => {
@@ -809,13 +811,13 @@ export default function ImageEditorPage() {
       toast({ title: "No Image", description: "There is no edited image to send.", variant: "destructive" });
       return;
     }
-  
+
     try {
       let finalDataUrl = imgSrc;
       if (imgSrc.startsWith('blob:')) {
         finalDataUrl = await blobUrlToDataUrl(imgSrc);
       }
-      
+
       const editedFile = dataURLtoFile(finalDataUrl, `edited-${imageFile.name}`);
       const editedDoc: Omit<DocumentQueueItem, 'id' | 'files' | 'status'> = {
         name: editedFile.name,
@@ -836,62 +838,62 @@ export default function ImageEditorPage() {
       };
 
       const newFiles = [...(originalDoc.files || [originalFileItem]), editedDoc];
-  
+
       updateDocument(sourceDocument.id, {
-          name: `Batch: ${originalDoc.name}`,
-          type: 'Batch',
-          status: 'Edited',
-          files: newFiles
+        name: `Batch: ${originalDoc.name}`,
+        type: 'Batch',
+        status: 'Edited',
+        files: newFiles
       });
-  
+
       toast({
         title: 'Edits Saved',
         description: 'The edited image has been grouped with the original in the queue.',
       });
       router.push('/dashboard');
-  
+
     } catch (error) {
       console.error("Failed to send to queue:", error);
       toast({ title: "Error", description: "Could not create file to send to queue.", variant: "destructive" });
     }
   };
-  
+
   const handleSendBackToPassportPhoto = async () => {
-      if (!imageFile || !imgSrc || !returnPath) return;
-  
-      try {
-          let finalDataUrl = imgSrc;
-          if (imgSrc.startsWith('blob:')) {
-              finalDataUrl = await blobUrlToDataUrl(imgSrc);
-          }
-  
-          const editedFile = dataURLtoFile(finalDataUrl, `edited-${imageFile.name}`);
-          const newDoc: DocumentQueueItem = {
-              id: `doc-edited-${Date.now()}`,
-              name: editedFile.name,
-              type: 'Image',
-              status: 'Edited',
-              uploadedAt: new Date(),
-              size: formatFileSize(editedFile.size),
-              dataUri: finalDataUrl,
-          };
-          
-          updateDocument(sourceDocument!.id, newDoc);
-          router.push(`${returnPath}?docId=${sourceDocument!.id}`);
-      } catch (error) {
-           toast({ title: "Error", description: "Could not send image back.", variant: "destructive" });
+    if (!imageFile || !imgSrc || !returnPath) return;
+
+    try {
+      let finalDataUrl = imgSrc;
+      if (imgSrc.startsWith('blob:')) {
+        finalDataUrl = await blobUrlToDataUrl(imgSrc);
       }
+
+      const editedFile = dataURLtoFile(finalDataUrl, `edited-${imageFile.name}`);
+      const newDoc: DocumentQueueItem = {
+        id: `doc-edited-${Date.now()}`,
+        name: editedFile.name,
+        type: 'Image',
+        status: 'Edited',
+        uploadedAt: new Date(),
+        size: formatFileSize(editedFile.size),
+        dataUri: finalDataUrl,
+      };
+
+      updateDocument(sourceDocument!.id, newDoc);
+      router.push(`${returnPath}?docId=${sourceDocument!.id}`);
+    } catch (error) {
+      toast({ title: "Error", description: "Could not send image back.", variant: "destructive" });
+    }
   };
 
   const handleDownload = () => {
     let finalSrc = imgSrc;
     if (activeToolName === 'Retouch/Eraser' && retouchImageCanvasRef.current) {
-        finalSrc = retouchImageCanvasRef.current.toDataURL('image/png');
+      finalSrc = retouchImageCanvasRef.current.toDataURL('image/png');
     }
 
     if (!finalSrc) {
-        toast({ title: "Nothing to download", variant: "destructive" });
-        return;
+      toast({ title: "Nothing to download", variant: "destructive" });
+      return;
     }
     const link = document.createElement('a');
     link.href = finalSrc;
@@ -900,121 +902,121 @@ export default function ImageEditorPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-};
-  
+  };
+
   const handleDownloadCroppedImage = useCallback(async () => {
     const image = imgRef.current;
     const previewCanvas = document.createElement('canvas');
     if (!image || !completedCrop || !previewCanvas) {
       throw new Error('Crop canvas does not exist');
     }
-  
+
     await canvasPreview(image, previewCanvas, completedCrop);
-    
+
     const blob = await new Promise<Blob | null>(resolve => previewCanvas.toBlob(resolve, 'image/png'));
-    
-    if(!blob) {
-        toast({ title: "Error", description: "Could not create cropped image blob.", variant: "destructive"});
-        return;
+
+    if (!blob) {
+      toast({ title: "Error", description: "Could not create cropped image blob.", variant: "destructive" });
+      return;
     }
-  
+
     const dataUrl = URL.createObjectURL(blob);
     registerObjectUrl(dataUrl);
     updateImageAndHistory(dataUrl);
     setShowCropper(false);
     setCroppedImageUrl(null);
-  
+
   }, [completedCrop, toast]);
 
   const handleResizeImage = () => {
-      const width = parseInt(resizeWidth, 10);
-      const height = parseInt(resizeHeight, 10);
+    const width = parseInt(resizeWidth, 10);
+    const height = parseInt(resizeHeight, 10);
 
-      if (!imgSrc || !imageState || isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
-          toast({ title: 'Invalid Dimensions', description: 'Please provide valid width and height.', variant: 'destructive'});
-          return;
-      }
-      setIsProcessing(true);
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-          ctx.drawImage(imageState.image, 0, 0, width, height);
-          const resizedDataUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
-          updateImageAndHistory(resizedDataUrl);
-          toast({ title: 'Image Resized', description: `New dimensions: ${width}x${height}` });
-      } else {
-          toast({ title: "Error", description: "Could not get canvas context for resizing.", variant: "destructive" });
-      }
-      setShowResizeControls(false);
-      setIsProcessing(false);
+    if (!imgSrc || !imageState || isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+      toast({ title: 'Invalid Dimensions', description: 'Please provide valid width and height.', variant: 'destructive' });
+      return;
+    }
+    setIsProcessing(true);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(imageState.image, 0, 0, width, height);
+      const resizedDataUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
+      updateImageAndHistory(resizedDataUrl);
+      toast({ title: 'Image Resized', description: `New dimensions: ${width}x${height}` });
+    } else {
+      toast({ title: "Error", description: "Could not get canvas context for resizing.", variant: "destructive" });
+    }
+    setShowResizeControls(false);
+    setIsProcessing(false);
   };
-  
-  const handleResizeInputChange = (e: React.ChangeEvent<HTMLInputElement>, dimension: 'width' | 'height') => {
-      const value = e.target.value;
-      if (!imageState || !maintainAspectRatio) {
-          if (dimension === 'width') setResizeWidth(value);
-          else setResizeHeight(value);
-          return;
-      }
-      
-      const numericValue = parseInt(value, 10);
-      if (isNaN(numericValue) || numericValue <= 0) {
-        if (dimension === 'width') setResizeWidth(value);
-        else setResizeHeight(value);
-        return;
-      }
 
-      const aspectRatio = imageState.width / imageState.height;
-      if (dimension === 'width') {
-          setResizeWidth(value);
-          setResizeHeight(Math.round(numericValue / aspectRatio).toString());
-      } else {
-          setResizeHeight(value);
-          setResizeWidth(Math.round(numericValue * aspectRatio).toString());
-      }
+  const handleResizeInputChange = (e: React.ChangeEvent<HTMLInputElement>, dimension: 'width' | 'height') => {
+    const value = e.target.value;
+    if (!imageState || !maintainAspectRatio) {
+      if (dimension === 'width') setResizeWidth(value);
+      else setResizeHeight(value);
+      return;
+    }
+
+    const numericValue = parseInt(value, 10);
+    if (isNaN(numericValue) || numericValue <= 0) {
+      if (dimension === 'width') setResizeWidth(value);
+      else setResizeHeight(value);
+      return;
+    }
+
+    const aspectRatio = imageState.width / imageState.height;
+    if (dimension === 'width') {
+      setResizeWidth(value);
+      setResizeHeight(Math.round(numericValue / aspectRatio).toString());
+    } else {
+      setResizeHeight(value);
+      setResizeWidth(Math.round(numericValue * aspectRatio).toString());
+    }
   };
 
   const handleMergeImages = useCallback((dataUrl1: string, dataUrl2: string, direction: 'horizontal' | 'vertical') => {
     return new Promise<string>((resolve, reject) => {
-        const img1 = new window.Image();
-        const img2 = new window.Image();
-        img1.crossOrigin = "anonymous";
-        img2.crossOrigin = "anonymous";
-        let loadedCount = 0;
+      const img1 = new window.Image();
+      const img2 = new window.Image();
+      img1.crossOrigin = "anonymous";
+      img2.crossOrigin = "anonymous";
+      let loadedCount = 0;
 
-        const onBothLoaded = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) { reject("Could not get context"); return; }
-            
-            if (direction === 'horizontal') {
-                canvas.width = img1.naturalWidth + img2.naturalWidth;
-                canvas.height = Math.max(img1.naturalHeight, img2.naturalHeight);
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0,0, canvas.width, canvas.height);
-                ctx.drawImage(img1, 0, (canvas.height - img1.naturalHeight) / 2);
-                ctx.drawImage(img2, img1.naturalWidth, (canvas.height - img2.naturalHeight) / 2);
-            } else { // vertical
-                canvas.width = Math.max(img1.naturalWidth, img2.naturalWidth);
-                canvas.height = img1.naturalHeight + img2.naturalHeight;
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0,0, canvas.width, canvas.height);
-                ctx.drawImage(img1, (canvas.width - img1.naturalWidth) / 2, 0);
-                ctx.drawImage(img2, (canvas.width - img2.naturalWidth) / 2, img1.naturalHeight);
-            }
-            resolve(canvas.toDataURL('image/png'));
-        };
+      const onBothLoaded = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject("Could not get context"); return; }
 
-        img1.onload = () => { if (++loadedCount === 2) onBothLoaded(); };
-        img2.onload = () => { if (++loadedCount === 2) onBothLoaded(); };
-        img1.onerror = () => reject("Failed to load base image");
-        img2.onerror = () => reject("Failed to load merge image");
+        if (direction === 'horizontal') {
+          canvas.width = img1.naturalWidth + img2.naturalWidth;
+          canvas.height = Math.max(img1.naturalHeight, img2.naturalHeight);
+          ctx.fillStyle = backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img1, 0, (canvas.height - img1.naturalHeight) / 2);
+          ctx.drawImage(img2, img1.naturalWidth, (canvas.height - img2.naturalHeight) / 2);
+        } else { // vertical
+          canvas.width = Math.max(img1.naturalWidth, img2.naturalWidth);
+          canvas.height = img1.naturalHeight + img2.naturalHeight;
+          ctx.fillStyle = backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img1, (canvas.width - img1.naturalWidth) / 2, 0);
+          ctx.drawImage(img2, (canvas.width - img2.naturalWidth) / 2, img1.naturalHeight);
+        }
+        resolve(canvas.toDataURL('image/png'));
+      };
 
-        img1.src = dataUrl1;
-        img2.src = dataUrl2;
+      img1.onload = () => { if (++loadedCount === 2) onBothLoaded(); };
+      img2.onload = () => { if (++loadedCount === 2) onBothLoaded(); };
+      img1.onerror = () => reject("Failed to load base image");
+      img2.onerror = () => reject("Failed to load merge image");
+
+      img1.src = dataUrl1;
+      img2.src = dataUrl2;
     });
   }, [backgroundColor]);
 
@@ -1024,93 +1026,93 @@ export default function ImageEditorPage() {
 
     const sources = collageSlotSrcs.slice(0, layout.requiredImages);
     if (sources.some(s => !s)) {
-        setCollageResultDataUrl(null);
-        return; // Not all slots are filled
+      setCollageResultDataUrl(null);
+      return; // Not all slots are filled
     }
 
     setIsProcessingCollage(true);
 
     try {
-        const images = await Promise.all(sources.map(src => {
-            return new Promise<HTMLImageElement>((resolve, reject) => {
-                const img = new window.Image();
-                img.crossOrigin = "anonymous";
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = src!;
-            });
-        }));
+      const images = await Promise.all(sources.map(src => {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new window.Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src!;
+        });
+      }));
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error("Canvas not supported");
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas not supported");
 
-        const width = 1200; // Common width for collage
-        let height = 800; // Default height
+      const width = 1200; // Common width for collage
+      let height = 800; // Default height
 
-        ctx.fillStyle = '#fff';
+      ctx.fillStyle = '#fff';
 
-        if (layout.value === '2_horizontal') {
-            height = width / (images[0].naturalWidth / images[0].naturalHeight + images[1].naturalWidth / images[1].naturalHeight);
-            canvas.width = width;
-            canvas.height = height;
-            ctx.fillRect(0,0,width,height);
-            const w1 = width * (images[0].naturalWidth / (images[0].naturalWidth + images[1].naturalWidth));
-            ctx.drawImage(images[0], 0, 0, w1, height);
-            ctx.drawImage(images[1], w1, 0, width - w1, height);
-        } else if (layout.value === '2_vertical') {
-            canvas.width = width;
-            canvas.height = width;
-            ctx.fillRect(0,0,width,width);
-            ctx.drawImage(images[0], 0, 0, width, width/2);
-            ctx.drawImage(images[1], 0, width/2, width, width/2);
-        } else if (layout.value === '2x2_grid') {
-            canvas.width = width;
-            canvas.height = width;
-             ctx.fillRect(0,0,width,width);
-            ctx.drawImage(images[0], 0, 0, width / 2, width / 2);
-            ctx.drawImage(images[1], width / 2, 0, width / 2, width / 2);
-            ctx.drawImage(images[2], 0, width / 2, width / 2, width / 2);
-            ctx.drawImage(images[3], width / 2, width / 2, width / 2, width / 2);
-        }
+      if (layout.value === '2_horizontal') {
+        height = width / (images[0].naturalWidth / images[0].naturalHeight + images[1].naturalWidth / images[1].naturalHeight);
+        canvas.width = width;
+        canvas.height = height;
+        ctx.fillRect(0, 0, width, height);
+        const w1 = width * (images[0].naturalWidth / (images[0].naturalWidth + images[1].naturalWidth));
+        ctx.drawImage(images[0], 0, 0, w1, height);
+        ctx.drawImage(images[1], w1, 0, width - w1, height);
+      } else if (layout.value === '2_vertical') {
+        canvas.width = width;
+        canvas.height = width;
+        ctx.fillRect(0, 0, width, width);
+        ctx.drawImage(images[0], 0, 0, width, width / 2);
+        ctx.drawImage(images[1], 0, width / 2, width, width / 2);
+      } else if (layout.value === '2x2_grid') {
+        canvas.width = width;
+        canvas.height = width;
+        ctx.fillRect(0, 0, width, width);
+        ctx.drawImage(images[0], 0, 0, width / 2, width / 2);
+        ctx.drawImage(images[1], width / 2, 0, width / 2, width / 2);
+        ctx.drawImage(images[2], 0, width / 2, width / 2, width / 2);
+        ctx.drawImage(images[3], width / 2, width / 2, width / 2, width / 2);
+      }
 
-        setCollageResultDataUrl(canvas.toDataURL('image/jpeg', 0.9));
+      setCollageResultDataUrl(canvas.toDataURL('image/jpeg', 0.9));
     } catch (error) {
-        toast({ title: 'Collage Error', description: 'Could not load one or more images for the collage.', variant: 'destructive' });
+      toast({ title: 'Collage Error', description: 'Could not load one or more images for the collage.', variant: 'destructive' });
     } finally {
-        setIsProcessingCollage(false);
+      setIsProcessingCollage(false);
     }
   }, [selectedCollageLayout, collageSlotSrcs, toast]);
 
   useEffect(() => {
     if (showMergeControls && imgSrc && mergeImageSrc) {
-        const generateMergePreview = async () => {
-            setIsProcessing(true);
-            try {
-                const resultUrl = await handleMergeImages(imgSrc, mergeImageSrc, mergeDirection);
-                setMergedPreviewDataUrl(resultUrl);
-            } catch (error) {
-                toast({ title: "Merge Failed", description: (error as Error).message, variant: "destructive" });
-            }
-            setIsProcessing(false);
-        };
-        generateMergePreview();
+      const generateMergePreview = async () => {
+        setIsProcessing(true);
+        try {
+          const resultUrl = await handleMergeImages(imgSrc, mergeImageSrc, mergeDirection);
+          setMergedPreviewDataUrl(resultUrl);
+        } catch (error) {
+          toast({ title: "Merge Failed", description: (error as Error).message, variant: "destructive" });
+        }
+        setIsProcessing(false);
+      };
+      generateMergePreview();
     }
   }, [imgSrc, mergeImageSrc, mergeDirection, showMergeControls, toast, handleMergeImages]);
-  
+
   useEffect(() => {
     if (showStitchControls && imgSrc && stitchImageSrc) {
-        const generateStitchPreview = async () => {
-            setIsProcessing(true);
-            try {
-                const resultUrl = await handleMergeImages(imgSrc, stitchImageSrc, stitchDirection);
-                setStitchedPreviewDataUrl(resultUrl);
-            } catch (error) {
-                toast({ title: "Stitch Failed", description: (error as Error).message, variant: "destructive" });
-            }
-            setIsProcessing(false);
-        };
-        generateStitchPreview();
+      const generateStitchPreview = async () => {
+        setIsProcessing(true);
+        try {
+          const resultUrl = await handleMergeImages(imgSrc, stitchImageSrc, stitchDirection);
+          setStitchedPreviewDataUrl(resultUrl);
+        } catch (error) {
+          toast({ title: "Stitch Failed", description: (error as Error).message, variant: "destructive" });
+        }
+        setIsProcessing(false);
+      };
+      generateStitchPreview();
     }
   }, [imgSrc, stitchImageSrc, stitchDirection, showStitchControls, toast, handleMergeImages]);
 
@@ -1123,20 +1125,20 @@ export default function ImageEditorPage() {
   const handleCollageFileSelect = (files: File[], index: number) => {
     const file = files[0];
     if (file) {
-        setCollageSlotFiles(prev => {
-            const newFiles = [...prev];
-            newFiles[index] = file;
-            return newFiles;
+      setCollageSlotFiles(prev => {
+        const newFiles = [...prev];
+        newFiles[index] = file;
+        return newFiles;
+      });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCollageSlotSrcs(prev => {
+          const newSrcs = [...prev];
+          newSrcs[index] = e.target?.result as string;
+          return newSrcs;
         });
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            setCollageSlotSrcs(prev => {
-                const newSrcs = [...prev];
-                newSrcs[index] = e.target?.result as string;
-                return newSrcs;
-            });
-        };
-        reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -1149,8 +1151,8 @@ export default function ImageEditorPage() {
 
   const handleCompressImage = () => {
     if (!imgSrc || !imageState) {
-        toast({ title: 'No Image', description: 'Please load an image to compress.', variant: 'destructive' });
-        return;
+      toast({ title: 'No Image', description: 'Please load an image to compress.', variant: 'destructive' });
+      return;
     }
     setIsProcessing(true);
 
@@ -1159,19 +1161,19 @@ export default function ImageEditorPage() {
     canvas.height = imageState.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-        toast({ title: 'Error', description: 'Could not create canvas for compression.', variant: 'destructive' });
-        setIsProcessing(false);
-        return;
+      toast({ title: 'Error', description: 'Could not create canvas for compression.', variant: 'destructive' });
+      setIsProcessing(false);
+      return;
     }
 
     ctx.drawImage(imageState.image, 0, 0);
     const compressedDataUrl = canvas.toDataURL('image/jpeg', compressionQuality);
-    
+
     const originalSize = imageFile?.size ?? 0;
     const newFile = dataURLtoFile(compressedDataUrl, 'compressed.jpg');
-    
+
     updateImageAndHistory(compressedDataUrl);
-    
+
     toast({
       title: 'Image Compressed',
       description: `Original: ${formatFileSize(originalSize)} | New: ${formatFileSize(newFile.size)}`,
@@ -1183,8 +1185,8 @@ export default function ImageEditorPage() {
 
   const handleConvertFormat = () => {
     if (!imgSrc || !imageState) {
-        toast({ title: 'No Image', description: 'Please load an image to convert.', variant: 'destructive' });
-        return;
+      toast({ title: 'No Image', description: 'Please load an image to convert.', variant: 'destructive' });
+      return;
     }
     setIsProcessing(true);
 
@@ -1193,16 +1195,16 @@ export default function ImageEditorPage() {
     canvas.height = imageState.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-        toast({ title: 'Error', description: 'Could not create canvas for conversion.', variant: 'destructive' });
-        setIsProcessing(false);
-        return;
+      toast({ title: 'Error', description: 'Could not create canvas for conversion.', variant: 'destructive' });
+      setIsProcessing(false);
+      return;
     }
 
     ctx.drawImage(imageState.image, 0, 0);
     const convertedDataUrl = canvas.toDataURL(convertTargetFormat, 0.9); // Use quality for lossy formats
 
     updateImageAndHistory(convertedDataUrl);
-    
+
     toast({
       title: 'Format Converted',
       description: `Image successfully converted to ${convertTargetFormat.split('/')[1].toUpperCase()}.`,
@@ -1211,11 +1213,11 @@ export default function ImageEditorPage() {
     setShowConvertControls(false);
     setIsProcessing(false);
   };
-  
+
   const handleApplyBackgroundColor = () => {
     if (!imageState || !imgSrc) {
-        toast({ title: "No Image", description: "Please load an image first.", variant: "destructive" });
-        return;
+      toast({ title: "No Image", description: "Please load an image first.", variant: "destructive" });
+      return;
     }
     setIsProcessing(true);
     const canvas = document.createElement('canvas');
@@ -1223,9 +1225,9 @@ export default function ImageEditorPage() {
     canvas.height = imageState.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-        setIsProcessing(false);
-        toast({ title: "Error", description: "Canvas not supported.", variant: "destructive" });
-        return;
+      setIsProcessing(false);
+      toast({ title: "Error", description: "Canvas not supported.", variant: "destructive" });
+      return;
     }
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1235,7 +1237,7 @@ export default function ImageEditorPage() {
     setShowBackgroundColorControls(false);
     setIsProcessing(false);
   };
-  
+
   const handleApplyOverlay = () => {
     if (!imageState || !overlayImageFile || !overlayImageSrc) return;
     setIsProcessing(true);
@@ -1243,112 +1245,112 @@ export default function ImageEditorPage() {
     const overlayImage = new window.Image();
     overlayImage.crossOrigin = "anonymous";
     overlayImage.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = baseImage.naturalWidth;
-        canvas.height = baseImage.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = baseImage.naturalWidth;
+      canvas.height = baseImage.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-        // Draw base image
-        ctx.drawImage(baseImage, 0, 0);
-        
-        // Prepare transformations for the overlay
-        ctx.save();
-        ctx.globalAlpha = overlayOpacity;
+      // Draw base image
+      ctx.drawImage(baseImage, 0, 0);
 
-        const overlayWidth = canvas.width * (overlayRect.width / 100);
-        const overlayHeight = canvas.height * (overlayRect.height / 100);
-        const x = (overlayRect.x / 100) * canvas.width;
-        const y = (overlayRect.y / 100) * canvas.height;
-        
-        const centerX = x + overlayWidth / 2;
-        const centerY = y + overlayHeight / 2;
+      // Prepare transformations for the overlay
+      ctx.save();
+      ctx.globalAlpha = overlayOpacity;
 
-        // Translate to the center of the overlay, rotate, then translate back
-        ctx.translate(centerX, centerY);
-        ctx.rotate(overlayRotation * Math.PI / 180);
-        ctx.translate(-centerX, -centerY);
-        
-        // Draw the rotated overlay
-        ctx.drawImage(overlayImage, x, y, overlayWidth, overlayHeight);
+      const overlayWidth = canvas.width * (overlayRect.width / 100);
+      const overlayHeight = canvas.height * (overlayRect.height / 100);
+      const x = (overlayRect.x / 100) * canvas.width;
+      const y = (overlayRect.y / 100) * canvas.height;
 
-        ctx.restore(); // Restore the canvas state (removes transformations)
-        
-        const finalDataUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
-        updateImageAndHistory(finalDataUrl);
-        resetAllToolStates();
-        setIsProcessing(false);
-        toast({ title: "Overlay Applied" });
+      const centerX = x + overlayWidth / 2;
+      const centerY = y + overlayHeight / 2;
+
+      // Translate to the center of the overlay, rotate, then translate back
+      ctx.translate(centerX, centerY);
+      ctx.rotate(overlayRotation * Math.PI / 180);
+      ctx.translate(-centerX, -centerY);
+
+      // Draw the rotated overlay
+      ctx.drawImage(overlayImage, x, y, overlayWidth, overlayHeight);
+
+      ctx.restore(); // Restore the canvas state (removes transformations)
+
+      const finalDataUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
+      updateImageAndHistory(finalDataUrl);
+      resetAllToolStates();
+      setIsProcessing(false);
+      toast({ title: "Overlay Applied" });
     };
     overlayImage.src = overlayImageSrc;
   };
-  
+
   const handleApplyWatermark = () => {
-      if (!imageState) return;
-      setIsProcessingWatermark(true);
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = imageState.width;
-      canvas.height = imageState.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-          setIsProcessingWatermark(false);
-          return;
-      }
-      ctx.drawImage(imageState.image, 0, 0);
+    if (!imageState) return;
+    setIsProcessingWatermark(true);
 
-      // Common style
-      ctx.globalAlpha = watermarkOpacity;
-      ctx.fillStyle = watermarkTextColor;
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
-      
-      if (watermarkType === 'text') {
-          ctx.font = `${watermarkTextSize}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const text = watermarkText;
+    const canvas = document.createElement('canvas');
+    canvas.width = imageState.width;
+    canvas.height = imageState.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setIsProcessingWatermark(false);
+      return;
+    }
+    ctx.drawImage(imageState.image, 0, 0);
 
-          if (watermarkPosition === 'center') {
-              ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-          } else if (watermarkPosition === 'bottom-right') {
-              ctx.textAlign = 'right';
-              ctx.textBaseline = 'bottom';
-              ctx.fillText(text, canvas.width - 10, canvas.height - 10);
-          } else { // tile
-              for (let y = 0; y < canvas.height + watermarkTextSize; y += watermarkTextSize * 2) {
-                  for (let x = 0; x < canvas.width + 200; x += ctx.measureText(text).width + 50) {
-                      ctx.save();
-                      ctx.translate(x, y);
-                      ctx.rotate(-0.25 * Math.PI);
-                      ctx.fillText(text, 0, 0);
-                      ctx.restore();
-                  }
-              }
+    // Common style
+    ctx.globalAlpha = watermarkOpacity;
+    ctx.fillStyle = watermarkTextColor;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+
+    if (watermarkType === 'text') {
+      ctx.font = `${watermarkTextSize}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const text = watermarkText;
+
+      if (watermarkPosition === 'center') {
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      } else if (watermarkPosition === 'bottom-right') {
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(text, canvas.width - 10, canvas.height - 10);
+      } else { // tile
+        for (let y = 0; y < canvas.height + watermarkTextSize; y += watermarkTextSize * 2) {
+          for (let x = 0; x < canvas.width + 200; x += ctx.measureText(text).width + 50) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(-0.25 * Math.PI);
+            ctx.fillText(text, 0, 0);
+            ctx.restore();
           }
-      } else if (watermarkType === 'image' && watermarkImageSrc) {
-          const watermarkImg = new window.Image();
-          watermarkImg.onload = () => {
-              const scale = 0.2; // Example scale
-              const w = watermarkImg.width * scale;
-              const h = watermarkImg.height * scale;
-              if (watermarkPosition === 'center') {
-                  ctx.drawImage(watermarkImg, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
-              } else if (watermarkPosition === 'bottom-right') {
-                  ctx.drawImage(watermarkImg, canvas.width - w - 10, canvas.height - h - 10, w, h);
-              }
-          };
-          watermarkImg.src = watermarkImageSrc;
+        }
       }
-      
-      // Update the main image source after drawing
-      setTimeout(() => {
-          const finalUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
-          updateImageAndHistory(finalUrl);
-          setShowWatermarkControls(false);
-          setIsProcessingWatermark(false);
-          toast({ title: 'Watermark Applied' });
-      }, 500); // Delay to allow image to draw
+    } else if (watermarkType === 'image' && watermarkImageSrc) {
+      const watermarkImg = new window.Image();
+      watermarkImg.onload = () => {
+        const scale = 0.2; // Example scale
+        const w = watermarkImg.width * scale;
+        const h = watermarkImg.height * scale;
+        if (watermarkPosition === 'center') {
+          ctx.drawImage(watermarkImg, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+        } else if (watermarkPosition === 'bottom-right') {
+          ctx.drawImage(watermarkImg, canvas.width - w - 10, canvas.height - h - 10, w, h);
+        }
+      };
+      watermarkImg.src = watermarkImageSrc;
+    }
+
+    // Update the main image source after drawing
+    setTimeout(() => {
+      const finalUrl = canvasToDataURL(canvas, fileTypeFromDataURL(imgSrc));
+      updateImageAndHistory(finalUrl);
+      setShowWatermarkControls(false);
+      setIsProcessingWatermark(false);
+      toast({ title: 'Watermark Applied' });
+    }, 500); // Delay to allow image to draw
   };
 
   const handleApplyFrame = () => {
@@ -1363,8 +1365,8 @@ export default function ImageEditorPage() {
     canvas.height = image.naturalHeight + frameSize;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-        setIsProcessingFrame(false);
-        return;
+      setIsProcessingFrame(false);
+      return;
     }
 
     // Draw the frame color
@@ -1380,97 +1382,97 @@ export default function ImageEditorPage() {
     setIsProcessingFrame(false);
     toast({ title: 'Frame Applied' });
   };
-  
+
   const handleApplyPip = useCallback(async () => {
     if (!imageState || !pipImageSrc || !previewContainerRef.current) {
-        toast({ title: "Cannot Apply", description: "Base image or PiP image is missing.", variant: "destructive" });
-        return;
+      toast({ title: "Cannot Apply", description: "Base image or PiP image is missing.", variant: "destructive" });
+      return;
     }
-    
+
     setIsProcessing(true);
-    
+
     try {
-        const baseImage = imageState.image;
-        const pipImage = new window.Image();
-        pipImage.crossOrigin = "anonymous";
-        pipImage.src = pipImageSrc;
-        
-        await new Promise((resolve, reject) => {
-            pipImage.onload = resolve;
-            pipImage.onerror = reject;
-        });
+      const baseImage = imageState.image;
+      const pipImage = new window.Image();
+      pipImage.crossOrigin = "anonymous";
+      pipImage.src = pipImageSrc;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = baseImage.naturalWidth;
-        canvas.height = baseImage.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error("Canvas context is not available.");
+      await new Promise((resolve, reject) => {
+        pipImage.onload = resolve;
+        pipImage.onerror = reject;
+      });
 
-        ctx.drawImage(baseImage, 0, 0);
-        ctx.globalAlpha = pipOpacity;
+      const canvas = document.createElement('canvas');
+      canvas.width = baseImage.naturalWidth;
+      canvas.height = baseImage.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas context is not available.");
 
-        const pipWidth = canvas.width * (pipRect.width / 100);
-        const pipHeight = canvas.height * (pipRect.height / 100);
-        const x = (pipRect.x / 100) * canvas.width;
-        const y = (pipRect.y / 100) * canvas.height;
+      ctx.drawImage(baseImage, 0, 0);
+      ctx.globalAlpha = pipOpacity;
 
-        ctx.drawImage(pipImage, x, y, pipWidth, pipHeight);
-        
-        const finalDataUrl = canvas.toDataURL('image/png');
-        updateImageAndHistory(finalDataUrl);
-        resetAllToolStates();
-        toast({ title: "PiP Effect Applied" });
+      const pipWidth = canvas.width * (pipRect.width / 100);
+      const pipHeight = canvas.height * (pipRect.height / 100);
+      const x = (pipRect.x / 100) * canvas.width;
+      const y = (pipRect.y / 100) * canvas.height;
+
+      ctx.drawImage(pipImage, x, y, pipWidth, pipHeight);
+
+      const finalDataUrl = canvas.toDataURL('image/png');
+      updateImageAndHistory(finalDataUrl);
+      resetAllToolStates();
+      toast({ title: "PiP Effect Applied" });
 
     } catch (e) {
-        console.error("Error applying PiP:", e);
-        toast({ title: "PiP Failed", description: "Could not apply the Picture-in-Picture effect.", variant: "destructive" });
+      console.error("Error applying PiP:", e);
+      toast({ title: "PiP Failed", description: "Could not apply the Picture-in-Picture effect.", variant: "destructive" });
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
   }, [imageState, pipImageSrc, pipOpacity, pipRect, toast]);
-  
+
   const handlePipMouseDown = useCallback((e: MouseEvent | TouchEvent) => {
     if (!previewContainerRef.current) return;
     const containerRect = previewContainerRef.current.getBoundingClientRect();
-    
+
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     const pipElement = previewContainerRef.current.querySelector('[data-pip-draggable="true"]') as HTMLElement;
     if (!pipElement) return;
-    
+
     const pipRect = pipElement.getBoundingClientRect();
-    
+
     const offsetX = clientX - pipRect.left;
     const offsetY = clientY - pipRect.top;
-    
+
     setDragPipInfo({ offsetX, offsetY });
   }, []);
 
   const handlePipMouseMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
     if (!dragPipInfo || !previewContainerRef.current) return;
-    
+
     const containerRect = previewContainerRef.current.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
     let newX = clientX - containerRect.left - dragPipInfo.offsetX;
     let newY = clientY - containerRect.top - dragPipInfo.offsetY;
-    
+
     const newXPercent = (newX / containerRect.width) * 100;
     const newYPercent = (newY / containerRect.height) * 100;
-    
+
     setPipRect(prev => ({
-        ...prev,
-        x: Math.max(0, Math.min(newXPercent, 100 - prev.width)),
-        y: Math.max(0, Math.min(newYPercent, 100 - prev.height)),
+      ...prev,
+      x: Math.max(0, Math.min(newXPercent, 100 - prev.width)),
+      y: Math.max(0, Math.min(newYPercent, 100 - prev.height)),
     }));
   }, [dragPipInfo]);
-  
+
   const handlePipMouseUp = useCallback(() => {
     setDragPipInfo(null);
   }, []);
-  
+
   useEffect(() => {
     if (dragPipInfo) {
       window.addEventListener('mousemove', handlePipMouseMove);
@@ -1487,343 +1489,343 @@ export default function ImageEditorPage() {
   }, [dragPipInfo, handlePipMouseMove, handlePipMouseUp]);
 
   const startDrawingRetouch = (e: MouseEvent<HTMLCanvasElement>) => {
-        isDrawingRef.current = true;
-        drawRetouch(e);
+    isDrawingRef.current = true;
+    drawRetouch(e);
   };
 
-    const stopDrawingRetouch = () => {
-        if (isDrawingRef.current && imageState) {
-            isDrawingRef.current = false;
-        }
-    };
-
-    const drawRetouch = (e: MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawingRef.current || !retouchImageCanvasRef.current) return;
-
-        const canvas = retouchImageCanvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-
-        if (retouchTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.beginPath();
-            ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (retouchTool === 'restore' && originalImageDataRef.current) {
-            ctx.globalCompositeOperation = 'source-over';
-            const radius = brushSize / 2;
-            const destData = ctx.getImageData(x - radius, y - radius, brushSize, brushSize);
-            const sourceData = originalImageDataRef.current;
-            
-            for (let i = 0; i < destData.data.length; i += 4) {
-                const pixelX = Math.floor(x - radius + (i/4) % brushSize);
-                const pixelY = Math.floor(y - radius + Math.floor((i/4) / brushSize));
-                const sourceIndex = (pixelY * canvas.width + pixelX) * 4;
-                
-                destData.data[i] = sourceData.data[sourceIndex];
-                destData.data[i + 1] = sourceData.data[sourceIndex + 1];
-                destData.data[i + 2] = sourceData.data[sourceIndex + 2];
-                destData.data[i + 3] = sourceData.data[sourceIndex + 3];
-            }
-            ctx.putImageData(destData, x - radius, y - radius);
-        }
-    };
-    
-    const applyRetouch = () => {
-        const canvas = retouchImageCanvasRef.current;
-        if (!canvas) return;
-        updateImageAndHistory(canvas.toDataURL('image/png'));
-        resetAllToolStates();
-        toast({ title: "Retouch Applied" });
-    };
-
-    const updateCursorPosition = (e: MouseEvent<HTMLDivElement>) => {
-      const cursor = brushCursorRef.current;
-      const container = previewContainerRef.current;
-      if (!cursor || !container) return;
-
-      const containerRect = container.getBoundingClientRect();
-      cursor.style.left = `${e.clientX - containerRect.left}px`;
-      cursor.style.top = `${e.clientY - containerRect.top}px`;
+  const stopDrawingRetouch = () => {
+    if (isDrawingRef.current && imageState) {
+      isDrawingRef.current = false;
     }
+  };
 
-    useEffect(() => {
-      const cursor = brushCursorRef.current;
-      if (!cursor || !showRetouchControls || !imgRef.current) return;
-      
-      const imgRect = imgRef.current.getBoundingClientRect();
-      const scale = imageState ? (imgRect.width / imageState.width) : 1;
-      const size = brushSize * scale;
+  const drawRetouch = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current || !retouchImageCanvasRef.current) return;
 
-      cursor.style.width = `${size}px`;
-      cursor.style.height = `${size}px`;
-      cursor.classList.toggle('border-red-500', retouchTool === 'eraser');
-      cursor.classList.toggle('border-green-500', retouchTool === 'restore');
+    const canvas = retouchImageCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    }, [brushSize, retouchTool, showRetouchControls, imageState]);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
-    const activateRetouchTool = (initialImage?: HTMLImageElement) => {
-        const imageToUse = initialImage || imageState?.image;
-        if (!imageToUse) return;
+    if (retouchTool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (retouchTool === 'restore' && originalImageDataRef.current) {
+      ctx.globalCompositeOperation = 'source-over';
+      const radius = brushSize / 2;
+      const destData = ctx.getImageData(x - radius, y - radius, brushSize, brushSize);
+      const sourceData = originalImageDataRef.current;
 
-        const canvas = retouchImageCanvasRef.current;
-        const ctx = canvas?.getContext('2d', { willReadFrequently: true });
-        if (canvas && ctx) {
-            canvas.width = imageToUse.naturalWidth;
-            canvas.height = imageToUse.naturalHeight;
-            ctx.drawImage(imageToUse, 0, 0);
-            if (!originalImageDataRef.current) {
-                originalImageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            }
-        }
-        setShowRetouchControls(true);
-        setActiveToolName('Retouch/Eraser');
-    };
+      for (let i = 0; i < destData.data.length; i += 4) {
+        const pixelX = Math.floor(x - radius + (i / 4) % brushSize);
+        const pixelY = Math.floor(y - radius + Math.floor((i / 4) / brushSize));
+        const sourceIndex = (pixelY * canvas.width + pixelX) * 4;
+
+        destData.data[i] = sourceData.data[sourceIndex];
+        destData.data[i + 1] = sourceData.data[sourceIndex + 1];
+        destData.data[i + 2] = sourceData.data[sourceIndex + 2];
+        destData.data[i + 3] = sourceData.data[sourceIndex + 3];
+      }
+      ctx.putImageData(destData, x - radius, y - radius);
+    }
+  };
+
+  const applyRetouch = () => {
+    const canvas = retouchImageCanvasRef.current;
+    if (!canvas) return;
+    updateImageAndHistory(canvas.toDataURL('image/png'));
+    resetAllToolStates();
+    toast({ title: "Retouch Applied" });
+  };
+
+  const updateCursorPosition = (e: MouseEvent<HTMLDivElement>) => {
+    const cursor = brushCursorRef.current;
+    const container = previewContainerRef.current;
+    if (!cursor || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    cursor.style.left = `${e.clientX - containerRect.left}px`;
+    cursor.style.top = `${e.clientY - containerRect.top}px`;
+  }
+
+  useEffect(() => {
+    const cursor = brushCursorRef.current;
+    if (!cursor || !showRetouchControls || !imgRef.current) return;
+
+    const imgRect = imgRef.current.getBoundingClientRect();
+    const scale = imageState ? (imgRect.width / imageState.width) : 1;
+    const size = brushSize * scale;
+
+    cursor.style.width = `${size}px`;
+    cursor.style.height = `${size}px`;
+    cursor.classList.toggle('border-red-500', retouchTool === 'eraser');
+    cursor.classList.toggle('border-green-500', retouchTool === 'restore');
+
+  }, [brushSize, retouchTool, showRetouchControls, imageState]);
+
+  const activateRetouchTool = (initialImage?: HTMLImageElement) => {
+    const imageToUse = initialImage || imageState?.image;
+    if (!imageToUse) return;
+
+    const canvas = retouchImageCanvasRef.current;
+    const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+    if (canvas && ctx) {
+      canvas.width = imageToUse.naturalWidth;
+      canvas.height = imageToUse.naturalHeight;
+      ctx.drawImage(imageToUse, 0, 0);
+      if (!originalImageDataRef.current) {
+        originalImageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      }
+    }
+    setShowRetouchControls(true);
+    setActiveToolName('Retouch/Eraser');
+  };
 
   const handleToolAction = async (tool: ToolDefinition) => {
     const aiActions = ["generateImage"];
     if (baseImageNeededActions.includes(tool.actionId) && !aiActions.includes(tool.actionId) && !imgSrc) {
-        toast({ title: 'No Image', description: 'Please upload an image to use this tool.', variant: 'destructive' });
-        return;
+      toast({ title: 'No Image', description: 'Please upload an image to use this tool.', variant: 'destructive' });
+      return;
     }
-    
+
     resetAllToolStates();
     setActiveToolName(tool.name);
 
     switch (tool.actionId) {
-        case 'generateImage':
-            setShowAiGenerator(true);
-            break;
-        case 'removeBackground':
-            // This now just sets the state to show the BackgroundRemover component
-            break;
-        case 'retouch':
-            activateRetouchTool();
-            break;
-        case 'crop':
-            setShowCropper(true);
-            break;
-        case 'resize':
-            setShowResizeControls(true);
-            if(imageState) {
-                setResizeWidth(imageState.width.toString());
-                setResizeHeight(imageState.height.toString());
-            }
-            break;
-        case 'rotateLeft':
-            handleRotateImage(-90);
-            break;
-        case 'rotateRight':
-            handleRotateImage(90);
-            break;
-        case 'flipHorizontal':
-            handleFlipImage('horizontal');
-            break;
-        case 'flipVertical':
-            handleFlipImage('vertical');
-            break;
-        case 'mergeImages':
-            setShowMergeControls(true);
-            break;
-        case 'stitchImages':
-            setShowStitchControls(true);
-            break;
-        case 'compressImage':
-            setShowCompressControls(true);
-            break;
-        case 'overlayImage':
-            setShowOverlayControls(true);
-            break;
-        case 'collageMaker':
-            setShowCollageControls(true);
-            setCollageSlotFiles([imageFile, null, null, null]);
-            setCollageSlotSrcs([imgSrc, null, null, null]);
-            break;
-        case 'convertFormat':
-            setShowConvertControls(true);
-            break;
-        case 'pipImage':
-            setShowPipControls(true);
-            break;
-        case 'batchProcess':
-            setShowBatchControls(true);
-            if (imageFile) {
-                setBatchFiles([{ id: imageFile.name + Date.now(), name: imageFile.name, file: imageFile }]);
-            }
-            break;
-        case 'watermark':
-            setShowWatermarkControls(true);
-            break;
-        case 'addFrame':
-            setShowFrameControls(true);
-            break;
-        case 'adjustments':
-            setShowAdjustmentsControls(true);
-            break;
-        case 'backgroundColor':
-            setShowBackgroundColorControls(true);
-            break;
-        case 'nameGrading':
-            // The main tool component will be rendered conditionally
-            break;
+      case 'generateImage':
+        setShowAiGenerator(true);
+        break;
+      case 'removeBackground':
+        // This now just sets the state to show the BackgroundRemover component
+        break;
+      case 'retouch':
+        activateRetouchTool();
+        break;
+      case 'crop':
+        setShowCropper(true);
+        break;
+      case 'resize':
+        setShowResizeControls(true);
+        if (imageState) {
+          setResizeWidth(imageState.width.toString());
+          setResizeHeight(imageState.height.toString());
+        }
+        break;
+      case 'rotateLeft':
+        handleRotateImage(-90);
+        break;
+      case 'rotateRight':
+        handleRotateImage(90);
+        break;
+      case 'flipHorizontal':
+        handleFlipImage('horizontal');
+        break;
+      case 'flipVertical':
+        handleFlipImage('vertical');
+        break;
+      case 'mergeImages':
+        setShowMergeControls(true);
+        break;
+      case 'stitchImages':
+        setShowStitchControls(true);
+        break;
+      case 'compressImage':
+        setShowCompressControls(true);
+        break;
+      case 'overlayImage':
+        setShowOverlayControls(true);
+        break;
+      case 'collageMaker':
+        setShowCollageControls(true);
+        setCollageSlotFiles([imageFile, null, null, null]);
+        setCollageSlotSrcs([imgSrc, null, null, null]);
+        break;
+      case 'convertFormat':
+        setShowConvertControls(true);
+        break;
+      case 'pipImage':
+        setShowPipControls(true);
+        break;
+      case 'batchProcess':
+        setShowBatchControls(true);
+        if (imageFile) {
+          setBatchFiles([{ id: imageFile.name + Date.now(), name: imageFile.name, file: imageFile }]);
+        }
+        break;
+      case 'watermark':
+        setShowWatermarkControls(true);
+        break;
+      case 'addFrame':
+        setShowFrameControls(true);
+        break;
+      case 'adjustments':
+        setShowAdjustmentsControls(true);
+        break;
+      case 'backgroundColor':
+        setShowBackgroundColorControls(true);
+        break;
+      case 'nameGrading':
+        // The main tool component will be rendered conditionally
+        break;
     }
   };
-  
-    const handleOverlayMouseDown = useCallback((e: MouseEvent | TouchEvent) => {
-        if (!previewContainerRef.current) return;
-        const target = e.target as HTMLElement;
-        const handleType = target.dataset.handle as OverlayDragType;
-        if (!handleType) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
 
-        const containerRect = previewContainerRef.current.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+  const handleOverlayMouseDown = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!previewContainerRef.current) return;
+    const target = e.target as HTMLElement;
+    const handleType = target.dataset.handle as OverlayDragType;
+    if (!handleType) return;
 
-        const startX = (clientX - containerRect.left) / containerRect.width * 100;
-        const startY = (clientY - containerRect.top) / containerRect.height * 100;
+    e.preventDefault();
+    e.stopPropagation();
 
-        setDragInfo({
-            type: handleType,
-            startX: startX,
-            startY: startY,
-            initialRect: { ...overlayRect }
-        });
-    }, [overlayRect]);
+    const containerRect = previewContainerRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-    const handleWindowMouseMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
-        if (!dragInfo || !previewContainerRef.current) return;
+    const startX = (clientX - containerRect.left) / containerRect.width * 100;
+    const startY = (clientY - containerRect.top) / containerRect.height * 100;
 
-        const containerRect = previewContainerRef.current.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setDragInfo({
+      type: handleType,
+      startX: startX,
+      startY: startY,
+      initialRect: { ...overlayRect }
+    });
+  }, [overlayRect]);
 
-        const currentX = (clientX - containerRect.left) / containerRect.width * 100;
-        const currentY = (clientY - containerRect.top) / containerRect.height * 100;
+  const handleWindowMouseMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
+    if (!dragInfo || !previewContainerRef.current) return;
 
-        const dx = currentX - dragInfo.startX;
-        const dy = currentY - dragInfo.startY;
+    const containerRect = previewContainerRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-        let newRect = { ...dragInfo.initialRect };
-        
-        if (dragInfo.type === 'move') {
-            newRect.x += dx;
-            newRect.y += dy;
-        } else {
-            if (dragInfo.type.includes('w')) { newRect.x += dx; newRect.width -= dx; }
-            if (dragInfo.type.includes('e')) { newRect.width += dx; }
-            if (dragInfo.type.includes('n')) { newRect.y += dy; newRect.height -= dy; }
-            if (dragInfo.type.includes('s')) { newRect.height += dy; }
-        }
+    const currentX = (clientX - containerRect.left) / containerRect.width * 100;
+    const currentY = (clientY - containerRect.top) / containerRect.height * 100;
 
-        // Boundary checks
-        if (newRect.width < 5) {
-            newRect.width = 5;
-            if(dragInfo.type.includes('w')) newRect.x = dragInfo.initialRect.x + dragInfo.initialRect.width - 5;
-        }
-        if (newRect.height < 5) {
-            newRect.height = 5;
-            if(dragInfo.type.includes('n')) newRect.y = dragInfo.initialRect.y + dragInfo.initialRect.height - 5;
-        }
-        if (newRect.x < 0) { newRect.width += newRect.x; newRect.x = 0; }
-        if (newRect.y < 0) { newRect.height += newRect.y; newRect.y = 0; }
-        if (newRect.x + newRect.width > 100) { newRect.width = 100 - newRect.x; }
-        if (newRect.y + newRect.height > 100) { newRect.height = 100 - newRect.y; }
+    const dx = currentX - dragInfo.startX;
+    const dy = currentY - dragInfo.startY;
 
-        setOverlayRect(newRect);
+    let newRect = { ...dragInfo.initialRect };
 
-    }, [dragInfo]);
+    if (dragInfo.type === 'move') {
+      newRect.x += dx;
+      newRect.y += dy;
+    } else {
+      if (dragInfo.type.includes('w')) { newRect.x += dx; newRect.width -= dx; }
+      if (dragInfo.type.includes('e')) { newRect.width += dx; }
+      if (dragInfo.type.includes('n')) { newRect.y += dy; newRect.height -= dy; }
+      if (dragInfo.type.includes('s')) { newRect.height += dy; }
+    }
 
-    const handleWindowMouseUp = useCallback(() => {
-        setDragInfo(null);
-    }, []);
+    // Boundary checks
+    if (newRect.width < 5) {
+      newRect.width = 5;
+      if (dragInfo.type.includes('w')) newRect.x = dragInfo.initialRect.x + dragInfo.initialRect.width - 5;
+    }
+    if (newRect.height < 5) {
+      newRect.height = 5;
+      if (dragInfo.type.includes('n')) newRect.y = dragInfo.initialRect.y + dragInfo.initialRect.height - 5;
+    }
+    if (newRect.x < 0) { newRect.width += newRect.x; newRect.x = 0; }
+    if (newRect.y < 0) { newRect.height += newRect.y; newRect.y = 0; }
+    if (newRect.x + newRect.width > 100) { newRect.width = 100 - newRect.x; }
+    if (newRect.y + newRect.height > 100) { newRect.height = 100 - newRect.y; }
 
-    useEffect(() => {
-        if (dragInfo) {
-            window.addEventListener('mousemove', handleWindowMouseMove);
-            window.addEventListener('touchmove', handleWindowMouseMove);
-            window.addEventListener('mouseup', handleWindowMouseUp);
-            window.addEventListener('touchend', handleWindowMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleWindowMouseMove);
-            window.removeEventListener('touchmove', handleWindowMouseMove);
-            window.removeEventListener('mouseup', handleWindowMouseUp);
-            window.removeEventListener('touchend', handleWindowMouseUp);
-        };
-    }, [dragInfo, handleWindowMouseMove, handleWindowMouseUp]);
-    
-    const handleGenerateAiImage = async () => {
-        if (!aiPrompt) {
-          toast({ title: 'Prompt is empty', description: 'Please enter a prompt to generate an image.', variant: 'destructive' });
-          return;
-        }
-        setIsProcessing(true);
-        resetAllToolStates();
-    
-        // Simulate AI generation by drawing on a canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 600;
-        const ctx = canvas.getContext('2d');
-    
-        if (!ctx) {
-          toast({ title: 'Error', description: 'Canvas not supported.', variant: 'destructive' });
-          setIsProcessing(false);
-          return;
-        }
-    
-        // Create a simple generative-art-like placeholder
-        const seed = aiPrompt.length;
-        ctx.fillStyle = `hsl(${seed * 10}, 20%, 95%)`;
-        ctx.fillRect(0, 0, 800, 600);
-        for (let i = 0; i < 20; i++) {
-            ctx.fillStyle = `hsla(${(seed * 10 + i * 20) % 360}, 50%, 60%, 0.5)`;
-            ctx.beginPath();
-            ctx.arc(
-                Math.random() * 800,
-                Math.random() * 600,
-                Math.random() * 100 + 20,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-        }
-        ctx.fillStyle = '#000';
-        ctx.font = '24px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`AI-Generated for: "${aiPrompt}"`, 400, 300);
-    
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `ai-generated-${Date.now()}.png`, { type: 'image/png' });
-            onSelectFile([file]);
-            toast({ title: 'Image Generated', description: 'Placeholder image loaded into the editor.' });
-          } else {
-            toast({ title: 'Generation Failed', description: 'Could not create image blob.', variant: 'destructive' });
-          }
-          setIsProcessing(false);
-        }, 'image/png');
+    setOverlayRect(newRect);
+
+  }, [dragInfo]);
+
+  const handleWindowMouseUp = useCallback(() => {
+    setDragInfo(null);
+  }, []);
+
+  useEffect(() => {
+    if (dragInfo) {
+      window.addEventListener('mousemove', handleWindowMouseMove);
+      window.addEventListener('touchmove', handleWindowMouseMove);
+      window.addEventListener('mouseup', handleWindowMouseUp);
+      window.addEventListener('touchend', handleWindowMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('touchmove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+      window.removeEventListener('touchend', handleWindowMouseUp);
     };
+  }, [dragInfo, handleWindowMouseMove, handleWindowMouseUp]);
+
+  const handleGenerateAiImage = async () => {
+    if (!aiPrompt) {
+      toast({ title: 'Prompt is empty', description: 'Please enter a prompt to generate an image.', variant: 'destructive' });
+      return;
+    }
+    setIsProcessing(true);
+    resetAllToolStates();
+
+    // Simulate AI generation by drawing on a canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      toast({ title: 'Error', description: 'Canvas not supported.', variant: 'destructive' });
+      setIsProcessing(false);
+      return;
+    }
+
+    // Create a simple generative-art-like placeholder
+    const seed = aiPrompt.length;
+    ctx.fillStyle = `hsl(${seed * 10}, 20%, 95%)`;
+    ctx.fillRect(0, 0, 800, 600);
+    for (let i = 0; i < 20; i++) {
+      ctx.fillStyle = `hsla(${(seed * 10 + i * 20) % 360}, 50%, 60%, 0.5)`;
+      ctx.beginPath();
+      ctx.arc(
+        Math.random() * 800,
+        Math.random() * 600,
+        Math.random() * 100 + 20,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+    ctx.fillStyle = '#000';
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`AI-Generated for: "${aiPrompt}"`, 400, 300);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `ai-generated-${Date.now()}.png`, { type: 'image/png' });
+        onSelectFile([file]);
+        toast({ title: 'Image Generated', description: 'Placeholder image loaded into the editor.' });
+      } else {
+        toast({ title: 'Generation Failed', description: 'Could not create image blob.', variant: 'destructive' });
+      }
+      setIsProcessing(false);
+    }, 'image/png');
+  };
 
   if (activeToolName === 'Grading Tool') {
     return (
-        <GradingTool 
-            initialImageSrc={imgSrc}
-            onExport={(dataUrl) => {
-                updateImageAndHistory(dataUrl);
-                setActiveToolName(null); // Exit grading tool on export
-            }}
-            onCancel={() => setActiveToolName(null)}
-        />
+      <GradingTool
+        initialImageSrc={imgSrc}
+        onExport={(dataUrl) => {
+          updateImageAndHistory(dataUrl);
+          setActiveToolName(null); // Exit grading tool on export
+        }}
+        onCancel={() => setActiveToolName(null)}
+      />
     );
   }
 
@@ -1843,676 +1845,860 @@ export default function ImageEditorPage() {
           e.currentTarget.value = '';
         }}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-              <CardHeader className="flex flex-row justify-between items-start">
-                  <div>
-                    <CardTitle>Editor</CardTitle>
-                  </div>
-                   {imgSrc && (
-                    <Button variant="outline" onClick={() => { setImgSrc(''); setImageFile(null); resetAllToolStates(); }}>
-                        <Replace className="mr-2 h-4 w-4" /> Replace Image
-                    </Button>
-                   )}
-              </CardHeader>
-               <CardContent>
-                   <Card className="shadow-inner">
-                      <CardHeader>
-                          <CardTitle className="text-lg">Image Area</CardTitle>
-                          <CardDescription>
-                              {activeToolName ? `Currently using: ${activeToolName}` : imgSrc ? 'Your image preview.' : 'Upload an image to get started.'}
-                          </CardDescription>
-                      </CardHeader>
-                      <CardContent 
-                          ref={previewContainerRef} 
-                          className="min-h-[400px] bg-muted/50 rounded-md p-4 flex items-center justify-center relative overflow-hidden"
-                          onMouseMove={showRetouchControls ? (e) => updateCursorPosition(e as any) : undefined}
-                          onMouseEnter={showRetouchControls ? () => brushCursorRef.current && (brushCursorRef.current.style.display = 'block') : undefined}
-                          onMouseLeave={showRetouchControls ? () => brushCursorRef.current && (brushCursorRef.current.style.display = 'none') : undefined}
-                      >
-                          {isProcessing ? (
-                              <div className="text-center">
-                                  <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin" />
-                                  <p className="mt-2 font-medium">Processing...</p>
-                              </div>
-                          ) : !imgSrc ? (
-                            <div className="text-center text-muted-foreground">
-                                <ImageIconLucide className="mx-auto h-16 w-16 opacity-50" />
-                                <p className="mt-4 font-medium">No Image Uploaded</p>
-                                <p className="text-sm">Please upload an image to use the editor tools.</p>
-                            </div>
-                          ) : activeToolName === 'Remove BG' ? (
-                              <BackgroundRemover 
-                                  imageSrc={imgSrc}
-                                  onComplete={(dataUrl) => {
-                                      updateImageAndHistory(dataUrl);
-                                      resetAllToolStates();
-                                      toast({title: "Background Removed Successfully"});
-                                  }}
-                                  onCancel={resetAllToolStates}
-                              />
-                          ) : (
-                              <div className="max-w-full max-h-full relative">
-                                  { showCropper ? (
-                                      <ReactCrop
-                                          crop={crop}
-                                          onChange={(_, percentCrop) => setCrop(percentCrop)}
-                                          onComplete={(c) => setCompletedCrop(c)}
-                                          aspect={aspect}
-                                      >
-                                        <Image
-                                            ref={imgRef}
-                                            alt="Image for editing"
-                                            src={imgSrc}
-                                            style={{ transform: `scale(${scale}) rotate(${rotateState}deg)`, filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)`}}
-                                            onLoad={(e) => {
-                                                if (aspect) {
-                                                    const { width, height } = e.currentTarget;
-                                                    setCrop(centerAspectCrop(width, height, aspect));
-                                                }
-                                            }}
-                                            width={800} height={600}
-                                            className="max-w-full max-h-[60vh] object-contain"
-                                            data-ai-hint="edited image"
-                                        />
-                                      </ReactCrop>
-                                    ) : showRetouchControls ? (
-                                      <div className="relative cursor-none">
-                                        <canvas
-                                          ref={retouchImageCanvasRef}
-                                          className="max-w-full max-h-[60vh] object-contain"
-                                          style={{ filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)`}}
-                                          onMouseDown={(e) => startDrawingRetouch(e)}
-                                          onMouseMove={(e) => isDrawingRef.current && drawRetouch(e)}
-                                          onMouseUp={stopDrawingRetouch}
-                                          onMouseLeave={stopDrawingRetouch}
-                                        />
-                                        <canvas ref={retouchEditCanvasRef} className="absolute top-0 left-0 pointer-events-none" />
-                                      </div>
-                                    ) : (
-                                      <div className="relative">
-                                        <Image
-                                          ref={imgRef}
-                                          alt="Image Preview"
-                                          src={imgSrc}
-                                          style={{ transform: `scale(${scale}) rotate(${rotateState}deg)`, filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)`}}
-                                          className="max-w-full max-h-[60vh] object-contain"
-                                          width={800} height={600}
-                                          data-ai-hint="edited image"
-                                        />
-                                        {showPipControls && pipImageSrc && (
-                                          <div
-                                              data-pip-draggable="true"
-                                              className="absolute border-2 border-dashed border-blue-500 cursor-move"
-                                              style={{
-                                                  left: `${pipRect.x}%`,
-                                                  top: `${pipRect.y}%`,
-                                                  width: `${pipRect.width}%`,
-                                                  height: `${pipRect.height}%`,
-                                                  opacity: pipOpacity,
-                                              }}
-                                              onMouseDown={(e) => handlePipMouseDown(e)}
-                                              onTouchStart={(e) => handlePipMouseDown(e)}
-                                          >
-                                              <Image src={pipImageSrc} alt="PiP Image" layout="fill" className="pointer-events-none" data-ai-hint="picture in picture" />
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  }
-                                  {overlayImageSrc && showOverlayControls && (
-                                      <div
-                                          className="absolute border-2 border-dashed border-blue-500 cursor-move"
-                                          style={{
-                                              left: `${overlayRect.x}%`,
-                                              top: `${overlayRect.y}%`,
-                                              width: `${overlayRect.width}%`,
-                                              height: `${overlayRect.height}%`,
-                                              opacity: overlayOpacity,
-                                              transform: `rotate(${overlayRotation}deg)`
-                                          }}
-                                          data-handle="move"
-                                          onMouseDown={handleOverlayMouseDown}
-                                          onTouchStart={handleOverlayMouseDown}
-                                      >
-                                          <Image src={overlayImageSrc} alt="Overlay" layout="fill" className="pointer-events-none" data-ai-hint="overlay image" />
-                                          {/* Resize Handles */}
-                                          <div data-handle="nw" className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white rounded-full cursor-nwse-resize pointer-events-auto border-2 border-blue-500"/>
-                                          <div data-handle="ne" className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white rounded-full cursor-nesw-resize pointer-events-auto border-2 border-blue-500"/>
-                                          <div data-handle="sw" className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white rounded-full cursor-nesw-resize pointer-events-auto border-2 border-blue-500"/>
-                                          <div data-handle="se" className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white rounded-full cursor-nwse-resize pointer-events-auto border-2 border-blue-500"/>
-                                      </div>
-                                  )}
-                              </div>
-                          )}
-                           <div ref={brushCursorRef} className="absolute rounded-full pointer-events-none transform -translate-x-1/2 -translate-y-1/2 border-2 hidden"></div>
-                      </CardContent>
-                  </Card>
-               </CardContent>
-                <CardFooter className="flex flex-wrap items-center gap-2">
-                  <Button onClick={handleSendBackToPassportPhoto} variant="secondary" className={cn(returnPath ? 'flex' : 'hidden')}><Send className="mr-2"/> Send Back to Passport Photo</Button>
-                  <Button onClick={handleSendToQueue} variant="secondary" className={cn(!returnPath ? 'flex' : 'hidden')}><Send className="mr-2"/> Send to Queue</Button>
-                  <Button onClick={handleUndo} disabled={historyIndex <= 0} variant="outline"><Undo className="mr-2" /> Undo</Button>
-                  <Button onClick={handleRedo} disabled={historyIndex >= history.length - 1} variant="outline"><Redo className="mr-2" /> Redo</Button>
-                  <Button onClick={handleDownload} variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground"><DownloadIcon className="mr-2"/> Download Edited Image</Button>
-                  {croppedImageUrl && <Image src={croppedImageUrl} alt="Cropped preview" width={100} height={100} data-ai-hint="cropped image"/>}
-                  <p className="text-xs text-muted-foreground ml-auto">Tools are client-side. Larger images may impact performance.</p>
-                </CardFooter>
-          </Card>
-
-          {activeToolName && activeToolName !== 'Grading Tool' && activeToolName !== 'Remove BG' && (
-              <Card className="p-4 shadow-inner">
-                  <div className="flex justify-between items-center mb-2">
-                      <CardTitle className="text-lg">Controls: {activeToolName}</CardTitle>
-                      <Button variant="ghost" size="icon" onClick={resetAllToolStates}><X/></Button>
-                  </div>
-                   {showAiGenerator && (
-                    <div className="space-y-4">
-                        <Label htmlFor="ai-prompt">AI Prompt</Label>
-                        <Textarea id="ai-prompt" placeholder="e.g., a photo of a majestic lion in the savannah" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} />
-                        <Button className="w-full" onClick={handleGenerateAiImage} disabled={isProcessing}>
-                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>}
-                            Generate Image
-                        </Button>
+      <div className="flex flex-col lg:flex-row gap-6 h-full items-start">
+        {/* Main Preview Area (Left/Center) */}
+        <div className="flex-1 w-full space-y-4">
+          <Card className="shadow-lg border-none bg-background/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row justify-between items-center py-3 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-headline">Editor</CardTitle>
+                  <CardDescription className="text-xs">
+                    {activeToolName ? `Editing with ${activeToolName}` : imgSrc ? 'Previewing image' : 'Upload an image'}
+                  </CardDescription>
+                </div>
+              </div>
+              {imgSrc && (
+                <Button variant="ghost" size="sm" onClick={() => { setImgSrc(''); setImageFile(null); resetAllToolStates(); }} className="text-muted-foreground hover:text-destructive">
+                  <Replace className="mr-2 h-4 w-4" /> Replace
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-0 overflow-hidden bg-muted/20">
+              <div
+                ref={previewContainerRef}
+                className="min-h-[500px] flex items-center justify-center relative overflow-hidden"
+                onMouseMove={showRetouchControls ? (e) => updateCursorPosition(e as any) : undefined}
+                onMouseEnter={showRetouchControls ? () => brushCursorRef.current && (brushCursorRef.current.style.display = 'block') : undefined}
+                onMouseLeave={showRetouchControls ? () => brushCursorRef.current && (brushCursorRef.current.style.display = 'none') : undefined}
+              >
+                {isProcessing ? (
+                  <div className="text-center animate-in fade-in zoom-in duration-300">
+                    <div className="relative inline-block">
+                      <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                      <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse"></div>
                     </div>
-                   )}
-                   {showCropper && imgSrc && (
-                     <div className="space-y-4">
-                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                         <Button variant="outline" size="sm" onClick={() => setAspect(16 / 9)}>16:9</Button>
-                         <Button variant="outline" size="sm" onClick={() => setAspect(4 / 3)}>4:3</Button>
-                         <Button variant="outline" size="sm" onClick={() => setAspect(1 / 1)}>1:1</Button>
-                         <Button variant="outline" size="sm" onClick={() => setAspect(undefined)}>Free</Button>
-                       </div>
-                       <Button className="w-full" onClick={handleDownloadCroppedImage} disabled={!completedCrop?.width}>Apply Crop</Button>
-                     </div>
-                   )}
-                   {showResizeControls && imgSrc && (
-                      <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                  <Label htmlFor="resize-width">Width (px)</Label>
-                                  <Input id="resize-width" type="number" value={resizeWidth} onChange={(e) => handleResizeInputChange(e, 'width')} />
-                              </div>
-                              <div>
-                                  <Label htmlFor="resize-height">Height (px)</Label>
-                                  <Input id="resize-height" type="number" value={resizeHeight} onChange={(e) => handleResizeInputChange(e, 'height')} />
-                              </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                              <Checkbox id="aspect-ratio" checked={maintainAspectRatio} onCheckedChange={(checked) => setMaintainAspectRatio(Boolean(checked))} />
-                              <Label htmlFor="aspect-ratio">Maintain aspect ratio</Label>
-                          </div>
-                          <Button className="w-full" onClick={handleResizeImage}>Apply Resize</Button>
+                    <p className="mt-4 font-medium text-sm">Magic in progress...</p>
+                  </div>
+                ) : !imgSrc ? (
+                  <div className="text-center p-12 max-w-sm mx-auto">
+                    <div className="mb-6 inline-flex p-6 rounded-full bg-muted/50 border-2 border-dashed border-muted-foreground/20">
+                      <ImageIconLucide className="h-16 w-16 text-muted-foreground/40" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">No Image Selected</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Start by uploading an image or selecting one from your queue.</p>
+                    <FileUpload
+                      label="Upload Image"
+                      onFileSelect={onSelectFile}
+                      acceptedFileTypes="image/jpeg,image/png,image/webp"
+                      id="image-editor-upload-empty"
+                    />
+                  </div>
+                ) : activeToolName === 'Remove BG' ? (
+                  <div className="w-full max-w-4xl p-4">
+                    <BackgroundRemover
+                      imageSrc={imgSrc}
+                      onComplete={(dataUrl) => {
+                        updateImageAndHistory(dataUrl);
+                        resetAllToolStates();
+                        toast({ title: "Background Removed Successfully" });
+                      }}
+                      onCancel={resetAllToolStates}
+                    />
+                  </div>
+                ) : (
+                  <div className="max-w-full max-h-full relative p-4 group">
+                    {showCropper ? (
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(_, percentCrop) => setCrop(percentCrop)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={aspect}
+                        className="shadow-2xl rounded-lg ring-1 ring-white/10"
+                      >
+                        <Image
+                          ref={imgRef}
+                          alt="Image for editing"
+                          src={imgSrc}
+                          style={{ transform: `scale(${scale}) rotate(${rotateState}deg)`, filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)` }}
+                          onLoad={(e) => {
+                            if (aspect) {
+                              const { width, height } = e.currentTarget;
+                              setCrop(centerAspectCrop(width, height, aspect));
+                            }
+                          }}
+                          width={1200} height={900}
+                          className="max-w-full max-h-[70vh] object-contain transition-all duration-500"
+                          data-ai-hint="edited image"
+                        />
+                      </ReactCrop>
+                    ) : showRetouchControls ? (
+                      <div className="relative cursor-none shadow-2xl rounded-lg overflow-hidden border border-white/10">
+                        <canvas
+                          ref={retouchImageCanvasRef}
+                          className="max-w-full max-h-[70vh] object-contain"
+                          style={{ filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)` }}
+                          onMouseDown={(e) => startDrawingRetouch(e)}
+                          onMouseMove={(e) => isDrawingRef.current && drawRetouch(e)}
+                          onMouseUp={stopDrawingRetouch}
+                          onMouseLeave={stopDrawingRetouch}
+                        />
+                        <canvas ref={retouchEditCanvasRef} className="absolute top-0 left-0 pointer-events-none" />
                       </div>
-                   )}
-                   {showMergeControls && imgSrc && (
-                      <div className="space-y-4">
-                          <FileUpload
-                              label="Upload Second Image"
-                              onFileSelect={(files) => {
-                                  if (files[0]) {
-                                      setMergeImageFile(files[0]);
-                                      setMergeImageSrc(URL.createObjectURL(files[0]));
-                                  } else {
-                                      setMergeImageFile(null);
-                                      setMergeImageSrc(null);
-                                  }
-                              }}
-                              acceptedFileTypes="image/jpeg,image/png,image/webp"
-                              id="merge-upload"
-                          />
-                          {mergeImageSrc && (
-                              <>
-                                  <RadioGroup value={mergeDirection} onValueChange={(value: 'horizontal' | 'vertical') => setMergeDirection(value)} className="flex gap-4">
-                                      <div className="flex items-center space-x-2"><RadioGroupItem value="horizontal" id="h-merge"/><Label htmlFor="h-merge">Horizontal</Label></div>
-                                      <div className="flex items-center space-x-2"><RadioGroupItem value="vertical" id="v-merge"/><Label htmlFor="v-merge">Vertical</Label></div>
-                                  </RadioGroup>
-                                  {mergedPreviewDataUrl && <Image src={mergedPreviewDataUrl} alt="Merge preview" width={300} height={200} className="rounded-md border object-contain mx-auto" data-ai-hint="merged image" />}
-                                  <Button className="w-full" onClick={() => { updateImageAndHistory(mergedPreviewDataUrl!); resetAllToolStates(); }}>Apply Merge</Button>
-                              </>
-                          )}
+                    ) : (
+                      <div className="relative shadow-2xl rounded-lg overflow-hidden border border-white/10 transition-transform duration-300 group-hover:scale-[1.01]">
+                        <Image
+                          ref={imgRef}
+                          alt="Image Preview"
+                          src={imgSrc}
+                          style={{ transform: `scale(${scale}) rotate(${rotateState}deg)`, filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturate}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hueRotate}deg)` }}
+                          className="max-w-full max-h-[70vh] object-contain"
+                          width={1200} height={900}
+                          data-ai-hint="edited image"
+                        />
+                        {showPipControls && pipImageSrc && (
+                          <div
+                            data-pip-draggable="true"
+                            className="absolute border-2 border-dashed border-blue-500 cursor-move shadow-lg"
+                            style={{
+                              left: `${pipRect.x}%`,
+                              top: `${pipRect.y}%`,
+                              width: `${pipRect.width}%`,
+                              height: `${pipRect.height}%`,
+                              opacity: pipOpacity,
+                            }}
+                            onMouseDown={(e) => handlePipMouseDown(e)}
+                            onTouchStart={(e) => handlePipMouseDown(e)}
+                          >
+                            <Image src={pipImageSrc} alt="PiP Image" layout="fill" className="pointer-events-none" data-ai-hint="picture in picture" />
+                          </div>
+                        )}
                       </div>
-                   )}
-                    {showStitchControls && imgSrc && (
-                      <div className="space-y-4">
-                          <FileUpload
-                              label="Upload Image to Stitch"
-                              onFileSelect={(files) => {
-                                  if (files[0]) {
-                                      setStitchImageFile(files[0]);
-                                      setStitchImageSrc(URL.createObjectURL(files[0]));
-                                  } else {
-                                      setStitchImageFile(null);
-                                      setStitchImageSrc(null);
-                                  }
-                              }}
-                              acceptedFileTypes="image/jpeg,image/png,image/webp"
-                              id="stitch-upload"
-                          />
-                          {stitchImageSrc && (
-                              <>
-                                  <RadioGroup value={stitchDirection} onValueChange={(value: 'horizontal' | 'vertical') => setStitchDirection(value)} className="flex gap-4">
-                                      <div className="flex items-center space-x-2"><RadioGroupItem value="horizontal" id="h-stitch"/><Label htmlFor="h-stitch">Horizontal</Label></div>
-                                      <div className="flex items-center space-x-2"><RadioGroupItem value="vertical" id="v-stitch"/><Label htmlFor="v-stitch">Vertical</Label></div>
-                                  </RadioGroup>
-                                  {stitchedPreviewDataUrl && <Image src={stitchedPreviewDataUrl} alt="Stitch preview" width={300} height={200} className="rounded-md border object-contain mx-auto" data-ai-hint="stitched image" />}
-                                  <Button className="w-full" onClick={() => { updateImageAndHistory(stitchedPreviewDataUrl!); resetAllToolStates(); }}>Apply Stitch</Button>
-                              </>
-                          )}
+                    )
+                    }
+                    {overlayImageSrc && showOverlayControls && (
+                      <div
+                        className="absolute border-2 border-dashed border-blue-500 cursor-move shadow-lg"
+                        style={{
+                          left: `${overlayRect.x}%`,
+                          top: `${overlayRect.y}%`,
+                          width: `${overlayRect.width}%`,
+                          height: `${overlayRect.height}%`,
+                          opacity: overlayOpacity,
+                          transform: `rotate(${overlayRotation}deg)`
+                        }}
+                        data-handle="move"
+                        onMouseDown={handleOverlayMouseDown}
+                        onTouchStart={handleOverlayMouseDown}
+                      >
+                        <Image src={overlayImageSrc} alt="Overlay" layout="fill" className="pointer-events-none" data-ai-hint="overlay image" />
+                        {/* Resize Handles */}
+                        <div data-handle="nw" className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white rounded-full cursor-nwse-resize pointer-events-auto border-2 border-blue-500 shadow-sm" />
+                        <div data-handle="ne" className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full cursor-nesw-resize pointer-events-auto border-2 border-blue-500 shadow-sm" />
+                        <div data-handle="sw" className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white rounded-full cursor-nesw-resize pointer-events-auto border-2 border-blue-500 shadow-sm" />
+                        <div data-handle="se" className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white rounded-full cursor-nwse-resize pointer-events-auto border-2 border-blue-500 shadow-sm" />
                       </div>
                     )}
+                  </div>
+                )}
+                <div ref={brushCursorRef} className="absolute rounded-full pointer-events-none transform -translate-x-1/2 -translate-y-1/2 border-2 border-white mix-blend-difference hidden"></div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-wrap items-center justify-between gap-4 py-4 bg-background/50 border-t backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Button onClick={handleUndo} disabled={historyIndex <= 0} variant="outline" size="sm" className="h-9">
+                  <Undo className="h-4 w-4 mr-2" /> Undo
+                </Button>
+                <Button onClick={handleRedo} disabled={historyIndex >= history.length - 1} variant="outline" size="sm" className="h-9">
+                  <Redo className="h-4 w-4 mr-2" /> Redo
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button onClick={handleSendBackToPassportPhoto} variant="secondary" size="sm" className={cn("h-9", returnPath ? 'flex' : 'hidden')}>
+                  <Send className="mr-2 h-4 w-4" /> Return
+                </Button>
+                <Button onClick={handleSendToQueue} variant="secondary" size="sm" className={cn("h-9", !returnPath ? 'flex' : 'hidden')}>
+                  <Library className="mr-2 h-4 w-4" /> Queue
+                </Button>
+                <Button onClick={handleDownload} variant="default" size="sm" className="h-9 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 shadow-md transition-all active:scale-95">
+                  <DownloadIcon className="mr-2 h-4 w-4" /> Download
+                </Button>
+              </div>
+
+              <div className="w-full md:w-auto flex items-center justify-end">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50">Local Processing Only</p>
+              </div>
+            </CardFooter>
+          </Card>
+          {/* Professional Sidebar (Right) */}
+          <div className="w-full lg:w-[400px] shrink-0 flex flex-col gap-6">
+            {/* Main Tools Sidebar - NOW AT THE TOP */}
+            <Card className="shadow-2xl border-none overflow-hidden flex flex-col flex-1 min-h-[600px] bg-background/80 backdrop-blur-xl ring-1 ring-primary/20">
+              <CardHeader className="bg-primary/5 border-b py-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col gap-1">
+                    <CardTitle className="text-2xl font-black flex items-center gap-3 tracking-tighter">
+                      {activeToolName ? (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={resetAllToolStates} className="h-8 w-8 rounded-full bg-background/50 shadow-sm">
+                            <Undo className="h-4 w-4" />
+                          </Button>
+                          {activeToolName}
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-primary p-2 rounded-xl">
+                            <LayoutPanelLeft className="h-6 w-6 text-primary-foreground" />
+                          </div>
+                          TOOL BOX
+                        </>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-50 pl-1">
+                      {activeToolName ? 'Customize your edit' : 'Choose an editing superpower'}
+                    </CardDescription>
+                  </div>
+                  {activeToolName && (
+                    <Button variant="ghost" size="icon" onClick={resetAllToolStates} className="rounded-full hover:bg-destructive hover:text-destructive-foreground h-10 w-10 transition-colors">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                {activeToolName && activeToolName !== 'Grading Tool' && activeToolName !== 'Remove BG' ? (
+                  <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
+                    {/* ... (rest of tool controls remain same as before but inside this new header) ... */}
+                    {showAiGenerator && (
+                      <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="ai-prompt-sidebar" className="text-xs font-bold text-muted-foreground uppercase tracking-tight">AI Image Prompt</Label>
+                          <Textarea id="ai-prompt-sidebar" className="min-h-[160px] text-base resize-none bg-muted/20 border-muted-foreground/10 focus:ring-purple-500/20 rounded-2xl p-4" placeholder="Describe the image you want to create... e.g., 'A futuristic city at sunset'" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} />
+                        </div>
+                        <Button className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl border-none font-black rounded-2xl" onClick={handleGenerateAiImage} disabled={isProcessing}>
+                          {isProcessing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Sparkles className="mr-2 h-6 w-6" />}
+                          GENERATE IMAGE
+                        </Button>
+                      </div>
+                    )}
+
+                    {showCropper && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-4">
+                          <Label className="text-sm font-black text-muted-foreground uppercase tracking-widest">Aspect Ratio</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { label: '16:9 Wide', val: 16 / 9 },
+                              { label: '4:3 Standard', val: 4 / 3 },
+                              { label: '1:1 Square', val: 1 / 1 },
+                              { label: 'Freeform', val: undefined },
+                            ].map(r => (
+                              <Button
+                                key={r.label}
+                                variant={aspect === r.val ? 'default' : 'outline'}
+                                className="h-14 text-sm font-black rounded-2xl border-2"
+                                onClick={() => setAspect(r.val)}
+                              >
+                                {r.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="pt-6 border-t-2 border-dashed">
+                          <Button className="w-full h-14 text-lg shadow-2xl font-black rounded-2xl" onClick={handleDownloadCroppedImage} disabled={!completedCrop?.width}>
+                            <Check className="mr-2 h-6 w-6" /> APPLY & SAVE CROP
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {showResizeControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <Label htmlFor="resize-width-sidebar" className="text-xs font-black uppercase text-muted-foreground">Width (px)</Label>
+                            <Input id="resize-width-sidebar" type="number" className="h-14 text-lg font-mono font-bold rounded-2xl" value={resizeWidth} onChange={(e) => handleResizeInputChange(e, 'width')} />
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="resize-height-sidebar" className="text-xs font-black uppercase text-muted-foreground">Height (px)</Label>
+                            <Input id="resize-height-sidebar" type="number" className="h-14 text-lg font-mono font-bold rounded-2xl" value={resizeHeight} onChange={(e) => handleResizeInputChange(e, 'height')} />
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          className={cn("w-full flex items-center justify-between px-5 h-14 rounded-2xl border-2", maintainAspectRatio ? "bg-primary/5 border-primary" : "border-muted")}
+                          onClick={() => setMaintainAspectRatio(!maintainAspectRatio)}
+                        >
+                          <span className="text-sm font-black">Maintain Aspect Ratio</span>
+                          {maintainAspectRatio ? <CheckCircle className="h-6 w-6 text-primary" /> : <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />}
+                        </Button>
+                        <Button className="w-full h-14 text-lg shadow-2xl font-black rounded-2xl" onClick={handleResizeImage}>
+                          <Expand className="mr-2 h-6 w-6" /> RESIZE IMAGE
+                        </Button>
+                      </div>
+                    )}
+
+                    {showMergeControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <FileUpload
+                          label="Select Second Image"
+                          onFileSelect={(files) => {
+                            if (files[0]) {
+                              setMergeImageFile(files[0]);
+                              setMergeImageSrc(URL.createObjectURL(files[0]));
+                            }
+                          }}
+                          acceptedFileTypes="image/jpeg,image/png,image/webp"
+                          id="merge-upload-sidebar-v3"
+                        />
+                        {mergeImageSrc && (
+                          <div className="space-y-6 animate-in fade-in duration-300">
+                            <div className="space-y-3">
+                              <Label className="text-sm font-black text-muted-foreground uppercase">Merge Direction</Label>
+                              <div className="grid grid-cols-2 gap-3 p-1 bg-muted/30 rounded-2xl">
+                                <Button variant={mergeDirection === 'horizontal' ? 'default' : 'ghost'} className="h-12 font-black rounded-xl" onClick={() => setMergeDirection('horizontal')}>HORIZONTAL</Button>
+                                <Button variant={mergeDirection === 'vertical' ? 'default' : 'ghost'} className="h-12 font-black rounded-xl" onClick={() => setMergeDirection('vertical')}>VERTICAL</Button>
+                              </div>
+                            </div>
+                            {mergedPreviewDataUrl && (
+                              <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden border-4 border-dashed border-primary/30 shadow-inner">
+                                <Image src={mergedPreviewDataUrl} alt="Merge preview" layout="fill" className="object-contain" data-ai-hint="merged image" />
+                              </div>
+                            )}
+                            <Button className="w-full h-14 text-lg shadow-2xl font-black rounded-2xl" onClick={() => { updateImageAndHistory(mergedPreviewDataUrl!); resetAllToolStates(); }}>
+                              <IterationCw className="mr-2 h-6 w-6" /> APPLY MERGE
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showStitchControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <FileUpload
+                          label="Select Image to Stitch"
+                          onFileSelect={(files) => {
+                            if (files[0]) {
+                              setStitchImageFile(files[0]);
+                              setStitchImageSrc(URL.createObjectURL(files[0]));
+                            }
+                          }}
+                          acceptedFileTypes="image/jpeg,image/png,image/webp"
+                          id="stitch-upload-sidebar-v3"
+                        />
+                        {stitchImageSrc && (
+                          <div className="space-y-6 animate-in fade-in duration-300">
+                            <div className="space-y-3">
+                              <Label className="text-sm font-black text-muted-foreground uppercase">Alignment</Label>
+                              <div className="grid grid-cols-2 gap-3 p-1 bg-muted/30 rounded-2xl">
+                                <Button variant={stitchDirection === 'horizontal' ? 'default' : 'ghost'} className="h-12 font-black rounded-xl" onClick={() => setStitchDirection('horizontal')}>HORIZONTAL</Button>
+                                <Button variant={stitchDirection === 'vertical' ? 'default' : 'ghost'} className="h-12 font-black rounded-xl" onClick={() => setStitchDirection('vertical')}>VERTICAL</Button>
+                              </div>
+                            </div>
+                            {stitchedPreviewDataUrl && (
+                              <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden border-4 border-dashed border-primary/30 shadow-inner">
+                                <Image src={stitchedPreviewDataUrl} alt="Stitch preview" layout="fill" className="object-contain" data-ai-hint="stitched image" />
+                              </div>
+                            )}
+                            <Button className="w-full h-14 text-lg shadow-2xl font-black rounded-2xl" onClick={() => { updateImageAndHistory(stitchedPreviewDataUrl!); resetAllToolStates(); }}>
+                              <IterationCw className="mr-2 h-6 w-6" /> APPLY STITCH
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {showCompressControls && imgSrc && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="quality-slider">Quality (for JPEG): {Math.round(compressionQuality * 100)}%</Label>
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-8 p-6 bg-primary/5 rounded-3xl border-2 border-primary/10">
+                          <div className="flex justify-between items-end">
+                            <Label className="text-sm font-black uppercase tracking-widest opacity-60">Output Quality</Label>
+                            <span className="text-3xl font-black text-primary">{Math.round(compressionQuality * 100)}%</span>
+                          </div>
                           <Slider
-                            id="quality-slider"
                             min={0.1}
                             max={1}
                             step={0.05}
                             value={[compressionQuality]}
                             onValueChange={(value) => setCompressionQuality(value[0])}
-                            className="mt-2"
+                            className="py-4"
                           />
+                          <div className="flex items-start gap-3 p-4 bg-background rounded-2xl border shadow-sm">
+                            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <p className="text-xs text-muted-foreground leading-relaxed font-bold">Smart compression maintains details while reducing file size up to 90%.</p>
+                          </div>
                         </div>
-                        <Button className="w-full" onClick={handleCompressImage}>Apply Compression</Button>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleCompressImage}>
+                          <Minimize2 className="mr-3 h-7 w-7" /> COMPRESS NOW
+                        </Button>
                       </div>
                     )}
+
                     {showConvertControls && imgSrc && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="convert-format">Target Format</Label>
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-4">
+                          <Label className="text-sm font-black uppercase text-muted-foreground tracking-widest">Select Output Format</Label>
                           <Select value={convertTargetFormat} onValueChange={setConvertTargetFormat}>
-                            <SelectTrigger id="convert-format">
+                            <SelectTrigger className="h-16 text-lg font-black rounded-2xl border-2 px-6">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="image/png">PNG</SelectItem>
-                              <SelectItem value="image/jpeg">JPEG</SelectItem>
-                              <SelectItem value="image/webp">WebP</SelectItem>
+                            <SelectContent className="rounded-2xl">
+                              <SelectItem value="image/png" className="h-12 font-bold">PNG (Lossless Quality)</SelectItem>
+                              <SelectItem value="image/jpeg" className="h-12 font-bold">JPEG (High Speed)</SelectItem>
+                              <SelectItem value="image/webp" className="h-12 font-bold">WebP (Next-Gen AI Optimized)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button className="w-full" onClick={handleConvertFormat}>Apply Conversion</Button>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleConvertFormat}>
+                          <Replace className="mr-3 h-7 w-7" /> CONVERT & DOWNLOAD
+                        </Button>
                       </div>
                     )}
-                   {showAdjustmentsControls && imgSrc && (
-                      <div className="space-y-4">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="brightness-slider">Brightness: {adjustments.brightness}%</Label>
-                                <Slider id="brightness-slider" min={0} max={200} value={[adjustments.brightness]} onValueChange={v => setAdjustments(adj => ({...adj, brightness: v[0]}))} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="contrast-slider">Contrast: {adjustments.contrast}%</Label>
-                                <Slider id="contrast-slider" min={0} max={200} value={[adjustments.contrast]} onValueChange={v => setAdjustments(adj => ({...adj, contrast: v[0]}))} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="saturate-slider">Saturation: {adjustments.saturate}%</Label>
-                                <Slider id="saturate-slider" min={0} max={200} value={[adjustments.saturate]} onValueChange={v => setAdjustments(adj => ({...adj, saturate: v[0]}))} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="grayscale-slider">Grayscale: {adjustments.grayscale}%</Label>
-                                <Slider id="grayscale-slider" min={0} max={100} value={[adjustments.grayscale]} onValueChange={v => setAdjustments(adj => ({...adj, grayscale: v[0]}))} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="sepia-slider">Sepia: {adjustments.sepia}%</Label>
-                                <Slider id="sepia-slider" min={0} max={100} value={[adjustments.sepia]} onValueChange={v => setAdjustments(adj => ({...adj, sepia: v[0]}))} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="invert-slider">Invert: {adjustments.invert}%</Label>
-                                <Slider id="invert-slider" min={0} max={100} value={[adjustments.invert]} onValueChange={v => setAdjustments(adj => ({...adj, invert: v[0]}))} />
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                              <Label htmlFor="hue-slider">Hue Rotate: {adjustments.hueRotate}°</Label>
-                              <Slider id="hue-slider" min={0} max={360} value={[adjustments.hueRotate]} onValueChange={v => setAdjustments(adj => ({...adj, hueRotate: v[0]}))} />
-                          </div>
-                      </div>
-                  )}
-                  {showBackgroundColorControls && imgSrc && (
-                      <div className="space-y-4">
-                          <Label>Choose a background color to apply behind your image.</Label>
-                          <div className="flex items-center gap-2">
-                              <Input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-16 h-10 p-1" />
-                              <Input type="text" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} placeholder="#ffffff" />
-                          </div>
-                           <Button className="w-full" onClick={handleApplyBackgroundColor}>Apply Background</Button>
-                      </div>
-                  )}
-                  {showOverlayControls && imgSrc && (
-                      <div className="space-y-4">
-                          <FileUpload
-                              label="Upload Overlay Image"
-                              onFileSelect={(files) => {
-                                  if (files[0]) {
-                                      setOverlayImageFile(files[0]);
-                                      setOverlayImageSrc(URL.createObjectURL(files[0]));
-                                  }
-                              }}
-                              acceptedFileTypes="image/png"
-                              id="overlay-upload"
-                          />
-                          {overlayImageSrc && (
-                              <>
-                                  <p className="text-xs text-muted-foreground">Drag the overlay image on the preview to position and resize it.</p>
-                                  <div>
-                                      <Label>Opacity: {Math.round(overlayOpacity * 100)}%</Label>
-                                      <Slider min={0} max={1} step={0.01} value={[overlayOpacity]} onValueChange={v => setOverlayOpacity(v[0])} />
-                                  </div>
-                                   <div>
-                                      <Label>Rotation: {overlayRotation}°</Label>
-                                      <Slider min={-180} max={180} step={1} value={[overlayRotation]} onValueChange={v => setOverlayRotation(v[0])} />
-                                  </div>
-                                  <Button className="w-full" onClick={handleApplyOverlay}>Apply Overlay</Button>
-                              </>
-                          )}
-                      </div>
-                  )}
-                  {showWatermarkControls && imgSrc && (
-                    <div className="space-y-4">
-                      <RadioGroup defaultValue="text" onValueChange={(value: 'text' | 'image') => setWatermarkType(value)} className="flex gap-4">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="text" id="r1" />
-                          <Label htmlFor="r1">Text</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="image" id="r2" />
-                          <Label htmlFor="r2">Image</Label>
-                        </div>
-                      </RadioGroup>
-                      
-                      {watermarkType === 'text' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="watermark-text">Watermark Text</Label>
-                          <Input id="watermark-text" value={watermarkText} onChange={e => setWatermarkText(e.target.value)} />
-                           <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label htmlFor="watermark-color">Color</Label>
-                              <Input id="watermark-color" type="color" value={watermarkTextColor} onChange={e => setWatermarkTextColor(e.target.value)} />
-                            </div>
-                             <div>
-                              <Label htmlFor="watermark-size">Font Size</Label>
-                              <Input id="watermark-size" type="number" value={watermarkTextSize} onChange={e => setWatermarkTextSize(Number(e.target.value))} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
 
-                      {watermarkType === 'image' && (
-                         <FileUpload
-                            label="Upload Watermark Image"
+                    {showAdjustmentsControls && imgSrc && (
+                      <div className="space-y-6 pt-2 max-h-[55vh] overflow-y-auto pr-3 custom-scrollbar">
+                        {[
+                          { label: 'Brightness', key: 'brightness', icon: Sparkles, max: 200 },
+                          { label: 'Contrast', key: 'contrast', icon: Layers, max: 200 },
+                          { label: 'Saturation', key: 'saturate', icon: AdjustIcon, max: 200 },
+                          { label: 'Grayscale', key: 'grayscale', icon: Minus, max: 100 },
+                          { label: 'Sepia', key: 'sepia', icon: GalleryThumbnails, max: 100 },
+                          { label: 'Invert Colors', key: 'invert', icon: Replace, max: 100 },
+                        ].map((adj) => (
+                          <div key={adj.key} className="space-y-4 p-5 bg-muted/20 rounded-3xl border border-muted-foreground/5 shadow-sm">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <adj.icon className="h-4 w-4 text-primary" />
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                                  {adj.label}
+                                </Label>
+                              </div>
+                              <span className="text-lg font-black text-primary">{(adjustments as any)[adj.key]}%</span>
+                            </div>
+                            <Slider min={0} max={adj.max} value={[(adjustments as any)[adj.key]]} onValueChange={v => setAdjustments(prev => ({ ...prev, [adj.key]: v[0] }))} />
+                          </div>
+                        ))}
+                        <Button variant="ghost" className="w-full h-12 text-xs font-black text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-all" onClick={() => setAdjustments({ brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, invert: 0, hueRotate: 0 })}>RESET ALL SLIDERS</Button>
+                      </div>
+                    )}
+
+                    {showBackgroundColorControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-6">
+                          <Label className="text-sm font-black uppercase text-muted-foreground tracking-widest pl-1">Background Color</Label>
+                          <div className="flex gap-4">
+                            <div className="relative h-16 w-16 rounded-2xl overflow-hidden border-4 shadow-xl shrink-0 group">
+                              <Input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="absolute inset-0 w-[200%] h-[200%] cursor-pointer -translate-x-1/4 -translate-y-1/4 border-none" />
+                            </div>
+                            <Input type="text" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} placeholder="#ffffff" className="h-16 text-xl font-mono font-black rounded-2xl border-2 px-6" />
+                          </div>
+                          <div className="grid grid-cols-4 gap-3">
+                            {['#ffffff', '#000000', '#f3f4f6', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'].map(c => (
+                              <button key={c} className="h-12 w-full rounded-xl border-4 border-background shadow-md transition-all hover:scale-110 active:scale-95" style={{ backgroundColor: c }} onClick={() => setBackgroundColor(c)} />
+                            ))}
+                          </div>
+                        </div>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleApplyBackgroundColor}>
+                          <Palette className="mr-3 h-7 w-7" /> FILL BACKGROUND
+                        </Button>
+                      </div>
+                    )}
+
+                    {showOverlayControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <FileUpload
+                          label="Select Image Overlay"
+                          onFileSelect={(files) => {
+                            if (files[0]) {
+                              setOverlayImageFile(files[0]);
+                              setOverlayImageSrc(URL.createObjectURL(files[0]));
+                            }
+                          }}
+                          acceptedFileTypes="image/png"
+                          id="overlay-upload-sidebar-v3"
+                        />
+                        {overlayImageSrc && (
+                          <div className="space-y-8 animate-in fade-in duration-300">
+                            <div className="space-y-8 p-6 bg-muted/20 rounded-3xl border-2">
+                              <div className="space-y-5">
+                                <div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Opacity</Label><span className="text-xl font-black text-primary">{Math.round(overlayOpacity * 100)}%</span></div>
+                                <Slider min={0} max={1} step={0.01} value={[overlayOpacity]} onValueChange={v => setOverlayOpacity(v[0])} />
+                              </div>
+                              <div className="space-y-5">
+                                <div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Rotation</Label><span className="text-xl font-black text-primary">{overlayRotation}°</span></div>
+                                <Slider min={-180} max={180} step={1} value={[overlayRotation]} onValueChange={v => setOverlayRotation(v[0])} />
+                              </div>
+                            </div>
+                            <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleApplyOverlay}>
+                              <Check className="mr-3 h-7 w-7" /> APPLY OVERLAY
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showWatermarkControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="flex p-1.5 bg-muted/50 rounded-2xl gap-2">
+                          <Button variant={watermarkType === 'text' ? 'default' : 'ghost'} className="flex-1 h-12 font-black rounded-xl" onClick={() => setWatermarkType('text')}>TEXT</Button>
+                          <Button variant={watermarkType === 'image' ? 'default' : 'ghost'} className="flex-1 h-12 font-black rounded-xl" onClick={() => setWatermarkType('image')}>LOGO</Button>
+                        </div>
+
+                        {watermarkType === 'text' && (
+                          <div className="space-y-6">
+                            <div className="space-y-3">
+                              <Label className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Watermark Text</Label>
+                              <Input value={watermarkText} onChange={e => setWatermarkText(e.target.value)} className="h-16 text-lg font-black rounded-2xl px-6" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                <Label className="text-xs font-black uppercase">Color</Label>
+                                <div className="flex gap-2">
+                                  <Input type="color" value={watermarkTextColor} onChange={e => setWatermarkTextColor(e.target.value)} className="w-12 p-1.5 h-12 rounded-xl shrink-0" />
+                                  <Input type="text" value={watermarkTextColor} readOnly className="h-12 text-xs font-mono font-black rounded-xl px-2 bg-muted/50" />
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <Label className="text-xs font-black uppercase">Size</Label>
+                                <Input type="number" value={watermarkTextSize} onChange={e => setWatermarkTextSize(Number(e.target.value))} className="h-12 text-lg font-mono font-black rounded-xl px-4" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {watermarkType === 'image' && (
+                          <FileUpload
+                            label="Select Brand Logo"
                             onFileSelect={(files) => {
-                                if (files[0]) {
-                                    setWatermarkImageFile(files[0]);
-                                    setWatermarkImageSrc(URL.createObjectURL(files[0]));
-                                }
+                              if (files[0]) {
+                                setWatermarkImageFile(files[0]);
+                                setWatermarkImageSrc(URL.createObjectURL(files[0]));
+                              }
                             }}
                             acceptedFileTypes="image/png"
-                            id="watermark-upload"
-                        />
-                      )}
-
-                      <div>
-                        <Label>Position</Label>
-                        <Select value={watermarkPosition} onValueChange={setWatermarkPosition}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="center">Center</SelectItem>
-                            <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                            <SelectItem value="tile">Tile</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                       <div>
-                        <Label>Opacity: {Math.round(watermarkOpacity * 100)}%</Label>
-                        <Slider min={0} max={1} step={0.01} value={[watermarkOpacity]} onValueChange={v => setWatermarkOpacity(v[0])} />
-                      </div>
-                       <Button className="w-full" onClick={handleApplyWatermark} disabled={isProcessingWatermark}>
-                         {isProcessingWatermark ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                        Apply Watermark
-                       </Button>
-                    </div>
-                  )}
-                  {showFrameControls && imgSrc && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="frame-width-slider">Frame Width: {frameWidth}px</Label>
-                        <Slider
-                          id="frame-width-slider"
-                          min={1}
-                          max={100}
-                          step={1}
-                          value={[frameWidth]}
-                          onValueChange={(value) => setFrameWidth(value[0])}
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="frame-color-input">Frame Color</Label>
-                        <Input
-                          id="frame-color-input"
-                          type="color"
-                          value={frameColor}
-                          onChange={(e) => setFrameColor(e.target.value)}
-                          className="w-full p-1 h-10"
-                        />
-                      </div>
-                      <Button className="w-full" onClick={handleApplyFrame} disabled={isProcessingFrame}>
-                         {isProcessingFrame ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Apply Frame
-                      </Button>
-                    </div>
-                  )}
-                  {showPipControls && imgSrc && (
-                      <div className="space-y-4">
-                          <FileUpload
-                              label="Upload Inner Image"
-                              onFileSelect={(files) => {
-                                  if (files[0]) {
-                                      setPipImageFile(files[0]);
-                                      setPipImageSrc(URL.createObjectURL(files[0]));
-                                  }
-                              }}
-                              acceptedFileTypes="image/png,image/jpeg,image/webp"
-                              id="pip-upload"
+                            id="watermark-upload-sidebar-v3"
                           />
-                          {pipImageSrc && (
-                              <>
-                                  <p className="text-xs text-muted-foreground">Drag the inner image on the preview to position it.</p>
-                                  <div><Label>Scale: {Math.round(pipRect.width)}%</Label><Slider min={5} max={100} step={1} value={[pipRect.width]} onValueChange={v => setPipRect(p => ({...p, width: v[0], height: v[0] * (imageState!.height/imageState!.width) }))} /></div>
-                                  <div><Label>Opacity: {Math.round(pipOpacity * 100)}%</Label><Slider min={0} max={1} step={0.01} value={[pipOpacity]} onValueChange={v => setPipOpacity(v[0])} /></div>
-                                  <Button className="w-full" onClick={handleApplyPip}>Apply PiP Effect</Button>
-                              </>
-                          )}
+                        )}
+
+                        <div className="space-y-8 pt-4">
+                          <div className="space-y-3">
+                            <Label className="text-xs font-black uppercase text-muted-foreground tracking-widest pl-1">Placement Mode</Label>
+                            <Select value={watermarkPosition} onValueChange={setWatermarkPosition}>
+                              <SelectTrigger className="h-14 text-base font-black rounded-2xl border-2 px-6"><SelectValue /></SelectTrigger>
+                              <SelectContent className="rounded-2xl">
+                                <SelectItem value="center" className="font-bold">Perfect Center</SelectItem>
+                                <SelectItem value="bottom-right" className="font-bold">Bottom Right</SelectItem>
+                                <SelectItem value="tile" className="font-bold">Repeating Pattern</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-5 p-6 bg-muted/20 rounded-3xl border-2">
+                            <div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Opacity</Label><span className="text-xl font-black text-primary">{Math.round(watermarkOpacity * 100)}%</span></div>
+                            <Slider min={0} max={1} step={0.01} value={[watermarkOpacity]} onValueChange={v => setWatermarkOpacity(v[0])} />
+                          </div>
+                        </div>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleApplyWatermark} disabled={isProcessingWatermark}>
+                          {isProcessingWatermark ? <Loader2 className="mr-3 h-7 w-7 animate-spin" /> : <Copyright className="mr-3 h-7 w-7" />}
+                          APPLY WATERMARK
+                        </Button>
                       </div>
-                  )}
-                  {showRetouchControls && imgSrc && (
-                      <div className="space-y-4">
-                          <RadioGroup value={retouchTool} onValueChange={(v: 'eraser' | 'restore') => setRetouchTool(v)} className="flex gap-4">
-                              <div className="flex items-center space-x-2"><RadioGroupItem value="eraser" id="tool-eraser"/><Label htmlFor="tool-eraser">Eraser</Label></div>
-                              <div className="flex items-center space-x-2"><RadioGroupItem value="restore" id="tool-restore"/><Label htmlFor="tool-restore">Restore</Label></div>
-                          </RadioGroup>
-                           <div>
-                              <Label htmlFor="brush-size-slider">Brush Size: {brushSize}px</Label>
-                              <Slider id="brush-size-slider" min={5} max={100} value={[brushSize]} onValueChange={v => setBrushSize(v[0])} />
+                    )}
+
+                    {showFrameControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-8 p-6 bg-muted/20 rounded-3xl border-2">
+                          <div className="space-y-5">
+                            <div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Frame Width</Label><span className="text-2xl font-black text-primary">{frameWidth}px</span></div>
+                            <Slider min={1} max={150} step={1} value={[frameWidth]} onValueChange={(value) => setFrameWidth(value[0])} />
                           </div>
-                          <Button className="w-full" onClick={applyRetouch}>Apply Retouch</Button>
-                      </div>
-                  )}
-                  {showCollageControls && (
-                      <div className="space-y-4">
-                          <div>
-                              <Label htmlFor="collage-layout">Layout</Label>
-                              <Select value={selectedCollageLayout} onValueChange={setSelectedCollageLayout}>
-                                  <SelectTrigger id="collage-layout"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                      {collageLayouts.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-                                  </SelectContent>
-                              </Select>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {Array.from({ length: collageLayouts.find(l=>l.value === selectedCollageLayout)?.requiredImages || 0 }).map((_, index) => (
-                                  <div key={index} className="flex flex-col items-center gap-1">
-                                      <Label className="text-xs">Slot {index + 1}</Label>
-                                      <div 
-                                          className="w-24 h-24 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:bg-muted"
-                                          onClick={() => {
-                                              if (collageSlotInputRef.current) {
-                                                  collageSlotInputRef.current.dataset.index = String(index);
-                                                  collageSlotInputRef.current.click();
-                                              }
-                                          }}
-                                      >
-                                          {collageSlotSrcs[index] ? (
-                                              <Image src={collageSlotSrcs[index]!} alt={`Slot ${index + 1}`} width={96} height={96} className="object-cover rounded-sm" />
-                                          ) : (
-                                              <Plus className="h-6 w-6 text-muted-foreground" />
-                                          )}
-                                      </div>
-                                  </div>
-                              ))}
-                          </div>
-                           {collageResultDataUrl && (
-                              <div>
-                                  <Label>Preview</Label>
-                                  <Image src={collageResultDataUrl} alt="Collage Preview" width={400} height={400} className="rounded-md border object-contain mx-auto mt-2"/>
+                          <div className="space-y-4 pt-2">
+                            <Label className="text-xs font-black uppercase text-muted-foreground tracking-widest pl-1">Frame Color</Label>
+                            <div className="flex gap-4">
+                              <div className="relative h-16 w-16 rounded-2xl overflow-hidden border-4 shadow-xl shrink-0">
+                                <Input type="color" value={frameColor} onChange={(e) => setFrameColor(e.target.value)} className="absolute inset-0 w-[200%] h-[200%] cursor-pointer -translate-x-1/4 -translate-y-1/4 border-none" />
                               </div>
-                           )}
-                          <Button className="w-full" disabled={isProcessingCollage || !collageResultDataUrl} onClick={handleApplyCollage}>
-                              {isProcessingCollage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              Apply Collage
-                          </Button>
+                              <Input type="text" value={frameColor} readOnly className="h-16 text-xl font-mono font-black flex-1 px-6 rounded-2xl bg-muted/50" />
+                            </div>
+                          </div>
+                        </div>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleApplyFrame} disabled={isProcessingFrame}>
+                          {isProcessingFrame ? <Loader2 className="mr-3 h-7 w-7 animate-spin" /> : <FrameIcon className="mr-3 h-7 w-7" />}
+                          BURN FRAME
+                        </Button>
                       </div>
-                  )}
-              </Card>
-          )}
-        </div>
+                    )}
 
-        <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="flex items-center text-xl font-headline">
-                        <ImageIcon className="mr-2 h-6 w-6 text-primary" /> Image Source
-                    </CardTitle>
-                    <CardDescription>
-                        Upload an image or select one to start editing.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                    <FileUpload
-                        label="Upload Image"
-                        onFileSelect={onSelectFile}
-                        acceptedFileTypes="image/jpeg,image/png,image/webp"
-                        id="image-editor-upload"
-                    />
-                    <div className="relative text-center">
-                        <Separator />
-                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
-                    </div>
-                    <Button variant="outline" className="w-full" onClick={() => setIsQueueDialogOpen(true)}>
-                        <Library className="mr-2 h-4 w-4" /> Select from Queue
-                    </Button>
-                </CardContent>
-            </Card>
+                    {showPipControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <FileUpload
+                          label="Select Image to Embed"
+                          onFileSelect={(files) => {
+                            if (files[0]) {
+                              setPipImageFile(files[0]);
+                              setPipImageSrc(URL.createObjectURL(files[0]));
+                            }
+                          }}
+                          acceptedFileTypes="image/png,image/jpeg,image/webp"
+                          id="pip-upload-sidebar-v3"
+                        />
+                        {pipImageSrc && (
+                          <div className="space-y-8 animate-in fade-in duration-300">
+                            <div className="p-4 bg-primary/10 border-2 border-primary/20 rounded-2xl flex items-start gap-4">
+                              <Move className="h-6 w-6 text-primary shrink-0 mt-0.5" />
+                              <p className="text-xs text-primary font-black leading-tight uppercase tracking-tight">Interactive! Drag & Resize on the canvas to position.</p>
+                            </div>
+                            <div className="space-y-8 p-6 bg-muted/20 rounded-3xl border-2">
+                              <div className="space-y-5"><div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Scale Size</Label><span className="text-xl font-black text-primary">{Math.round(pipRect.width)}%</span></div><Slider min={5} max={100} step={1} value={[pipRect.width]} onValueChange={v => setPipRect(p => ({ ...p, width: v[0], height: v[0] * (imageState!.height / imageState!.width) }))} /></div>
+                              <div className="space-y-5"><div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Opacity</Label><span className="text-xl font-black text-primary">{Math.round(pipOpacity * 100)}%</span></div><Slider min={0} max={1} step={0.01} value={[pipOpacity]} onValueChange={v => setPipOpacity(v[0])} /></div>
+                            </div>
+                            <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={handleApplyPip}>
+                              <PictureInPicture className="mr-3 h-7 w-7" /> APPLY PiP EFFECT
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tools</CardTitle>
-                    <CardDescription>Select a tool to apply to your image.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <Tabs defaultValue="Essentials" className="w-full">
-                      <ScrollArea>
-                          <TabsList className="w-full justify-start">
-                              {Object.keys(toolCategories).map(category => (
-                                  <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
-                              ))}
-                          </TabsList>
-                          <ScrollBar orientation="horizontal" />
+                    {showRetouchControls && imgSrc && (
+                      <div className="space-y-8 pt-2">
+                        <div className="flex p-2 bg-muted rounded-2xl gap-2">
+                          <Button variant={retouchTool === 'eraser' ? 'default' : 'ghost'} className="flex-1 h-14 text-lg font-black rounded-xl" onClick={() => setRetouchTool('eraser')}>ERASER</Button>
+                          <Button variant={retouchTool === 'restore' ? 'default' : 'ghost'} className="flex-1 h-14 text-lg font-black rounded-xl" onClick={() => setRetouchTool('restore')}>RESTORE</Button>
+                        </div>
+                        <div className="space-y-8 p-6 bg-muted/20 rounded-3xl border-2">
+                          <div className="space-y-5">
+                            <div className="flex justify-between items-center"><Label className="text-xs font-black uppercase">Brush Size</Label><span className="text-3xl font-black text-primary">{brushSize}px</span></div>
+                            <Slider min={5} max={150} value={[brushSize]} onValueChange={v => setBrushSize(v[0])} />
+                          </div>
+                          <div className="p-4 bg-accent/10 rounded-2xl border-2 border-accent/20">
+                            <p className="text-xs text-muted-foreground leading-relaxed font-black uppercase italic tracking-tight">Paint over areas to remove or restore detail.</p>
+                          </div>
+                        </div>
+                        <Button className="w-full h-16 text-xl shadow-2xl font-black rounded-2xl" onClick={applyRetouch}>
+                          <CheckCircle className="mr-3 h-7 w-7" /> FINALIZE RETOUCH
+                        </Button>
+                      </div>
+                    )}
+
+                    {showCollageControls && (
+                      <div className="space-y-8 pt-2">
+                        <div className="space-y-3">
+                          <Label className="text-sm font-black uppercase text-muted-foreground tracking-widest pl-1">Template Style</Label>
+                          <Select value={selectedCollageLayout} onValueChange={setSelectedCollageLayout}>
+                            <SelectTrigger className="h-16 text-lg font-black rounded-2xl border-2 px-6"><SelectValue /></SelectTrigger>
+                            <SelectContent className="rounded-2xl">
+                              {collageLayouts.map(l => <SelectItem key={l.value} value={l.value} className="font-bold h-12">{l.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          {Array.from({ length: collageLayouts.find(l => l.value === selectedCollageLayout)?.requiredImages || 0 }).map((_, index) => (
+                            <div key={index} className="space-y-2">
+                              <div
+                                className="aspect-square bg-muted/50 border-4 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-muted hover:border-primary transition-all overflow-hidden group shadow-2xl"
+                                onClick={() => {
+                                  if (collageSlotInputRef.current) {
+                                    collageSlotInputRef.current.dataset.index = String(index);
+                                    collageSlotInputRef.current.click();
+                                  }
+                                }}
+                              >
+                                {collageSlotSrcs[index] ? (
+                                  <Image src={collageSlotSrcs[index]!} alt={`Slot ${index + 1}`} width={200} height={200} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                ) : (
+                                  <>
+                                    <Plus className="h-10 w-10 text-muted-foreground/30 mb-2 group-hover:text-primary transition-colors" />
+                                    <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">SLOT {index + 1}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {collageResultDataUrl && (
+                          <div className="space-y-3 animate-in zoom-in-95 duration-700">
+                            <Label className="text-sm font-black uppercase opacity-60 tracking-widest">Master Preview</Label>
+                            <div className="relative aspect-square rounded-[2rem] border-8 border-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden bg-muted">
+                              <Image src={collageResultDataUrl} alt="Collage Preview" layout="fill" className="object-contain" />
+                            </div>
+                          </div>
+                        )}
+                        <Button className="w-full h-18 text-2xl shadow-2xl font-black rounded-3xl bg-primary text-primary-foreground hover:scale-[1.02] active:scale-[0.98] transition-all" disabled={isProcessingCollage || !collageResultDataUrl} onClick={handleApplyCollage}>
+                          {isProcessingCollage ? <Loader2 className="mr-3 h-8 w-8 animate-spin" /> : <LayoutPanelLeft className="mr-3 h-8 w-8" />}
+                          GENERATE COLLAGE
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-10 animate-in fade-in duration-500">
+                    <Tabs defaultValue="Essentials" className="w-full">
+                      <ScrollArea className="w-full">
+                        <TabsList className="w-max bg-muted/40 p-2 mb-8 h-14 rounded-2xl gap-2 shadow-inner">
+                          {Object.keys(toolCategories).map(category => (
+                            <TabsTrigger key={category} value={category} className="px-6 text-xs font-black data-[state=active]:bg-background data-[state=active]:shadow-lg rounded-xl transition-all uppercase tracking-widest">
+                              {category}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        <ScrollBar orientation="horizontal" className="h-1" />
                       </ScrollArea>
-                      {Object.entries(toolCategories).map(([category, tools]) => (
-                          <TabsContent key={category} value={category} className="mt-4">
-                              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                  {tools.map(tool => (
-                                      <Button
-                                          key={tool.actionId}
-                                          variant={activeToolName === tool.name ? 'default' : 'outline'}
-                                          onClick={() => handleToolAction(tool)}
-                                          className={cn("flex-col p-2 space-y-1 h-16", tool.className)}
-                                          disabled={isProcessing}
-                                          title={tool.description}
-                                      >
-                                          <tool.icon className="h-5 w-5 mb-1"/>
-                                          <span className="text-xs text-center">{tool.name}</span>
-                                      </Button>
-                                  ))}
-                              </div>
-                          </TabsContent>
-                      ))}
-                  </Tabs>
-                </CardContent>
-            </Card>
-        </div>
-      </div>
-    
 
-    <Dialog open={isQueueDialogOpen} onOpenChange={setIsQueueDialogOpen}>
-        <DialogContent className="sm:max-w-4xl">
+                      {Object.entries(toolCategories).map(([category, tools]) => (
+                        <TabsContent key={category} value={category} className="focus-visible:outline-none">
+                          <div className="grid grid-cols-1 gap-4">
+                            {tools.map(tool => (
+                              <Button
+                                key={tool.actionId}
+                                variant={activeToolName === tool.name ? 'default' : 'ghost'}
+                                onClick={() => handleToolAction(tool)}
+                                className={cn(
+                                  "flex flex-row items-center justify-start p-6 h-24 gap-6 transition-all rounded-[1.5rem] group relative overflow-hidden border-2 shadow-sm",
+                                  activeToolName === tool.name ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/30 border-primary scale-[1.02]" : "bg-card/50 hover:bg-muted/80 border-transparent hover:border-primary/20",
+                                  tool.className
+                                )}
+                                disabled={isProcessing}
+                              >
+                                <div className={cn(
+                                  "p-4 rounded-2xl transition-all shadow-md",
+                                  activeToolName === tool.name ? "bg-white/20" : "bg-background group-hover:scale-110 ring-1 ring-primary/10"
+                                )}>
+                                  <tool.icon className={cn("h-8 w-8", activeToolName === tool.name ? "text-white" : "text-primary")} />
+                                </div>
+                                <div className="flex flex-col items-start text-left gap-1">
+                                  <span className="text-lg font-black leading-none tracking-tighter uppercase">{tool.name}</span>
+                                  <span className="text-[11px] opacity-70 font-bold line-clamp-1 italic">{tool.description}</span>
+                                </div>
+                                {activeToolName === tool.name && (
+                                  <div className="absolute right-6">
+                                    <div className="h-3 w-3 rounded-full bg-white animate-pulse shadow-[0_0_10px_white]" />
+                                  </div>
+                                )}
+                              </Button>
+                            ))}
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Image Source Section - NOW AT THE BOTTOM AND SMALLER */}
+            <Card className="shadow-lg border-muted/20 overflow-hidden bg-background/40">
+              <Button
+                variant="ghost"
+                className="w-full flex justify-between items-center p-5 h-auto hover:bg-muted/50 transition-colors"
+                onClick={() => setIsSourceOpen(!isSourceOpen)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted p-2 rounded-lg">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-black text-sm uppercase tracking-widest">Image Source</span>
+                  {!imgSrc && <span className="flex h-3 w-3 rounded-full bg-red-500 animate-pulse" />}
+                </div>
+                {isSourceOpen ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+              </Button>
+
+              {isSourceOpen && (
+                <CardContent className="p-5 pt-0 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+                  <div className="p-4 bg-muted/40 rounded-[1.25rem] space-y-4 border shadow-inner">
+                    <FileUpload
+                      label={imgSrc ? "Change Active Image" : "Upload Image"}
+                      onFileSelect={onSelectFile}
+                      acceptedFileTypes="image/jpeg,image/png,image/webp"
+                      id="image-editor-upload-sidebar-v3"
+                    />
+                    <div className="relative">
+                      <Separator />
+                      <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-muted px-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">OR</span>
+                    </div>
+                    <Button variant="outline" className="w-full h-12 font-black rounded-xl border-2 hover:bg-primary/5" onClick={() => setIsQueueDialogOpen(true)}>
+                      <Library className="mr-2 h-5 w-5" /> FROM QUEUE
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Hint Card - Minimalist */}
+            {!activeToolName && (
+              <div className="p-6 bg-primary/5 rounded-[1.5rem] border-2 border-dashed border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-1000">
+                <div className="flex gap-4">
+                  <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5 animate-bounce" />
+                  <p className="text-xs text-muted-foreground leading-relaxed font-bold italic">
+                    Combine your edits! Your progress is automatically preserved as you move between tools.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>iv>
+
+
+
+
+        <Dialog open={isQueueDialogOpen} onOpenChange={setIsQueueDialogOpen}>
+          <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
-                <DialogTitle>Select Image from Queue</DialogTitle>
-                <DialogDescription>
-                    Choose an image from your document queue to edit.
-                </DialogDescription>
+              <DialogTitle>Select Image from Queue</DialogTitle>
+              <DialogDescription>
+                Choose an image from your document queue to edit.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                <ScrollArea className="h-96 pr-4">
-                    {imageDocuments.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {imageDocuments.map(doc => {
-                                const isSelected = sourceDocument?.id === doc.id;
-                                return (
-                                    <div
-                                        key={doc.id}
-                                        className="relative group cursor-pointer"
-                                        onClick={() => handleSelectFromQueue(doc)}
-                                    >
-                                        <Card className={cn("overflow-hidden transition-all", isSelected && "ring-2 ring-primary")}>
-                                            <CardContent className="p-0">
-                                                <Image
-                                                    src={doc.dataUri!}
-                                                    alt={doc.name}
-                                                    width={200}
-                                                    height={150}
-                                                    className="w-full h-32 object-cover"
-                                                    data-ai-hint="document image"
-                                                />
-                                            </CardContent>
-                                            <CardFooter className="p-2 text-xs">
-                                                <p className="truncate" title={doc.name}>{doc.name}</p>
-                                            </CardFooter>
-                                        </Card>
-                                        {isSelected && (
-                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5 pointer-events-none">
-                                                <CheckCircle className="h-5 w-5" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
+              <ScrollArea className="h-96 pr-4">
+                {imageDocuments.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {imageDocuments.map(doc => {
+                      const isSelected = sourceDocument?.id === doc.id;
+                      return (
+                        <div
+                          key={doc.id}
+                          className="relative group cursor-pointer"
+                          onClick={() => handleSelectFromQueue(doc)}
+                        >
+                          <Card className={cn("overflow-hidden transition-all", isSelected && "ring-2 ring-primary")}>
+                            <CardContent className="p-0">
+                              <Image
+                                src={doc.dataUri!}
+                                alt={doc.name}
+                                width={200}
+                                height={150}
+                                className="w-full h-32 object-cover"
+                                data-ai-hint="document image"
+                              />
+                            </CardContent>
+                            <CardFooter className="p-2 text-xs">
+                              <p className="truncate" title={doc.name}>{doc.name}</p>
+                            </CardFooter>
+                          </Card>
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5 pointer-events-none">
+                              <CheckCircle className="h-5 w-5" />
+                            </div>
+                          )}
                         </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                            <p>No images found in your document queue.</p>
-                            <p className="text-xs mt-1">Upload some images on the dashboard first.</p>
-                        </div>
-                    )}
-                </ScrollArea>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                    <p>No images found in your document queue.</p>
+                    <p className="text-xs mt-1">Upload some images on the dashboard first.</p>
+                  </div>
+                )}
+              </ScrollArea>
             </div>
-        </DialogContent>
-    </Dialog>
-    </>
-  );
+          </DialogContent>
+        </Dialog>
+      </>
+      );
 }
