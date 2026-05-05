@@ -37,6 +37,8 @@ import {
   RotateCw,
   FlipHorizontal,
   FlipVertical,
+  ChevronUp,
+  ChevronDown,
   Minimize2,
   Save,
   X,
@@ -2034,8 +2036,10 @@ export default function ImageEditorPage() {
               </div>
             </CardFooter>
           </Card>
-          {/* Professional Sidebar (Right) */}
-          <div className="w-full lg:w-[400px] shrink-0 flex flex-col gap-6">
+        </div>
+
+        {/* Professional Sidebar (Right) */}
+        <div className="w-full lg:w-[400px] shrink-0 flex flex-col gap-6">
             {/* Main Tools Sidebar - NOW AT THE TOP */}
             <Card className="shadow-2xl border-none overflow-hidden flex flex-col flex-1 min-h-[600px] bg-background/80 backdrop-blur-xl ring-1 ring-primary/20">
               <CardHeader className="bg-primary/5 border-b py-6">
@@ -2640,7 +2644,7 @@ export default function ImageEditorPage() {
               </div>
             )}
           </div>
-        </div>iv>
+        </div>
 
 
 
