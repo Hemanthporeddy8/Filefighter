@@ -18,21 +18,21 @@ export default function VideoEditorPage() {
     // STATE & LOGIC FROM video-editor.html
     // ═══════════════════════════════════════════════════════
     const state = {
-      clips: [],
-      audioTracks: [],
-      textLayers: [],
-      activeLayer: null,
+      clips: [] as any[],
+      audioTracks: [] as any[],
+      textLayers: [] as any[],
+      activeLayer: null as any,
       currentClipIndex: 0,
       globalTime: 0,
       totalDuration: 10,
       isPlaying: false,
       timelineZoom: 1,
-      history: [[]],
+      history: [[]] as any[],
       historyIndex: 0,
-      dragText: null,
+      dragText: null as any,
       fps: 24,
       resolution: '1920x1080',
-      objectUrls: new Set(),
+      objectUrls: new Set<string>(),
     };
 
     function formatTime(t: number) {
