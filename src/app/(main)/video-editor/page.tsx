@@ -91,7 +91,7 @@ export default function VideoEditorPage() {
     }
 
     function generateVideoThumbnail(vid: HTMLVideoElement) {
-      return new Promise(resolve => {
+      return new Promise<string>(resolve => {
         const canvas = document.createElement('canvas');
         vid.onseeked = () => {
           canvas.width = vid.videoWidth || 160;
@@ -110,7 +110,7 @@ export default function VideoEditorPage() {
       if (!valid.length) { setProcessing(false); showToast('Invalid files', 'Only video and image files are accepted.', true); return; }
 
       try {
-        const newClips = await Promise.all(valid.map(file => new Promise((resolve, reject) => {
+        const newClips = await Promise.all(valid.map(file => new Promise<any>((resolve, reject) => {
           if (file.type.startsWith('video/')) {
             const vid = document.createElement('video');
             const src = URL.createObjectURL(file);
@@ -126,8 +126,8 @@ export default function VideoEditorPage() {
             vid.onerror = () => reject(new Error('Failed to load: ' + file.name));
           } else {
             const reader = new FileReader();
-            reader.onload = e => {
-              const src = (e.target as any).result;
+            reader.onload = (e: any) => {
+              const src = e.target.result;
               resolve({ id: uid(), type: 'image', file, src, thumbnail: src, duration: 5,
                 start: state.totalDuration, filters: {brightness:100,contrast:100,saturate:100,grayscale:0},
                 trim: {start:0, end:5}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100 });
@@ -145,8 +145,8 @@ export default function VideoEditorPage() {
         }
         renderAll();
         showToast('Media added', newClips.length + ' file(s) added');
-      } catch(e: any) {
-        showToast('Error', e.message, true);
+      } catch(err: any) {
+        showToast('Error', err.message, true);
       }
       setProcessing(false);
     }
@@ -155,7 +155,7 @@ export default function VideoEditorPage() {
       const valid = files.filter(f => f.type.startsWith('audio/'));
       if (!valid.length) return;
       try {
-        const newTracks = await Promise.all(valid.map(file => new Promise((resolve, reject) => {
+        const newTracks = await Promise.all(valid.map(file => new Promise<any>((resolve, reject) => {
           const audio = document.createElement('audio');
           const src = URL.createObjectURL(file);
           state.objectUrls.add(src);
@@ -167,8 +167,8 @@ export default function VideoEditorPage() {
         computeTotalDuration();
         renderAll();
         showToast('Audio added', newTracks.length + ' track(s) added');
-      } catch(e: any) {
-        showToast('Error', e.message, true);
+      } catch(err: any) {
+        showToast('Error', err.message, true);
       }
     }
 
