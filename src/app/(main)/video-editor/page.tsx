@@ -127,7 +127,7 @@ export default function VideoEditorPage() {
           } else {
             const reader = new FileReader();
             reader.onload = e => {
-              const src = e.target.result;
+              const src = (e.target as any).result;
               resolve({ id: uid(), type: 'image', file, src, thumbnail: src, duration: 5,
                 start: state.totalDuration, filters: {brightness:100,contrast:100,saturate:100,grayscale:0},
                 trim: {start:0, end:5}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100 });
@@ -145,7 +145,7 @@ export default function VideoEditorPage() {
         }
         renderAll();
         showToast('Media added', newClips.length + ' file(s) added');
-      } catch(e) {
+      } catch(e: any) {
         showToast('Error', e.message, true);
       }
       setProcessing(false);
@@ -167,7 +167,7 @@ export default function VideoEditorPage() {
         computeTotalDuration();
         renderAll();
         showToast('Audio added', newTracks.length + ' track(s) added');
-      } catch(e) {
+      } catch(e: any) {
         showToast('Error', e.message, true);
       }
     }
@@ -381,8 +381,8 @@ export default function VideoEditorPage() {
       }
     }
 
-    let lastTs = null;
-    let raf = null;
+    let lastTs: number | null = null;
+    let raf: any = null;
     function playLoop(ts: number) {
       if (!state.isPlaying) return;
       if (lastTs !== null) {
@@ -458,9 +458,9 @@ export default function VideoEditorPage() {
 
     function deleteActive() {
       if (!state.activeLayer) return;
-      if (state.activeLayer.type === 'video') state.clips = state.clips.filter(c => c.id !== state.activeLayer.id);
-      else if (state.activeLayer.type === 'audio') state.audioTracks = state.audioTracks.filter(t => t.id !== state.activeLayer.id);
-      else if (state.activeLayer.type === 'text') state.textLayers = state.textLayers.filter(l => l.id !== state.activeLayer.id);
+      if (state.activeLayer.type === 'video') state.clips = state.clips.filter((c: any) => c.id !== state.activeLayer.id);
+      else if (state.activeLayer.type === 'audio') state.audioTracks = state.audioTracks.filter((t: any) => t.id !== state.activeLayer.id);
+      else if (state.activeLayer.type === 'text') state.textLayers = state.textLayers.filter((l: any) => l.id !== state.activeLayer.id);
       state.activeLayer = null; computeTotalDuration(); renderAll();
     }
 
@@ -469,15 +469,15 @@ export default function VideoEditorPage() {
     // ═══════════════════════════════════════════════════════
     document.querySelectorAll('.rail-btn[data-tab]').forEach(btn => btn.addEventListener('click', () => switchTab((btn as any).dataset.tab)));
     document.getElementById('uz-video')?.addEventListener('click', () => (document.getElementById('input-video') as any).click());
-    document.getElementById('input-video')?.addEventListener('change', (e) => handleVideoFiles(Array.from((e.target as any).files)));
+    document.getElementById('input-video')?.addEventListener('change', (e: any) => handleVideoFiles(Array.from(e.target.files as FileList)));
     document.getElementById('uz-audio')?.addEventListener('click', () => (document.getElementById('input-audio') as any).click());
-    document.getElementById('input-audio')?.addEventListener('change', (e) => handleAudioFiles(Array.from((e.target as any).files)));
+    document.getElementById('input-audio')?.addEventListener('change', (e: any) => handleAudioFiles(Array.from(e.target.files as FileList)));
     document.getElementById('btn-play')?.addEventListener('click', togglePlay);
     document.getElementById('btn-add-text')?.addEventListener('click', addTextLayer);
     document.getElementById('btn-delete')?.addEventListener('click', deleteActive);
 
     const keyHandler = (e: KeyboardEvent) => {
-      if (e.target.matches('input,textarea,select')) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
       if (e.key === 'Delete') deleteActive();
     };
