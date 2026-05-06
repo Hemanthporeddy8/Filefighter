@@ -1425,13 +1425,17 @@ function renderAll() {
 }
 
 function updatePreviewEmpty() {
-  const hasMedia = state.clips.length > 0;
-  document.getElementById('preview-empty').style.display = hasMedia ? 'none' : 'flex';
-  document.getElementById('btn-export-top').disabled = !hasMedia;
-  document.getElementById('btn-export-main').disabled = !hasMedia;
-  document.getElementById('btn-play').disabled = !hasMedia;
-  document.getElementById('btn-frame-back').disabled = !hasMedia;
-  document.getElementById('btn-frame-fwd').disabled = !hasMedia;
+  const hasClips = state.clips.length > 0;
+  const hasAudio = state.audioTracks.length > 0;
+  const hasText = state.textLayers.length > 0;
+  const hasAnything = hasClips || hasAudio || hasText;
+
+  document.getElementById('preview-empty').style.display = hasClips ? 'none' : 'flex';
+  document.getElementById('btn-export-top').disabled = !hasAnything;
+  document.getElementById('btn-export-main').disabled = !hasAnything;
+  document.getElementById('btn-play').disabled = !hasAnything;
+  document.getElementById('btn-frame-back').disabled = !hasAnything;
+  document.getElementById('btn-frame-fwd').disabled = !hasAnything;
 }
 
 function updateActionButtons() {
@@ -1837,7 +1841,10 @@ document.addEventListener('keydown', e => {
 });
 
 function togglePlay() {
-  if (!state.clips.length) return;
+  const hasClips = state.clips.length > 0;
+  const hasAudio = state.audioTracks.length > 0;
+  const hasText = state.textLayers.length > 0;
+  if (!hasClips && !hasAudio && !hasText) return;
   state.isPlaying = !state.isPlaying;
   const icon = document.getElementById('play-icon');
   if (state.isPlaying) {
