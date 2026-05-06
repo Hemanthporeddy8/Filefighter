@@ -1373,7 +1373,7 @@ async function handleAudioFiles(files) {
       const src = URL.createObjectURL(file);
       state.objectUrls.add(src);
       audio.src = src;
-      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime });
+      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime, el: audio });
       audio.onerror = () => reject(new Error('Failed to load: ' + file.name));
     })));
     state.audioTracks.push(...newTracks);
@@ -1628,6 +1628,7 @@ function seekTo(t) {
   state.globalTime = Math.max(0, Math.min(state.totalDuration, t));
   updatePlayhead();
   syncVideoToTime();
+  syncAudioToTime();
   renderTextOverlays();
 }
 
@@ -1848,6 +1849,7 @@ function togglePlay() {
     icon.innerHTML = '<polygon points="4,2 14,8 4,14"/>';
     cancelAnimationFrame(raf);
     pauseVideo();
+    syncAudioToTime();
   }
 }
 
@@ -1867,9 +1869,33 @@ function playLoop(ts) {
   }
   lastTs = ts;
   syncVideoToTime();
+  syncAudioToTime();
   updatePlayhead();
   renderTextOverlays();
   raf = requestAnimationFrame(playLoop);
+}
+
+function syncAudioToTime() {
+  state.audioTracks.forEach(track => {
+    if (!track.el) return;
+    const rel = state.globalTime - track.start;
+    const isInside = rel >= 0 && rel < track.duration;
+
+    if (isInside) {
+      if (Math.abs(track.el.currentTime - rel) > 0.15) {
+        track.el.currentTime = rel;
+      }
+      if (state.isPlaying && track.el.paused) {
+        track.el.play().catch(() => {});
+      } else if (!state.isPlaying && !track.el.paused) {
+        track.el.pause();
+      }
+    } else {
+      if (!track.el.paused) {
+        track.el.pause();
+      }
+    }
+  });
 }
 
 function syncVideoToTime() {
@@ -1938,6 +1964,7 @@ function getElapsedBeforeClip() {
 function pauseVideo() {
   const v = document.getElementById('preview-video');
   if (!v.paused) v.pause();
+  state.audioTracks.forEach(t => { if(t.el && !t.el.paused) t.el.pause(); });
 }
 
 function buildFilterString(f) {
