@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
+  async rewrites() {
+    return [
+      {
+        source: '/video-editor',
+        destination: '/video-editor.html',
+      },
+    ];
+  },
   experimental: {
     serverComponentsExternalPackages: ['onnxruntime-node', '@imgly/background-removal'],
   },
