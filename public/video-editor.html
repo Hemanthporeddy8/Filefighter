@@ -941,20 +941,29 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
         <div id="volume-settings-empty" style="padding: 20px; text-align: center; color: #888; font-size: 12px;">
           Select a clip or audio track to adjust volume
         </div>
-        <div id="volume-settings-content" style="display:none;">
-          <div class="prop-group">
-            <div class="prop-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span class="section-label" style="margin:0">Level</span>
-              <span id="val-global-volume" style="font-size: 11px; color: var(--accent);">100</span>
+          <div id="volume-settings-content" style="display:none;">
+            <div class="prop-group">
+              <div class="prop-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="section-label" style="margin:0">Selection Volume</span>
+                <span id="val-global-volume" style="font-size: 11px; color: var(--accent);">100</span>
+              </div>
+              <input type="range" id="sl-global-volume" min="0" max="200" value="100" class="prop-slider" style="width:100%"/>
             </div>
-            <input type="range" id="sl-global-volume" min="0" max="200" value="100" class="prop-slider" style="width:100%"/>
+            
+            <div class="prop-group" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+              <div class="prop-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="section-label" style="margin:0">Master Volume (All)</span>
+                <span id="val-master-volume" style="font-size: 11px; color: var(--accent);">100</span>
+              </div>
+              <input type="range" id="sl-master-volume" min="0" max="100" value="100" class="prop-slider" style="width:100%"/>
+            </div>
+
+            <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+              <p style="font-size: 11px; color: #aaa; line-height: 1.4; margin: 0;">
+                <strong>Tip:</strong> Use Selection Volume for single clips. Use Master Volume to quickly mute or fade the entire project.
+              </p>
+            </div>
           </div>
-          <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-            <p style="font-size: 11px; color: #aaa; line-height: 1.4; margin: 0;">
-              <strong>Tip:</strong> Set volume to 0 to permanently mute the original audio from a video clip. You can then add a new audio track from the "Audio" tab.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1232,6 +1241,7 @@ const state = {
   fps: 24,
   resolution: '1920x1080',
   objectUrls: new Set(),
+  projectVolume: 100,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1757,7 +1767,25 @@ function renderVolumePanel() {
   const label = document.getElementById('val-global-volume');
   if (slider) slider.value = currentVol;
   if (label) label.textContent = currentVol;
+  
+  const masterSlider = document.getElementById('sl-master-volume');
+  const masterLabel = document.getElementById('val-master-volume');
+  if (masterSlider) masterSlider.value = state.projectVolume;
+  if (masterLabel) masterLabel.textContent = state.projectVolume;
 }
+
+document.getElementById('sl-master-volume')?.addEventListener('input', e => {
+  state.projectVolume = +e.target.value;
+  const label = document.getElementById('val-master-volume');
+  if (label) label.textContent = state.projectVolume;
+  syncAudioToTime();
+  const video = document.getElementById('preview-video');
+  const clip = getCurrentClip();
+  if (video && clip && clip.type === 'video') {
+    const vol = ((clip.volume ?? 100) / 100) * (state.projectVolume / 100);
+    video.volume = Math.max(0, Math.min(1, vol));
+  }
+});
 
 document.getElementById('sl-global-volume')?.addEventListener('input', e => {
   const vol = +e.target.value;
@@ -1770,13 +1798,17 @@ document.getElementById('sl-global-volume')?.addEventListener('input', e => {
     if (clip) {
       clip.volume = vol;
       const video = document.getElementById('preview-video');
-      if (video) video.volume = vol / 100;
+      if (video) {
+        const finalVol = (vol / 100) * (state.projectVolume / 100);
+        video.volume = Math.max(0, Math.min(1, finalVol));
+      }
     }
   } else if (state.activeLayer.type === 'audio') {
     const track = state.audioTracks.find(t => t.id === state.activeLayer.id);
     if (track && track.el) {
       track.volume = vol;
-      track.el.volume = vol / 100;
+      const finalVol = (vol / 100) * (state.projectVolume / 100);
+      track.el.volume = Math.max(0, Math.min(1, finalVol));
     }
   }
 });
@@ -1960,25 +1992,29 @@ function playLoop(ts) {
 
 function syncAudioToTime() {
   state.audioTracks.forEach(track => {
-    if (!track.el) return;
-    const rel = state.globalTime - track.start;
-    const isInside = rel >= 0 && rel < track.duration;
+    try {
+      if (!track.el || track.el.readyState < 1) return;
+      const rel = state.globalTime - track.start;
+      if (!isFinite(rel)) return;
+      const isInside = rel >= 0 && rel < track.duration;
 
-    if (isInside) {
-      if (Math.abs(track.el.currentTime - rel) > 0.15) {
-        track.el.currentTime = rel;
+      if (isInside) {
+        if (Math.abs(track.el.currentTime - rel) > 0.2) {
+          track.el.currentTime = rel;
+        }
+        const vol = ((track.volume ?? 100) / 100) * (state.projectVolume / 100);
+        track.el.volume = Math.max(0, Math.min(1, vol));
+        if (state.isPlaying && track.el.paused) {
+          track.el.play().catch(() => {});
+        } else if (!state.isPlaying && !track.el.paused) {
+          track.el.pause();
+        }
+      } else {
+        if (!track.el.paused) {
+          track.el.pause();
+        }
       }
-      track.el.volume = (track.volume ?? 100) / 100;
-      if (state.isPlaying && track.el.paused) {
-        track.el.play().catch(() => {});
-      } else if (!state.isPlaying && !track.el.paused) {
-        track.el.pause();
-      }
-    } else {
-      if (!track.el.paused) {
-        track.el.pause();
-      }
-    }
+    } catch(e) { console.warn("Audio sync failed", e); }
   });
 }
 
@@ -2001,14 +2037,21 @@ function syncVideoToTime() {
 
     const elapsed = getElapsedBeforeClip();
     const targetTime = clip.trim.start + (state.globalTime - elapsed);
-    video.volume = (clip.volume ?? 100) / 100;
-    if (Math.abs(video.currentTime - targetTime) > 0.15) video.currentTime = targetTime;
+    
+    try {
+      const vol = ((clip.volume ?? 100) / 100) * (state.projectVolume / 100);
+      video.volume = Math.max(0, Math.min(1, vol));
+      if (isFinite(targetTime) && video.readyState >= 1) {
+        if (Math.abs(video.currentTime - targetTime) > 0.2) video.currentTime = targetTime;
+      }
 
-    if (state.isPlaying && video.paused) {
-      video.play().catch(() => {});
-    } else if (!state.isPlaying && !video.paused) {
-      video.pause();
-    }
+      if (state.isPlaying && video.paused) {
+        video.play().catch(() => {});
+      } else if (!state.isPlaying && !video.paused) {
+        video.pause();
+      }
+    } catch(e) { console.warn("Video sync failed", e); }
+
   } else if (clip.type === 'image') {
     pauseVideo();
     video.classList.remove('visible');
