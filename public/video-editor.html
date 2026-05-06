@@ -1479,7 +1479,7 @@ function updatePreviewEmpty() {
 function updateActionButtons() {
   const hasSel = !!state.activeLayer;
   document.getElementById('btn-delete').disabled = !hasSel;
-  document.getElementById('btn-split').disabled = state.clips.length === 0;
+  document.getElementById('btn-split').disabled = !hasSel || (state.activeLayer && state.activeLayer.type === 'text');
 }
 
 function renderClipsList() {
@@ -1654,6 +1654,25 @@ function updatePlayhead() {
   document.getElementById('playhead').style.left = pct + '%';
   updateTimecode();
 }
+
+let isDraggingPlayhead = false;
+document.getElementById('playhead').addEventListener('mousedown', (e) => {
+  isDraggingPlayhead = true;
+  e.stopPropagation();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isDraggingPlayhead) return;
+  const inner = document.getElementById('tracks-inner');
+  const rect = inner.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, x / rect.width));
+  seekTo(pct * state.totalDuration);
+});
+
+document.addEventListener('mouseup', () => {
+  isDraggingPlayhead = false;
+});
 
 document.getElementById('tracks-scroll').addEventListener('click', e => {
   const inner = document.getElementById('tracks-inner');
@@ -2078,10 +2097,10 @@ function getCurrentClip() {
   let t = 0;
   for (const clip of state.clips) {
     const dur = clip.trim.end - clip.trim.start;
-    if (state.globalTime < t + dur) return clip;
+    if (state.globalTime >= t && state.globalTime < t + dur) return clip;
     t += dur;
   }
-  return state.clips[state.clips.length - 1] || null;
+  return null;
 }
 
 function getElapsedBeforeClip() {
@@ -2227,28 +2246,50 @@ function deleteActive() {
 
 document.getElementById('btn-split').addEventListener('click', splitAtPlayhead);
 function splitAtPlayhead() {
-  if (!state.clips.length) return;
-  let elapsed = 0;
-  let splitIdx = -1;
-  for (let i = 0; i < state.clips.length; i++) {
-    const dur = state.clips[i].trim.end - state.clips[i].trim.start;
-    if (state.globalTime < elapsed + dur) { splitIdx = i; break; }
-    elapsed += dur;
+  if (!state.activeLayer) {
+    showToast('Nothing selected', 'Select a video or audio track to split');
+    return;
   }
-  if (splitIdx === -1) return;
-  const clip = state.clips[splitIdx];
-  if (clip.type !== 'video') { showToast('Cannot split', 'Images cannot be split'); return; }
-  const splitTime = clip.trim.start + (state.globalTime - elapsed);
-  if (splitTime <= clip.trim.start + 0.1 || splitTime >= clip.trim.end - 0.1) {
-    showToast('Cannot split', 'Move playhead inside the clip'); return;
+
+  if (state.activeLayer.type === 'video') {
+    let elapsed = 0;
+    let splitIdx = -1;
+    for (let i = 0; i < state.clips.length; i++) {
+      const dur = state.clips[i].trim.end - state.clips[i].trim.start;
+      if (state.globalTime < elapsed + dur) { splitIdx = i; break; }
+      elapsed += dur;
+    }
+    if (splitIdx === -1) return;
+    const clip = state.clips[splitIdx];
+    if (clip.type !== 'video') { showToast('Cannot split', 'Images cannot be split'); return; }
+    const splitTime = clip.trim.start + (state.globalTime - elapsed);
+    if (splitTime <= clip.trim.start + 0.1 || splitTime >= clip.trim.end - 0.1) {
+      showToast('Cannot split', 'Move playhead inside the clip'); return;
+    }
+    const a = { ...clip, id: uid(), trim: { start: clip.trim.start, end: splitTime } };
+    const b = { ...clip, id: uid(), trim: { start: splitTime, end: clip.trim.end } };
+    state.clips.splice(splitIdx, 1, a, b);
+    pushHistory();
+    computeTotalDuration();
+    renderAll();
+    showToast('Clip split');
+  } else if (state.activeLayer.type === 'audio') {
+    const idx = state.audioTracks.findIndex(t => t.id === state.activeLayer.id);
+    if (idx === -1) return;
+    const track = state.audioTracks[idx];
+    const relTime = state.globalTime - track.start;
+    if (relTime <= 0.1 || relTime >= track.duration - 0.1) {
+      showToast('Cannot split', 'Move playhead inside the audio track'); return;
+    }
+    const a = { ...track, id: uid(), duration: relTime };
+    const b = { ...track, id: uid(), start: state.globalTime, duration: track.duration - relTime };
+    // Create new audio element for second part
+    b.el = new Audio(track.src);
+    state.audioTracks.splice(idx, 1, a, b);
+    computeTotalDuration();
+    renderAll();
+    showToast('Audio track split');
   }
-  const a = { ...clip, id: uid(), trim: { start: clip.trim.start, end: splitTime } };
-  const b = { ...clip, id: uid(), trim: { start: splitTime, end: clip.trim.end } };
-  state.clips.splice(splitIdx, 1, a, b);
-  pushHistory();
-  computeTotalDuration();
-  renderAll();
-  showToast('Clip split');
 }
 
 // ═══════════════════════════════════════════════════════
