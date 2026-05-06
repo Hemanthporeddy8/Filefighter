@@ -35,7 +35,7 @@ export default function VideoEditorPage() {
       objectUrls: new Set(),
     };
 
-    function formatTime(t) {
+    function formatTime(t: number) {
       if (isNaN(t) || t < 0) return '00:00.00';
       const m = Math.floor(t / 60);
       const s = Math.floor(t % 60);
@@ -45,7 +45,7 @@ export default function VideoEditorPage() {
 
     function uid() { return '_' + Math.random().toString(36).slice(2,9) + Date.now(); }
 
-    function showToast(title, desc='', isError=false) {
+    function showToast(title: string, desc: string = '', isError: boolean = false) {
       const el = document.getElementById('toast');
       if (!el) return;
       const t = document.getElementById('toast-title');
@@ -56,7 +56,7 @@ export default function VideoEditorPage() {
       setTimeout(() => el.classList.remove('show'), 3000);
     }
 
-    function setProcessing(show, title='Processing…', desc='Please wait') {
+    function setProcessing(show: boolean, title: string = 'Processing…', desc: string = 'Please wait') {
       const el = document.getElementById('proc-overlay');
       if (!el) return;
       const t = document.getElementById('proc-title');
@@ -85,18 +85,18 @@ export default function VideoEditorPage() {
       if (pbTc) pbTc.textContent = cur + ' / ' + tot;
     }
 
-    function switchTab(tab) {
+    function switchTab(tab: string) {
       document.querySelectorAll('.rail-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === tab));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
     }
 
-    function generateVideoThumbnail(vid) {
+    function generateVideoThumbnail(vid: HTMLVideoElement) {
       return new Promise(resolve => {
         const canvas = document.createElement('canvas');
         vid.onseeked = () => {
           canvas.width = vid.videoWidth || 160;
           canvas.height = vid.videoHeight || 90;
-          canvas.getContext('2d').drawImage(vid, 0, 0, canvas.width, canvas.height);
+          canvas.getContext('2d')?.drawImage(vid, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg', 0.7));
           vid.onseeked = null;
         };
@@ -104,7 +104,7 @@ export default function VideoEditorPage() {
       });
     }
 
-    async function handleVideoFiles(files) {
+    async function handleVideoFiles(files: File[]) {
       setProcessing(true, 'Processing media…', 'Generating thumbnails');
       const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
       if (!valid.length) { setProcessing(false); showToast('Invalid files', 'Only video and image files are accepted.', true); return; }
@@ -151,7 +151,7 @@ export default function VideoEditorPage() {
       setProcessing(false);
     }
 
-    async function handleAudioFiles(files) {
+    async function handleAudioFiles(files: File[]) {
       const valid = files.filter(f => f.type.startsWith('audio/'));
       if (!valid.length) return;
       try {
@@ -350,7 +350,7 @@ export default function VideoEditorPage() {
       updateTimecode();
     }
 
-    function selectLayer(id, type) {
+    function selectLayer(id: string, type: string) {
       state.activeLayer = { id, type };
       renderAll();
     }
@@ -383,7 +383,7 @@ export default function VideoEditorPage() {
 
     let lastTs = null;
     let raf = null;
-    function playLoop(ts) {
+    function playLoop(ts: number) {
       if (!state.isPlaying) return;
       if (lastTs !== null) {
         state.globalTime = Math.min(state.globalTime + (ts - lastTs) / 1000, state.totalDuration);
@@ -432,7 +432,7 @@ export default function VideoEditorPage() {
     }
     function pauseVideo() { (document.getElementById('preview-video') as any)?.pause(); }
 
-    function seekTo(t) {
+    function seekTo(t: number) {
       state.globalTime = Math.max(0, Math.min(state.totalDuration, t));
       updatePlayhead(); syncVideoToTime(); renderTextOverlays();
     }
@@ -476,7 +476,7 @@ export default function VideoEditorPage() {
     document.getElementById('btn-add-text')?.addEventListener('click', addTextLayer);
     document.getElementById('btn-delete')?.addEventListener('click', deleteActive);
 
-    const keyHandler = e => {
+    const keyHandler = (e: KeyboardEvent) => {
       if (e.target.matches('input,textarea,select')) return;
       if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
       if (e.key === 'Delete') deleteActive();
