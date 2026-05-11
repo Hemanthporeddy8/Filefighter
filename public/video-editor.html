@@ -978,6 +978,9 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
           <button class="setting-option" data-fps="30">30 fps</button>
           <button class="setting-option" data-fps="60">60 fps</button>
         </div>
+        <div class="section-label" style="margin-top:14px;margin-bottom:6px">Master volume</div>
+        <div class="prop-row" style="margin-bottom:4px"><label>Volume</label><span id="val-master-vol">100</span></div>
+        <input type="range" class="prop-slider" id="sl-master-vol" min="0" max="100" value="100"/>
       </div>
     </div>
 
@@ -1715,10 +1718,11 @@ function renderInspector() {
     textPane.style.display = 'none';
     const aud = state.audioTracks.find(a => a.id === state.activeLayer.id);
     if (!aud) return;
-    // Show only volume for audio
-    document.getElementById('pane-adjust').classList.add('active');
     setSlider('sl-vol', 'val-vol', (aud.volume || 1) * 100);
-    // Hide other video-specific filters if needed, but for now just show volume
+    // Switch to Adjust tab to show volume
+    document.querySelectorAll('.rp-tab').forEach(b => b.classList.toggle('active', b.dataset.pane === 'adjust'));
+    document.querySelectorAll('.rp-pane').forEach(p => p.classList.toggle('active', p.id === 'pane-adjust'));
+  } else if (state.activeLayer.type === 'text') {
     videoPane.style.display = 'none';
     textPane.style.display = 'flex';
     const layer = state.textLayers.find(l => l.id === state.activeLayer.id);
@@ -1969,8 +1973,9 @@ function syncVideoToTime() {
     
     video.volume = (clip.volume ?? 1) * state.masterVolume;
 
-    // Smoother sync: only seek if drift is large
-    if (Math.abs(video.currentTime - targetTime) > 0.25) {
+    // Smoother sync: only seek if drift is large (> 0.5s) during playback
+    const threshold = state.isPlaying ? 0.5 : 0.05;
+    if (Math.abs(video.currentTime - targetTime) > threshold) {
       video.currentTime = targetTime;
     }
 
@@ -2253,6 +2258,16 @@ document.querySelectorAll('[data-fps]').forEach(btn => {
     state.fps = +btn.dataset.fps;
     showToast('Frame rate set', btn.dataset.fps + ' fps');
   });
+});
+
+// ═══════════════════════════════════════════════════════
+// MASTER VOLUME
+// ═══════════════════════════════════════════════════════
+document.getElementById('sl-master-vol').addEventListener('input', function() {
+  state.masterVolume = this.value / 100;
+  document.getElementById('val-master-vol').textContent = this.value;
+  syncVideoToTime();
+  syncAudioTracks();
 });
 
 // ═══════════════════════════════════════════════════════
