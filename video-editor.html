@@ -563,11 +563,12 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .ruler-row {
   height:22px;background:var(--bg2);
   border-bottom:1px solid var(--border);
-  display:flex;align-items:stretch;
   flex-shrink:0;
 }
 .ruler{
-  flex:1;position:relative;overflow:hidden;
+  margin-left:40px; /* Aligns with track-content */
+  position:relative;overflow:hidden;
+  height:100%;
 }
 .ruler-tick{
   position:absolute;bottom:6px;width:1px;background:var(--border2);
@@ -1134,8 +1135,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
               <div class="playhead-head"></div>
             </div>
           </div>
-          <div class="track-row ruler-row">
-            <div class="track-label"></div>
+          <div class="ruler-row">
             <div class="ruler" id="ruler"></div>
           </div>
           <!-- V1 -->
