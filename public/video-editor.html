@@ -557,14 +557,21 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .tracks-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .tracks-inner{
   position:relative;min-height:100%;min-width:100%;
+  padding-left:48px; /* Fixed sidebar width */
+  box-sizing:border-box;
+  background:linear-gradient(90deg, var(--bg2) 48px, transparent 48px);
 }
 
 /* Ruler */
-.ruler{
-  height:22px;background:var(--bg2);
+.ruler-row {
+  height:24px;background:var(--bg2);
   border-bottom:1px solid var(--border);
-  position:relative;overflow:hidden;display:flex;align-items:flex-end;
-  padding-bottom:3px;flex-shrink:0;
+  flex-shrink:0;
+}
+.ruler{
+  width:100%;
+  position:relative;overflow:hidden;
+  height:100%;
 }
 .ruler-tick{
   position:absolute;bottom:6px;width:1px;background:var(--border2);
@@ -576,12 +583,15 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
   transform:translateX(-50%);white-space:nowrap;
 }
 
-/* Playhead */
-.playhead{
-  position:absolute;top:0;width:2px;
-  background:rgba(255,255,255,.7);
+.playhead-container {
+  position:absolute;top:0;bottom:0;
+  left:0; /* Starts at padding edge (48px) */
+  width:100%;
   z-index:30;pointer-events:none;
-  bottom:0;
+}
+.playhead{
+  position:absolute;top:0;bottom:0;width:2px;
+  background:rgba(255,255,255,.7);
 }
 .playhead-head{
   position:absolute;top:-1px;left:-5px;
@@ -599,10 +609,14 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .track-row.xs{height:26px}
 
 .track-label{
-  width:40px;flex-shrink:0;
+  position:absolute;
+  left:0;
+  width:48px;height:100%;
+  margin-left:-48px; /* Pull back to sidebar area */
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:9px;font-weight:600;color:var(--text3);
   background:var(--bg2);border-right:1px solid var(--border);
+  z-index:10;
 }
 .track-label--video{color:rgba(99,102,241,.6)}
 .track-label--audio{color:rgba(16,185,129,.6)}
@@ -760,14 +774,15 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
   <!-- ══════════════ TOPBAR ══════════════ -->
   <header class="topbar">
     <div class="topbar-left">
-      <a href="/dashboard" class="logo" style="text-decoration:none" title="Back to Dashboard">
+      <div class="logo">
         <div class="logo-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="white" stroke-width="1.4"/>
+            <polygon points="6.5,6.5 11,8 6.5,9.5" fill="white"/>
           </svg>
         </div>
-      </a>
+        <span class="logo-name">FileFlow</span>
+      </div>
       <div class="topbar-sep"></div>
       <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 7a5 5 0 1 1 0 2"/><polyline points="1,4 3,7 6,5"/></svg>
@@ -830,10 +845,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
     <button class="rail-btn" data-tab="effects">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>
       <span>Effects</span>
-    </button>
-    <button class="rail-btn" data-tab="volume">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-      <span>Volume</span>
     </button>
     <div class="rail-spacer"></div>
     <button class="rail-btn" data-tab="settings">
@@ -932,38 +943,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
           <div class="effect-card"><div class="effect-preview fx-pixelate"></div><span>Pixelate</span></div>
           <div class="effect-card"><div class="effect-preview fx-noise"></div><span>Noise</span></div>
         </div>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="tab-volume">
-      <div class="panel-header"><h3>Volume</h3></div>
-      <div class="panel-body">
-        <div id="volume-settings-empty" style="padding: 20px; text-align: center; color: #888; font-size: 12px;">
-          Select a clip or audio track to adjust volume
-        </div>
-          <div id="volume-settings-content" style="display:none;">
-            <div class="prop-group">
-              <div class="prop-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span class="section-label" style="margin:0">Selection Volume</span>
-                <span id="val-global-volume" style="font-size: 11px; color: var(--accent);">100</span>
-              </div>
-              <input type="range" id="sl-global-volume" min="0" max="200" value="100" class="prop-slider" style="width:100%"/>
-            </div>
-            
-            <div class="prop-group" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-              <div class="prop-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span class="section-label" style="margin:0">Master Volume (All)</span>
-                <span id="val-master-volume" style="font-size: 11px; color: var(--accent);">100</span>
-              </div>
-              <input type="range" id="sl-master-volume" min="0" max="100" value="100" class="prop-slider" style="width:100%"/>
-            </div>
-
-            <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-              <p style="font-size: 11px; color: #aaa; line-height: 1.4; margin: 0;">
-                <strong>Tip:</strong> Use Selection Volume for single clips. Use Master Volume to quickly mute or fade the entire project.
-              </p>
-            </div>
-          </div>
       </div>
     </div>
 
@@ -1158,10 +1137,14 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
     <div class="tracks-area">
       <div class="tracks-scroll" id="tracks-scroll">
         <div class="tracks-inner" id="tracks-inner">
-          <div class="playhead" id="playhead" style="left:0">
-            <div class="playhead-head"></div>
+          <div class="playhead-container">
+            <div class="playhead" id="playhead" style="left:0">
+              <div class="playhead-head"></div>
+            </div>
           </div>
-          <div class="ruler" id="ruler"></div>
+          <div class="ruler-row">
+            <div class="ruler" id="ruler"></div>
+          </div>
           <!-- V1 -->
           <div class="track-row">
             <div class="track-label track-label--video">
@@ -1241,7 +1224,6 @@ const state = {
   fps: 24,
   resolution: '1920x1080',
   objectUrls: new Set(),
-  projectVolume: 100,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1367,7 +1349,7 @@ async function handleVideoFiles(files) {
           const dur = vid.duration || 10;
           resolve({ id: uid(), type: 'video', file, src, thumbnail: thumb, duration: dur,
             start: state.totalDuration, filters: {brightness:100,contrast:100,saturate:100,grayscale:0},
-            trim: {start:0, end:dur}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume: 100 });
+            trim: {start:0, end:dur}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100 });
         };
         vid.onerror = () => reject(new Error('Failed to load: ' + file.name));
       } else {
@@ -1410,7 +1392,7 @@ async function handleAudioFiles(files) {
       const src = URL.createObjectURL(file);
       state.objectUrls.add(src);
       audio.src = src;
-      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime, el: audio, volume: 100 });
+      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime });
       audio.onerror = () => reject(new Error('Failed to load: ' + file.name));
     })));
     state.audioTracks.push(...newTracks);
@@ -1456,30 +1438,25 @@ function renderAll() {
   renderTextList();
   renderTimeline();
   renderInspector();
-  renderVolumePanel();
   updatePreviewEmpty();
   updateActionButtons();
   buildRuler();
 }
 
 function updatePreviewEmpty() {
-  const hasClips = state.clips.length > 0;
-  const hasAudio = state.audioTracks.length > 0;
-  const hasText = state.textLayers.length > 0;
-  const hasAnything = hasClips || hasAudio || hasText;
-
-  document.getElementById('preview-empty').style.display = hasClips ? 'none' : 'flex';
-  document.getElementById('btn-export-top').disabled = !hasAnything;
-  document.getElementById('btn-export-main').disabled = !hasAnything;
-  document.getElementById('btn-play').disabled = !hasAnything;
-  document.getElementById('btn-frame-back').disabled = !hasAnything;
-  document.getElementById('btn-frame-fwd').disabled = !hasAnything;
+  const hasMedia = state.clips.length > 0;
+  document.getElementById('preview-empty').style.display = hasMedia ? 'none' : 'flex';
+  document.getElementById('btn-export-top').disabled = !hasMedia;
+  document.getElementById('btn-export-main').disabled = !hasMedia;
+  document.getElementById('btn-play').disabled = !hasMedia;
+  document.getElementById('btn-frame-back').disabled = !hasMedia;
+  document.getElementById('btn-frame-fwd').disabled = !hasMedia;
 }
 
 function updateActionButtons() {
   const hasSel = !!state.activeLayer;
   document.getElementById('btn-delete').disabled = !hasSel;
-  document.getElementById('btn-split').disabled = !hasSel || (state.activeLayer && state.activeLayer.type === 'text');
+  document.getElementById('btn-split').disabled = state.clips.length === 0;
 }
 
 function renderClipsList() {
@@ -1655,41 +1632,18 @@ function updatePlayhead() {
   updateTimecode();
 }
 
-let isDraggingPlayhead = false;
-document.getElementById('playhead').addEventListener('mousedown', (e) => {
-  isDraggingPlayhead = true;
-  e.stopPropagation();
-});
-
-document.addEventListener('mousemove', e => {
-  if (!isDraggingPlayhead) return;
-  const inner = document.getElementById('tracks-inner');
-  const rect = inner.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const pct = Math.max(0, Math.min(1, x / rect.width));
-  seekTo(pct * state.totalDuration);
-});
-
-document.addEventListener('mouseup', () => {
-  isDraggingPlayhead = false;
-});
-
 document.getElementById('tracks-scroll').addEventListener('click', e => {
   const inner = document.getElementById('tracks-inner');
   const rect = inner.getBoundingClientRect();
-  // Only seek if clicking on track-content areas
-  if (!e.target.closest('.tl-clip') && !e.target.closest('.tl-audio-block') && !e.target.closest('.tl-text-block')) {
-    const x = e.clientX - rect.left;
-    const pct = Math.max(0, Math.min(1, x / rect.width));
-    seekTo(pct * state.totalDuration);
-  }
+  const x = e.clientX - rect.left - 48; // Accounting for 48px sidebar
+  const pct = Math.max(0, Math.min(1, x / (rect.width - 48)));
+  seekTo(pct * state.totalDuration);
 });
 
 function seekTo(t) {
   state.globalTime = Math.max(0, Math.min(state.totalDuration, t));
   updatePlayhead();
   syncVideoToTime();
-  syncAudioToTime();
   renderTextOverlays();
 }
 
@@ -1761,76 +1715,6 @@ function renderInspector() {
     textPane.style.display = 'none';
   }
 }
-
-function renderVolumePanel() {
-  const empty = document.getElementById('volume-settings-empty');
-  const content = document.getElementById('volume-settings-content');
-  if (!state.activeLayer || state.activeLayer.type === 'text') {
-    if (empty) empty.style.display = 'block';
-    if (content) content.style.display = 'none';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-  if (content) content.style.display = 'block';
-  
-  let currentVol = 100;
-  if (state.activeLayer.type === 'video') {
-    const clip = state.clips.find(c => c.id === state.activeLayer.id);
-    if (clip) currentVol = clip.volume ?? 100;
-  } else if (state.activeLayer.type === 'audio') {
-    const track = state.audioTracks.find(t => t.id === state.activeLayer.id);
-    if (track) currentVol = track.volume ?? 100;
-  }
-  
-  const slider = document.getElementById('sl-global-volume');
-  const label = document.getElementById('val-global-volume');
-  if (slider) slider.value = currentVol;
-  if (label) label.textContent = currentVol;
-  
-  const masterSlider = document.getElementById('sl-master-volume');
-  const masterLabel = document.getElementById('val-master-volume');
-  if (masterSlider) masterSlider.value = state.projectVolume;
-  if (masterLabel) masterLabel.textContent = state.projectVolume;
-}
-
-document.getElementById('sl-master-volume')?.addEventListener('input', e => {
-  state.projectVolume = +e.target.value;
-  const label = document.getElementById('val-master-volume');
-  if (label) label.textContent = state.projectVolume;
-  syncAudioToTime();
-  const video = document.getElementById('preview-video');
-  const clip = getCurrentClip();
-  if (video && clip && clip.type === 'video') {
-    const vol = ((clip.volume ?? 100) / 100) * (state.projectVolume / 100);
-    video.volume = Math.max(0, Math.min(1, vol));
-  }
-});
-
-document.getElementById('sl-global-volume')?.addEventListener('input', e => {
-  const vol = +e.target.value;
-  const label = document.getElementById('val-global-volume');
-  if (label) label.textContent = vol;
-  if (!state.activeLayer) return;
-  
-  if (state.activeLayer.type === 'video') {
-    const clip = state.clips.find(c => c.id === state.activeLayer.id);
-    if (clip) {
-      clip.volume = vol;
-      const video = document.getElementById('preview-video');
-      if (video) {
-        const finalVol = (vol / 100) * (state.projectVolume / 100);
-        video.volume = Math.max(0, Math.min(1, finalVol));
-      }
-    }
-  } else if (state.activeLayer.type === 'audio') {
-    const track = state.audioTracks.find(t => t.id === state.activeLayer.id);
-    if (track && track.el) {
-      track.volume = vol;
-      const finalVol = (vol / 100) * (state.projectVolume / 100);
-      track.el.volume = Math.max(0, Math.min(1, finalVol));
-    }
-  }
-});
 
 function setSlider(sliderId, valId, value) {
   document.getElementById(sliderId).value = value;
@@ -1968,10 +1852,7 @@ document.addEventListener('keydown', e => {
 });
 
 function togglePlay() {
-  const hasClips = state.clips.length > 0;
-  const hasAudio = state.audioTracks.length > 0;
-  const hasText = state.textLayers.length > 0;
-  if (!hasClips && !hasAudio && !hasText) return;
+  if (!state.clips.length) return;
   state.isPlaying = !state.isPlaying;
   const icon = document.getElementById('play-icon');
   if (state.isPlaying) {
@@ -1983,7 +1864,6 @@ function togglePlay() {
     icon.innerHTML = '<polygon points="4,2 14,8 4,14"/>';
     cancelAnimationFrame(raf);
     pauseVideo();
-    syncAudioToTime();
   }
 }
 
@@ -2003,40 +1883,9 @@ function playLoop(ts) {
   }
   lastTs = ts;
   syncVideoToTime();
-  syncAudioToTime();
   updatePlayhead();
   renderTextOverlays();
   raf = requestAnimationFrame(playLoop);
-}
-
-function syncAudioToTime() {
-  state.audioTracks.forEach(track => {
-    try {
-      if (!track.el || track.el.readyState < 1) return;
-      const rel = state.globalTime - track.start;
-      if (!isFinite(rel)) return;
-      const isInside = rel >= 0 && rel < track.duration;
-
-      if (isInside) {
-        const vol = ((track.volume ?? 100) / 100) * (state.projectVolume / 100);
-        const finalVol = Math.max(0, Math.min(1, vol));
-        if (Math.abs(track.el.volume - finalVol) > 0.01) track.el.volume = finalVol;
-
-        if (Math.abs(track.el.currentTime - rel) > 0.5) {
-          track.el.currentTime = rel;
-        }
-        if (state.isPlaying && track.el.paused) {
-          track.el.play().catch(() => {});
-        } else if (!state.isPlaying && !track.el.paused) {
-          track.el.pause();
-        }
-      } else {
-        if (!track.el.paused) {
-          track.el.pause();
-        }
-      }
-    } catch(e) { console.warn("Audio sync failed", e); }
-  });
 }
 
 function syncVideoToTime() {
@@ -2058,24 +1907,13 @@ function syncVideoToTime() {
 
     const elapsed = getElapsedBeforeClip();
     const targetTime = clip.trim.start + (state.globalTime - elapsed);
-    
-    try {
-      const vol = ((clip.volume ?? 100) / 100) * (state.projectVolume / 100);
-      const finalVol = Math.max(0, Math.min(1, vol));
-      if (Math.abs(video.volume - finalVol) > 0.01) video.volume = finalVol;
+    if (Math.abs(video.currentTime - targetTime) > 0.15) video.currentTime = targetTime;
 
-      if (isFinite(targetTime) && video.readyState >= 1) {
-        if (Math.abs(video.currentTime - targetTime) > 0.5) video.currentTime = targetTime;
-      }
-
-
-      if (state.isPlaying && video.paused) {
-        video.play().catch(() => {});
-      } else if (!state.isPlaying && !video.paused) {
-        video.pause();
-      }
-    } catch(e) { console.warn("Video sync failed", e); }
-
+    if (state.isPlaying && video.paused) {
+      video.play().catch(() => {});
+    } else if (!state.isPlaying && !video.paused) {
+      video.pause();
+    }
   } else if (clip.type === 'image') {
     pauseVideo();
     video.classList.remove('visible');
@@ -2097,10 +1935,10 @@ function getCurrentClip() {
   let t = 0;
   for (const clip of state.clips) {
     const dur = clip.trim.end - clip.trim.start;
-    if (state.globalTime >= t && state.globalTime < t + dur) return clip;
+    if (state.globalTime < t + dur) return clip;
     t += dur;
   }
-  return null;
+  return state.clips[state.clips.length - 1] || null;
 }
 
 function getElapsedBeforeClip() {
@@ -2116,7 +1954,6 @@ function getElapsedBeforeClip() {
 function pauseVideo() {
   const v = document.getElementById('preview-video');
   if (!v.paused) v.pause();
-  state.audioTracks.forEach(t => { if(t.el && !t.el.paused) t.el.pause(); });
 }
 
 function buildFilterString(f) {
@@ -2246,50 +2083,28 @@ function deleteActive() {
 
 document.getElementById('btn-split').addEventListener('click', splitAtPlayhead);
 function splitAtPlayhead() {
-  if (!state.activeLayer) {
-    showToast('Nothing selected', 'Select a video or audio track to split');
-    return;
+  if (!state.clips.length) return;
+  let elapsed = 0;
+  let splitIdx = -1;
+  for (let i = 0; i < state.clips.length; i++) {
+    const dur = state.clips[i].trim.end - state.clips[i].trim.start;
+    if (state.globalTime < elapsed + dur) { splitIdx = i; break; }
+    elapsed += dur;
   }
-
-  if (state.activeLayer.type === 'video') {
-    let elapsed = 0;
-    let splitIdx = -1;
-    for (let i = 0; i < state.clips.length; i++) {
-      const dur = state.clips[i].trim.end - state.clips[i].trim.start;
-      if (state.globalTime < elapsed + dur) { splitIdx = i; break; }
-      elapsed += dur;
-    }
-    if (splitIdx === -1) return;
-    const clip = state.clips[splitIdx];
-    if (clip.type !== 'video') { showToast('Cannot split', 'Images cannot be split'); return; }
-    const splitTime = clip.trim.start + (state.globalTime - elapsed);
-    if (splitTime <= clip.trim.start + 0.1 || splitTime >= clip.trim.end - 0.1) {
-      showToast('Cannot split', 'Move playhead inside the clip'); return;
-    }
-    const a = { ...clip, id: uid(), trim: { start: clip.trim.start, end: splitTime } };
-    const b = { ...clip, id: uid(), trim: { start: splitTime, end: clip.trim.end } };
-    state.clips.splice(splitIdx, 1, a, b);
-    pushHistory();
-    computeTotalDuration();
-    renderAll();
-    showToast('Clip split');
-  } else if (state.activeLayer.type === 'audio') {
-    const idx = state.audioTracks.findIndex(t => t.id === state.activeLayer.id);
-    if (idx === -1) return;
-    const track = state.audioTracks[idx];
-    const relTime = state.globalTime - track.start;
-    if (relTime <= 0.1 || relTime >= track.duration - 0.1) {
-      showToast('Cannot split', 'Move playhead inside the audio track'); return;
-    }
-    const a = { ...track, id: uid(), duration: relTime };
-    const b = { ...track, id: uid(), start: state.globalTime, duration: track.duration - relTime };
-    // Create new audio element for second part
-    b.el = new Audio(track.src);
-    state.audioTracks.splice(idx, 1, a, b);
-    computeTotalDuration();
-    renderAll();
-    showToast('Audio track split');
+  if (splitIdx === -1) return;
+  const clip = state.clips[splitIdx];
+  if (clip.type !== 'video') { showToast('Cannot split', 'Images cannot be split'); return; }
+  const splitTime = clip.trim.start + (state.globalTime - elapsed);
+  if (splitTime <= clip.trim.start + 0.1 || splitTime >= clip.trim.end - 0.1) {
+    showToast('Cannot split', 'Move playhead inside the clip'); return;
   }
+  const a = { ...clip, id: uid(), trim: { start: clip.trim.start, end: splitTime } };
+  const b = { ...clip, id: uid(), trim: { start: splitTime, end: clip.trim.end } };
+  state.clips.splice(splitIdx, 1, a, b);
+  pushHistory();
+  computeTotalDuration();
+  renderAll();
+  showToast('Clip split');
 }
 
 // ═══════════════════════════════════════════════════════
