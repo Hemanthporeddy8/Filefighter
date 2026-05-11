@@ -566,7 +566,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
   flex-shrink:0;
 }
 .ruler{
-  margin-left:40px; /* Aligns with track-content */
+  margin-left:40px; 
+  width:calc(100% - 40px); /* Must match track-content width */
   position:relative;overflow:hidden;
   height:100%;
 }
@@ -583,7 +584,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 /* Playhead - Now wrapped in a container for correct alignment */
 .playhead-container {
   position:absolute;top:0;bottom:0;
-  left:40px;right:0; /* Offset by track-label width */
+  left:40px; 
+  width:calc(100% - 40px); /* Must match track-content width */
   z-index:30;pointer-events:none;
 }
 .playhead{
