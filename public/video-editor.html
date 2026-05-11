@@ -1963,7 +1963,8 @@ function syncAudioTracks() {
       node = new Audio(track.src);
       audioNodes.set(track.id, node);
     }
-    node.volume = (track.volume ?? 1) * state.masterVolume;
+    let targetVol = (track.volume ?? 1) * state.masterVolume;
+    node.volume = Math.max(0, Math.min(1, targetVol));
     
     const isInside = state.globalTime >= track.start && state.globalTime < (track.start + track.duration);
     if (isInside && state.isPlaying) {
@@ -1996,7 +1997,8 @@ function syncVideoToTime() {
     const elapsed = getElapsedBeforeClip();
     const targetTime = clip.trim.start + (state.globalTime - elapsed);
     
-    video.volume = (clip.volume ?? 1) * state.masterVolume;
+    let targetVol = (clip.volume ?? 1) * state.masterVolume;
+    video.volume = Math.max(0, Math.min(1, targetVol));
 
     // Smoother sync: only seek if drift is large (> 0.5s) during playback
     const threshold = state.isPlaying ? 0.5 : 0.05;
@@ -2049,6 +2051,9 @@ function getElapsedBeforeClip() {
 function pauseVideo() {
   const v = document.getElementById('preview-video');
   if (!v.paused) v.pause();
+  audioNodes.forEach(node => {
+    if (!node.paused) node.pause();
+  });
 }
 
 function buildFilterString(f) {
