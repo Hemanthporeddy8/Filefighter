@@ -854,10 +854,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>
       <span>Effects</span>
     </button>
-    <button class="rail-btn" data-tab="volume">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 3l-3 3H1v4h1l3 3V3z"/><path d="M9.5 5.5a3 3 0 0 1 0 5"/><path d="M12 3.5a6 6 0 0 1 0 9"/></svg>
-      <span>Volume</span>
-    </button>
     <div class="rail-spacer"></div>
     <button class="rail-btn" data-tab="settings">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
@@ -985,18 +981,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
       </div>
     </div>
 
-    <div class="tab-panel" id="tab-volume">
-      <div class="panel-header"><h3>Volume</h3></div>
-      <div class="panel-body">
-        <div class="vol-tip"><p><strong>Tip:</strong> Use <em>Selection Volume</em> for single clips. Use <em>Master Volume</em> to quickly mute or fade the entire project.</p></div>
-        <div class="section-label" style="margin-bottom:8px">SELECTION VOLUME</div>
-        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-sel-vol" style="font-size:11px;font-family:monospace;color:var(--text3)">200</span></div>
-        <input type="range" class="prop-slider" id="sl-sel-vol" min="0" max="200" value="200"/>
-        <div class="section-label" style="margin-top:16px;margin-bottom:8px">MASTER VOLUME (ALL)</div>
-        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-master-vol" style="font-size:11px;font-family:monospace;color:var(--text3)">100</span></div>
-        <input type="range" class="prop-slider" id="sl-master-vol" min="0" max="100" value="100"/>
-      </div>
-    </div>
   </aside>
 
   <!-- ══════════════ PREVIEW ══════════════ -->
@@ -1054,6 +1038,10 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
         <div class="prop-group">
           <div class="prop-row"><label>Grayscale</label><span id="val-grayscale">0</span></div>
           <input type="range" class="prop-slider" id="sl-grayscale" min="0" max="100" value="0"/>
+        </div>
+        <div class="prop-group">
+          <div class="prop-row"><label>Volume</label><span id="val-vol">100</span></div>
+          <input type="range" class="prop-slider" id="sl-vol" min="0" max="200" value="100"/>
         </div>
         <button class="reset-btn" id="btn-reset-filters">↺ Reset filters</button>
       </div>
@@ -1250,6 +1238,7 @@ const state = {
   fps: 24,
   resolution: '1920x1080',
   objectUrls: new Set(),
+  masterVolume: 1,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1375,7 +1364,7 @@ async function handleVideoFiles(files) {
           const dur = vid.duration || 10;
           resolve({ id: uid(), type: 'video', file, src, thumbnail: thumb, duration: dur,
             start: state.totalDuration, filters: {brightness:100,contrast:100,saturate:100,grayscale:0},
-            trim: {start:0, end:dur}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100 });
+            trim: {start:0, end:dur}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume: 1 });
         };
         vid.onerror = () => reject(new Error('Failed to load: ' + file.name));
       } else {
@@ -1384,7 +1373,7 @@ async function handleVideoFiles(files) {
           const src = e.target.result;
           resolve({ id: uid(), type: 'image', file, src, thumbnail: src, duration: 5,
             start: state.totalDuration, filters: {brightness:100,contrast:100,saturate:100,grayscale:0},
-            trim: {start:0, end:5}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100 });
+            trim: {start:0, end:5}, transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume: 1 });
         };
         reader.onerror = () => reject(new Error('Failed to read: ' + file.name));
         reader.readAsDataURL(file);
@@ -1418,7 +1407,7 @@ async function handleAudioFiles(files) {
       const src = URL.createObjectURL(file);
       state.objectUrls.add(src);
       audio.src = src;
-      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime });
+      audio.onloadedmetadata = () => resolve({ id: uid(), file, src, name: file.name, duration: audio.duration, start: state.globalTime, volume: 1 });
       audio.onerror = () => reject(new Error('Failed to load: ' + file.name));
     })));
     state.audioTracks.push(...newTracks);
@@ -1719,8 +1708,17 @@ function renderInspector() {
     document.getElementById('sel-blend').value = clip.blendMode;
     document.getElementById('in-trim-start').value = clip.trim.start.toFixed(2);
     document.getElementById('in-trim-end').value = clip.trim.end.toFixed(2);
+    setSlider('sl-vol', 'val-vol', (clip.volume || 1) * 100);
     updateTrimVis(clip);
-  } else if (state.activeLayer.type === 'text') {
+  } else if (state.activeLayer.type === 'audio') {
+    videoPane.style.display = 'flex';
+    textPane.style.display = 'none';
+    const aud = state.audioTracks.find(a => a.id === state.activeLayer.id);
+    if (!aud) return;
+    // Show only volume for audio
+    document.getElementById('pane-adjust').classList.add('active');
+    setSlider('sl-vol', 'val-vol', (aud.volume || 1) * 100);
+    // Hide other video-specific filters if needed, but for now just show volume
     videoPane.style.display = 'none';
     textPane.style.display = 'flex';
     const layer = state.textLayers.find(l => l.id === state.activeLayer.id);
@@ -1779,7 +1777,20 @@ bindSlider('sl-contrast',  'val-contrast',   v => updateActiveClipFilter('contra
 bindSlider('sl-saturation','val-saturation', v => updateActiveClipFilter('saturate', v));
 bindSlider('sl-grayscale', 'val-grayscale',  v => updateActiveClipFilter('grayscale', v));
 bindSlider('sl-opacity',   'val-opacity',    v => updateActiveClip('opacity', v));
+bindSlider('sl-vol',       'val-vol',        v => updateActiveVolume(v));
 bindSlider('sl-text-opacity','val-text-opacity', v => updateActiveText('opacity', v));
+
+function updateActiveVolume(val) {
+  if (!state.activeLayer) return;
+  const v = val / 100;
+  if (state.activeLayer.type === 'video') {
+    const clip = state.clips.find(c => c.id === state.activeLayer.id);
+    if (clip) { clip.volume = v; syncVideoToTime(); }
+  } else if (state.activeLayer.type === 'audio') {
+    const aud = state.audioTracks.find(a => a.id === state.activeLayer.id);
+    if (aud) { aud.volume = v; syncAudioTracks(); }
+  }
+}
 
 function updateActiveClipFilter(key, val) {
   if (!state.activeLayer || state.activeLayer.type !== 'video') return;
@@ -1909,9 +1920,31 @@ function playLoop(ts) {
   }
   lastTs = ts;
   syncVideoToTime();
+  syncAudioTracks();
   updatePlayhead();
   renderTextOverlays();
   raf = requestAnimationFrame(playLoop);
+}
+
+const audioNodes = new Map(); // id -> Audio element
+function syncAudioTracks() {
+  state.audioTracks.forEach(track => {
+    let node = audioNodes.get(track.id);
+    if (!node) {
+      node = new Audio(track.src);
+      audioNodes.set(track.id, node);
+    }
+    node.volume = (track.volume ?? 1) * state.masterVolume;
+    
+    const isInside = state.globalTime >= track.start && state.globalTime < (track.start + track.duration);
+    if (isInside && state.isPlaying) {
+      const targetTime = state.globalTime - track.start;
+      if (Math.abs(node.currentTime - targetTime) > 0.2) node.currentTime = targetTime;
+      if (node.paused) node.play().catch(() => {});
+    } else {
+      if (!node.paused) node.pause();
+    }
+  });
 }
 
 function syncVideoToTime() {
@@ -1933,7 +1966,13 @@ function syncVideoToTime() {
 
     const elapsed = getElapsedBeforeClip();
     const targetTime = clip.trim.start + (state.globalTime - elapsed);
-    if (Math.abs(video.currentTime - targetTime) > 0.15) video.currentTime = targetTime;
+    
+    video.volume = (clip.volume ?? 1) * state.masterVolume;
+
+    // Smoother sync: only seek if drift is large
+    if (Math.abs(video.currentTime - targetTime) > 0.25) {
+      video.currentTime = targetTime;
+    }
 
     if (state.isPlaying && video.paused) {
       video.play().catch(() => {});
@@ -2237,21 +2276,8 @@ document.addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════════════
-// VOLUME CONTROLS
+// VOLUME CONTROLS (Removed redundant sidebar listeners)
 // ═══════════════════════════════════════════════════════
-document.getElementById('sl-sel-vol').addEventListener('input', function() {
-  document.getElementById('val-sel-vol').textContent = this.value;
-  if (!state.activeLayer) return;
-  const clip = state.clips.find(c => c.id === state.activeLayer.id);
-  if (clip) { clip.volume = this.value / 100; }
-  const aud = state.audioTracks.find(a => a.id === state.activeLayer?.id);
-  if (aud) { aud.volume = this.value / 100; }
-});
-document.getElementById('sl-master-vol').addEventListener('input', function() {
-  document.getElementById('val-master-vol').textContent = this.value;
-  const video = document.getElementById('preview-video');
-  video.volume = Math.min(1, this.value / 100);
-});
 
 // ═══════════════════════════════════════════════════════
 // TIMELINE DRAG-TO-REORDER (Canva-style)
