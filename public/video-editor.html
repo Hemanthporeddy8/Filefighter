@@ -557,21 +557,17 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .tracks-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .tracks-inner{
   position:relative;min-height:100%;min-width:100%;
-  padding-left:48px; /* Fixed sidebar width */
-  box-sizing:border-box;
-  background:linear-gradient(90deg, var(--bg2) 48px, transparent 48px);
 }
 
 /* Ruler */
 .ruler-row {
   height:24px;background:var(--bg2);
   border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;
   flex-shrink:0;
 }
 .ruler{
-  width:100%;
-  position:relative;overflow:hidden;
-  height:100%;
+  flex:1;position:relative;overflow:hidden;
 }
 .ruler-tick{
   position:absolute;bottom:6px;width:1px;background:var(--border2);
@@ -585,8 +581,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 
 .playhead-container {
   position:absolute;top:0;bottom:0;
-  left:0; /* Starts at padding edge (48px) */
-  width:100%;
+  left:48px; 
+  width:calc(100% - 48px);
   z-index:30;pointer-events:none;
 }
 .playhead{
@@ -609,14 +605,10 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .track-row.xs{height:26px}
 
 .track-label{
-  position:absolute;
-  left:0;
-  width:48px;height:100%;
-  margin-left:-48px; /* Pull back to sidebar area */
+  width:48px;flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:9px;font-weight:600;color:var(--text3);
   background:var(--bg2);border-right:1px solid var(--border);
-  z-index:10;
 }
 .track-label--video{color:rgba(99,102,241,.6)}
 .track-label--audio{color:rgba(16,185,129,.6)}
@@ -1142,7 +1134,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
               <div class="playhead-head"></div>
             </div>
           </div>
-          <div class="ruler-row">
+          <div class="track-row ruler-row">
+            <div class="track-label"></div>
             <div class="ruler" id="ruler"></div>
           </div>
           <!-- V1 -->
