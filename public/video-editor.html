@@ -707,6 +707,22 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
 .toast-title{font-weight:600;margin-bottom:2px}
 .toast-desc{color:var(--text3);font-size:11px}
 
+/* Volume tip */
+.vol-tip{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:12px;
+}
+.vol-tip strong{color:var(--text)}
+.vol-tip em{color:var(--accent);font-style:normal}
+
+/* Timeline drag ghost */
+.tl-drag-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  opacity:.8;border-radius:6px;background:rgba(99,102,241,.4);
+  border:2px solid var(--accent);padding:4px 10px;
+  font-size:10px;color:#fff;white-space:nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════
    PROCESSING OVERLAY
 ════════════════════════════════════════════════════════ */
@@ -838,6 +854,10 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>
       <span>Effects</span>
     </button>
+    <button class="rail-btn" data-tab="volume">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 3l-3 3H1v4h1l3 3V3z"/><path d="M9.5 5.5a3 3 0 0 1 0 5"/><path d="M12 3.5a6 6 0 0 1 0 9"/></svg>
+      <span>Volume</span>
+    </button>
     <div class="rail-spacer"></div>
     <button class="rail-btn" data-tab="settings">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
@@ -962,6 +982,19 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
           <button class="setting-option" data-fps="30">30 fps</button>
           <button class="setting-option" data-fps="60">60 fps</button>
         </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-volume">
+      <div class="panel-header"><h3>Volume</h3></div>
+      <div class="panel-body">
+        <div class="vol-tip"><p><strong>Tip:</strong> Use <em>Selection Volume</em> for single clips. Use <em>Master Volume</em> to quickly mute or fade the entire project.</p></div>
+        <div class="section-label" style="margin-bottom:8px">SELECTION VOLUME</div>
+        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-sel-vol" style="font-size:11px;font-family:monospace;color:var(--text3)">200</span></div>
+        <input type="range" class="prop-slider" id="sl-sel-vol" min="0" max="200" value="200"/>
+        <div class="section-label" style="margin-top:16px;margin-bottom:8px">MASTER VOLUME (ALL)</div>
+        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-master-vol" style="font-size:11px;font-family:monospace;color:var(--text3)">100</span></div>
+        <input type="range" class="prop-slider" id="sl-master-vol" min="0" max="100" value="100"/>
       </div>
     </div>
   </aside>
@@ -2202,6 +2235,108 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Home') seekTo(0);
   if (e.key === 'End')  seekTo(state.totalDuration);
 });
+
+// ═══════════════════════════════════════════════════════
+// VOLUME CONTROLS
+// ═══════════════════════════════════════════════════════
+document.getElementById('sl-sel-vol').addEventListener('input', function() {
+  document.getElementById('val-sel-vol').textContent = this.value;
+  if (!state.activeLayer) return;
+  const clip = state.clips.find(c => c.id === state.activeLayer.id);
+  if (clip) { clip.volume = this.value / 100; }
+  const aud = state.audioTracks.find(a => a.id === state.activeLayer?.id);
+  if (aud) { aud.volume = this.value / 100; }
+});
+document.getElementById('sl-master-vol').addEventListener('input', function() {
+  document.getElementById('val-master-vol').textContent = this.value;
+  const video = document.getElementById('preview-video');
+  video.volume = Math.min(1, this.value / 100);
+});
+
+// ═══════════════════════════════════════════════════════
+// TIMELINE DRAG-TO-REORDER (Canva-style)
+// ═══════════════════════════════════════════════════════
+let tlDrag = null;
+let dragGhost = null;
+
+function initTimelineDrag() {
+  const track = document.getElementById('track-v1');
+  track.addEventListener('mousedown', onTlMouseDown);
+  document.addEventListener('mousemove', onTlMouseMove);
+  document.addEventListener('mouseup', onTlMouseUp);
+}
+
+function onTlMouseDown(e) {
+  const el = e.target.closest('.tl-clip');
+  if (!el) return;
+  e.stopPropagation();
+  const id = el.dataset.id;
+  const clip = state.clips.find(c => c.id === id);
+  if (!clip) return;
+  selectLayer(id, 'video');
+  const rect = el.getBoundingClientRect();
+  tlDrag = {
+    id,
+    startX: e.clientX,
+    origIndex: state.clips.indexOf(clip),
+    el
+  };
+  el.style.opacity = '0.4';
+  // Create ghost
+  dragGhost = document.createElement('div');
+  dragGhost.className = 'tl-drag-ghost';
+  dragGhost.textContent = clip.file.name;
+  document.body.appendChild(dragGhost);
+  dragGhost.style.left = e.clientX + 8 + 'px';
+  dragGhost.style.top  = e.clientY - 16 + 'px';
+}
+
+function onTlMouseMove(e) {
+  if (!tlDrag) return;
+  dragGhost.style.left = e.clientX + 8 + 'px';
+  dragGhost.style.top  = e.clientY - 16 + 'px';
+  // Determine which position in the track we're hovering over
+  const track = document.getElementById('track-v1');
+  const clips = [...track.querySelectorAll('.tl-clip')];
+  let insertBefore = state.clips.length;
+  for (let i = 0; i < clips.length; i++) {
+    const r = clips[i].getBoundingClientRect();
+    const mid = r.left + r.width / 2;
+    if (e.clientX < mid) { insertBefore = i; break; }
+  }
+  // Highlight insertion point
+  clips.forEach((c, i) => c.style.outline = (i === insertBefore && c.dataset.id !== tlDrag.id) ? '2px solid var(--accent)' : '');
+}
+
+function onTlMouseUp(e) {
+  if (!tlDrag) return;
+  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+  const track = document.getElementById('track-v1');
+  const clips = [...track.querySelectorAll('.tl-clip')];
+  // Remove outlines
+  clips.forEach(c => { c.style.outline = ''; c.style.opacity = ''; });
+  // Determine drop index
+  let insertBefore = state.clips.length;
+  for (let i = 0; i < clips.length; i++) {
+    const r = clips[i].getBoundingClientRect();
+    const mid = r.left + r.width / 2;
+    if (e.clientX < mid && clips[i].dataset.id !== tlDrag.id) { insertBefore = i; break; }
+  }
+  // Reorder state.clips
+  const fromIndex = state.clips.findIndex(c => c.id === tlDrag.id);
+  if (fromIndex !== -1) {
+    const [moved] = state.clips.splice(fromIndex, 1);
+    let toIndex = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+    toIndex = Math.max(0, Math.min(toIndex, state.clips.length));
+    state.clips.splice(toIndex, 0, moved);
+  }
+  tlDrag = null;
+  computeTotalDuration();
+  renderTimeline();
+  buildRuler();
+}
+
+initTimelineDrag();
 
 // ═══════════════════════════════════════════════════════
 // INIT
