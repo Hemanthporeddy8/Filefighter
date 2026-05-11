@@ -789,7 +789,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
             <polygon points="6.5,6.5 11,8 6.5,9.5" fill="white"/>
           </svg>
         </div>
-        <span class="logo-name">FileFlow</span>
+        <span class="logo-name">Filefighter</span>
       </div>
       <div class="topbar-sep"></div>
       <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
@@ -853,6 +853,10 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
     <button class="rail-btn" data-tab="effects">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>
       <span>Effects</span>
+    </button>
+    <button class="rail-btn" data-tab="volume">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 3l-3 3H1v4h1l3 3V3z"/><path d="M9.5 5.5a3 3 0 0 1 0 5"/><path d="M12 3.5a6 6 0 0 1 0 9"/></svg>
+      <span>Volume</span>
     </button>
     <div class="rail-spacer"></div>
     <button class="rail-btn" data-tab="settings">
@@ -978,9 +982,19 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
           <button class="setting-option" data-fps="30">30 fps</button>
           <button class="setting-option" data-fps="60">60 fps</button>
         </div>
-        <div class="section-label" style="margin-top:14px;margin-bottom:6px">Master volume</div>
-        <div class="prop-row" style="margin-bottom:4px"><label>Volume</label><span id="val-master-vol">100</span></div>
-        <input type="range" class="prop-slider" id="sl-master-vol" min="0" max="100" value="100"/>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-volume">
+      <div class="panel-header"><h3>Volume</h3></div>
+      <div class="panel-body">
+        <div class="vol-tip"><p><strong>Tip:</strong> Use <em>Selection Volume</em> for single clips. Use <em>Master Volume</em> to quickly mute or fade the entire project.</p></div>
+        <div class="section-label" style="margin-bottom:8px">SELECTION VOLUME</div>
+        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-sel-vol-side" style="font-size:11px;font-family:monospace;color:var(--text3)">100</span></div>
+        <input type="range" class="prop-slider" id="sl-sel-vol-side" min="0" max="200" value="100"/>
+        <div class="section-label" style="margin-top:16px;margin-bottom:8px">MASTER VOLUME</div>
+        <div class="prop-row" style="margin-bottom:4px"><label style="font-size:11px;color:var(--text2)">Volume</label><span id="val-master-vol-side" style="font-size:11px;font-family:monospace;color:var(--text3)">100</span></div>
+        <input type="range" class="prop-slider" id="sl-master-vol-side" min="0" max="100" value="100"/>
       </div>
     </div>
 
@@ -1614,6 +1628,7 @@ function renderAudioTrack() {
     const width = (t.duration / state.totalDuration) * 100;
     const el = document.createElement('div');
     el.className = 'tl-audio-block' + (state.activeLayer?.id === t.id ? ' selected' : '');
+    el.dataset.id = t.id;
     el.style.left = left + '%';
     el.style.width = Math.max(width, 1) + '%';
     el.innerHTML = `<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 3l-3 3H1v4h1l3 3V3z"/><path d="M9.5 5.5a3 3 0 0 1 0 5"/></svg><span class="tl-audio-name">${t.name}</span>`;
@@ -1745,8 +1760,18 @@ function renderInspector() {
 }
 
 function setSlider(sliderId, valId, value) {
-  document.getElementById(sliderId).value = value;
-  document.getElementById(valId).textContent = value;
+  const s = document.getElementById(sliderId);
+  const v = document.getElementById(valId);
+  if (s) s.value = value;
+  if (v) v.textContent = value;
+  
+  // Sync side panel if this is the main volume slider
+  if (sliderId === 'sl-vol') {
+    const ss = document.getElementById('sl-sel-vol-side');
+    const sv = document.getElementById('val-sel-vol-side');
+    if (ss) ss.value = value;
+    if (sv) sv.textContent = value;
+  }
 }
 
 function updateTrimVis(clip) {
@@ -2291,86 +2316,154 @@ document.addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════════════
-// VOLUME CONTROLS (Removed redundant sidebar listeners)
+// VOLUME CONTROLS
 // ═══════════════════════════════════════════════════════
-
+document.getElementById('sl-sel-vol-side').addEventListener('input', function() {
+  document.getElementById('val-sel-vol-side').textContent = this.value;
+  if (!state.activeLayer) return;
+  const v = this.value / 100;
+  if (state.activeLayer.type === 'video') {
+    const clip = state.clips.find(c => c.id === state.activeLayer.id);
+    if (clip) { clip.volume = v; syncVideoToTime(); }
+  } else if (state.activeLayer.type === 'audio') {
+    const aud = state.audioTracks.find(a => a.id === state.activeLayer.id);
+    if (aud) { aud.volume = v; syncAudioTracks(); }
+  }
+  // Sync the right panel slider too
+  const rpSlider = document.getElementById('sl-vol');
+  if (rpSlider) {
+    rpSlider.value = this.value;
+    document.getElementById('val-vol').textContent = this.value;
+  }
+});
+document.getElementById('sl-master-vol-side').addEventListener('input', function() {
+  state.masterVolume = this.value / 100;
+  document.getElementById('val-master-vol-side').textContent = this.value;
+  // Sync settings panel slider too
+  const setSlider = document.getElementById('sl-master-vol');
+  if (setSlider) {
+    setSlider.value = this.value;
+    document.getElementById('val-master-vol').textContent = this.value;
+  }
+  syncVideoToTime();
+  syncAudioTracks();
+});
 // ═══════════════════════════════════════════════════════
-// TIMELINE DRAG-TO-REORDER (Canva-style)
+// TIMELINE DRAG-TO-REORDER & MOVE AUDIO
 // ═══════════════════════════════════════════════════════
 let tlDrag = null;
 let dragGhost = null;
 
 function initTimelineDrag() {
-  const track = document.getElementById('track-v1');
-  track.addEventListener('mousedown', onTlMouseDown);
+  const trackV1 = document.getElementById('track-v1');
+  const trackA1 = document.getElementById('track-a1');
+  trackV1.addEventListener('mousedown', onTlMouseDown);
+  trackA1.addEventListener('mousedown', onTlMouseDown);
   document.addEventListener('mousemove', onTlMouseMove);
   document.addEventListener('mouseup', onTlMouseUp);
 }
 
 function onTlMouseDown(e) {
-  const el = e.target.closest('.tl-clip');
+  const el = e.target.closest('.tl-clip, .tl-audio-block');
   if (!el) return;
   e.stopPropagation();
-  const id = el.dataset.id;
-  const clip = state.clips.find(c => c.id === id);
-  if (!clip) return;
-  selectLayer(id, 'video');
+  
+  const isAudio = el.classList.contains('tl-audio-block');
+  const id = isAudio ? state.audioTracks.find(t => t.id === el.dataset.id)?.id : state.clips.find(c => c.id === el.dataset.id)?.id;
+  if (!id) return;
+  
+  selectLayer(id, isAudio ? 'audio' : 'video');
   const rect = el.getBoundingClientRect();
+  const trackRect = el.parentElement.getBoundingClientRect();
+  
   tlDrag = {
     id,
+    isAudio,
     startX: e.clientX,
-    origIndex: state.clips.indexOf(clip),
+    origLeft: rect.left - trackRect.left,
+    trackWidth: trackRect.width,
     el
   };
+  
   el.style.opacity = '0.4';
-  // Create ghost
-  dragGhost = document.createElement('div');
-  dragGhost.className = 'tl-drag-ghost';
-  dragGhost.textContent = clip.file.name;
-  document.body.appendChild(dragGhost);
-  dragGhost.style.left = e.clientX + 8 + 'px';
-  dragGhost.style.top  = e.clientY - 16 + 'px';
+  
+  if (!isAudio) {
+    // Only use ghost for video reordering
+    dragGhost = document.createElement('div');
+    dragGhost.className = 'tl-drag-ghost';
+    const clip = state.clips.find(c => c.id === id);
+    dragGhost.textContent = clip ? clip.file.name : 'Clip';
+    document.body.appendChild(dragGhost);
+    dragGhost.style.left = e.clientX + 8 + 'px';
+    dragGhost.style.top  = e.clientY - 16 + 'px';
+  } else {
+    // For audio, we move the actual element
+    el.style.position = 'absolute';
+    el.style.zIndex = '10';
+  }
 }
 
 function onTlMouseMove(e) {
   if (!tlDrag) return;
-  dragGhost.style.left = e.clientX + 8 + 'px';
-  dragGhost.style.top  = e.clientY - 16 + 'px';
-  // Determine which position in the track we're hovering over
-  const track = document.getElementById('track-v1');
-  const clips = [...track.querySelectorAll('.tl-clip')];
-  let insertBefore = state.clips.length;
-  for (let i = 0; i < clips.length; i++) {
-    const r = clips[i].getBoundingClientRect();
-    const mid = r.left + r.width / 2;
-    if (e.clientX < mid) { insertBefore = i; break; }
+  
+  if (!tlDrag.isAudio) {
+    if (dragGhost) {
+      dragGhost.style.left = e.clientX + 8 + 'px';
+      dragGhost.style.top  = e.clientY - 16 + 'px';
+    }
+    const track = document.getElementById('track-v1');
+    const clips = [...track.querySelectorAll('.tl-clip')];
+    let insertBefore = state.clips.length;
+    for (let i = 0; i < clips.length; i++) {
+      const r = clips[i].getBoundingClientRect();
+      const mid = r.left + r.width / 2;
+      if (e.clientX < mid) { insertBefore = i; break; }
+    }
+    clips.forEach((c, i) => c.style.outline = (i === insertBefore && c.dataset.id !== tlDrag.id) ? '2px solid var(--accent)' : '');
+  } else {
+    // Move audio block visually
+    const dx = e.clientX - tlDrag.startX;
+    let newLeft = tlDrag.origLeft + dx;
+    newLeft = Math.max(0, newLeft);
+    const pct = (newLeft / tlDrag.trackWidth) * 100;
+    tlDrag.el.style.left = pct + '%';
   }
-  // Highlight insertion point
-  clips.forEach((c, i) => c.style.outline = (i === insertBefore && c.dataset.id !== tlDrag.id) ? '2px solid var(--accent)' : '');
 }
 
 function onTlMouseUp(e) {
   if (!tlDrag) return;
-  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
-  const track = document.getElementById('track-v1');
-  const clips = [...track.querySelectorAll('.tl-clip')];
-  // Remove outlines
-  clips.forEach(c => { c.style.outline = ''; c.style.opacity = ''; });
-  // Determine drop index
-  let insertBefore = state.clips.length;
-  for (let i = 0; i < clips.length; i++) {
-    const r = clips[i].getBoundingClientRect();
-    const mid = r.left + r.width / 2;
-    if (e.clientX < mid && clips[i].dataset.id !== tlDrag.id) { insertBefore = i; break; }
+  
+  if (!tlDrag.isAudio) {
+    if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+    const track = document.getElementById('track-v1');
+    const clips = [...track.querySelectorAll('.tl-clip')];
+    clips.forEach(c => { c.style.outline = ''; c.style.opacity = ''; });
+    
+    let insertBefore = state.clips.length;
+    for (let i = 0; i < clips.length; i++) {
+      const r = clips[i].getBoundingClientRect();
+      const mid = r.left + r.width / 2;
+      if (e.clientX < mid && clips[i].dataset.id !== tlDrag.id) { insertBefore = i; break; }
+    }
+    const fromIndex = state.clips.findIndex(c => c.id === tlDrag.id);
+    if (fromIndex !== -1) {
+      const [moved] = state.clips.splice(fromIndex, 1);
+      let toIndex = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+      toIndex = Math.max(0, Math.min(toIndex, state.clips.length));
+      state.clips.splice(toIndex, 0, moved);
+    }
+  } else {
+    // Finalize audio position
+    tlDrag.el.style.opacity = '';
+    tlDrag.el.style.zIndex = '';
+    const pct = parseFloat(tlDrag.el.style.left);
+    const newStart = (pct / 100) * state.totalDuration;
+    const track = state.audioTracks.find(t => t.id === tlDrag.id);
+    if (track) {
+      track.start = newStart;
+    }
   }
-  // Reorder state.clips
-  const fromIndex = state.clips.findIndex(c => c.id === tlDrag.id);
-  if (fromIndex !== -1) {
-    const [moved] = state.clips.splice(fromIndex, 1);
-    let toIndex = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
-    toIndex = Math.max(0, Math.min(toIndex, state.clips.length));
-    state.clips.splice(toIndex, 0, moved);
-  }
+  
   tlDrag = null;
   computeTotalDuration();
   renderTimeline();
