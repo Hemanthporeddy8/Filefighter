@@ -1176,6 +1176,16 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
             <div class="track-label"></div>
             <div class="ruler" id="ruler"></div>
           </div>
+          <!-- V2 (Images overlay) -->
+          <div class="track-row">
+            <div class="track-label track-label--video" style="color:rgba(139,92,246,.6)">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="12" height="12" rx="1"/><circle cx="5.5" cy="5.5" r="1.5" fill="currentColor" stroke="none"/><polygon points="2,11 6,7 9,9.5 12,6 14,8.5 14,14 2,14" fill="currentColor" stroke="none" opacity=".5"/></svg>
+              V2
+            </div>
+            <div class="track-content" id="track-v2">
+              <div class="track-empty">Image overlays…</div>
+            </div>
+          </div>
           <!-- V1 -->
           <div class="track-row">
             <div class="track-label track-label--video">
@@ -1700,29 +1710,14 @@ function updateActionButtons() {
 }
 
 function renderTimeline() {
-  // Ensure tracks exist in DOM
-  const tracksInner = document.getElementById('tracks-inner');
-  if (tracksInner.children.length < 3) {
-      tracksInner.innerHTML = `
-        <div class="tl-track" id="track-v2" data-track="v2">
-            <div class="tl-track-label">V2 (Images)</div>
-        </div>
-        <div class="tl-track" id="track-v1" data-track="v1">
-            <div class="tl-track-label">V1 (Video)</div>
-        </div>
-        <div class="tl-track" id="track-t1" data-track="t1">
-            <div class="tl-track-label">T1 (Text)</div>
-        </div>
-        <div class="tl-track" id="track-a1" data-track="a1">
-            <div class="tl-track-label">A1 (Audio)</div>
-        </div>
-      `;
-  }
-  
   ['v1', 'v2', 't1', 'a1'].forEach(trackId => {
       const track = document.getElementById('track-' + trackId);
       if(!track) return;
+      // Remove only clip elements, preserve the track-empty placeholder
       track.querySelectorAll('.tl-clip, .tl-audio-block').forEach(e => e.remove());
+      const hasItems = state.items.filter(i => i.track === trackId).length > 0;
+      const emptyEl = track.querySelector('.track-empty');
+      if(emptyEl) emptyEl.style.display = hasItems ? 'none' : 'flex';
       
       state.items.filter(i => i.track === trackId).forEach(item => {
           const left = (item.start / state.totalDuration) * 100;
@@ -1748,7 +1743,7 @@ function renderTimeline() {
           el.style.width = Math.max(width, 1) + '%';
           
           el.addEventListener('mousedown', e => {
-            e.preventDefault(); // Stop browser native drag/select behavior
+            e.preventDefault();
             e.stopPropagation();
             if(e.target.dataset.action) handleDrag(e, item.id, e.target.dataset.action);
             else handleDrag(e, item.id, 'move'); 
@@ -1757,6 +1752,22 @@ function renderTimeline() {
           track.appendChild(el);
       });
   });
+  
+  // Update left panel clips list
+  const clipsList = document.getElementById('clips-list');
+  const clipsSection = document.getElementById('clips-section');
+  if (clipsList) {
+    const videos = state.items.filter(i => i.type === 'video');
+    if(clipsSection) clipsSection.style.display = videos.length ? 'block' : 'none';
+    clipsList.innerHTML = videos.map(clip => `
+      <div class="clip-item ${state.activeLayer === clip.id ? 'selected' : ''}" data-id="${clip.id}" style="cursor:pointer">
+        <div class="clip-thumb">${clip.thumbnail ? `<img src="${clip.thumbnail}"/>` : ''}<div class="clip-dur">${formatTime(clip.duration)}</div></div>
+        <div class="clip-info"><div class="clip-name" title="${clip.name}">${clip.name}</div></div>
+      </div>
+    `).join('');
+    clipsList.querySelectorAll('.clip-item').forEach(el => 
+      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+  }
 }
 
 function updatePlayhead() {
@@ -1831,12 +1842,12 @@ function onDragEnd() {
 }
 
 // --- RAIL NAVIGATION (Left sidebar) ---
-document.querySelectorAll('.rail-item').forEach(btn => {
+document.querySelectorAll('.rail-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.rail-item').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.lp-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    const pane = document.getElementById('lp-' + btn.dataset.pane);
+    const pane = document.getElementById('tab-' + btn.dataset.tab);
     if(pane) pane.classList.add('active');
   });
 });
