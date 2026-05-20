@@ -1322,10 +1322,16 @@ function syncAudioGraph() {
     if (!audioNodesMap.has(item.id)) {
       const audio = document.createElement(item.type === 'video' ? 'video' : 'audio');
       audio.src = item.src;
-      audio.crossOrigin = "anonymous";
+      // NOTE: Do NOT set crossOrigin on blob: URLs — it causes CORS errors
       audio.muted = (item.type === 'video'); // Mute the HTML element, play through WebAudio
       
-      const source = audioCtx.createMediaElementSource(audio);
+      let source;
+      try {
+        source = audioCtx.createMediaElementSource(audio);
+      } catch(e) {
+        // Element may already be connected to AudioContext, reuse existing
+        source = audioCtx.createMediaElementSource(audio);
+      }
       const gain = audioCtx.createGain();
       source.connect(gain);
       gain.connect(masterGain);
@@ -1741,10 +1747,13 @@ function renderTimeline() {
           el.style.left = left + '%';
           el.style.width = Math.max(width, 1) + '%';
           
-          el.addEventListener('mousedown', e => { 
+          el.addEventListener('mousedown', e => {
+            e.preventDefault(); // Stop browser native drag/select behavior
+            e.stopPropagation();
             if(e.target.dataset.action) handleDrag(e, item.id, e.target.dataset.action);
             else handleDrag(e, item.id, 'move'); 
           });
+          el.setAttribute('draggable', 'false');
           track.appendChild(el);
       });
   });
@@ -1820,6 +1829,17 @@ function onDragEnd() {
     document.removeEventListener('mouseup', onDragEnd);
   }
 }
+
+// --- RAIL NAVIGATION (Left sidebar) ---
+document.querySelectorAll('.rail-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rail-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.lp-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const pane = document.getElementById('lp-' + btn.dataset.pane);
+    if(pane) pane.classList.add('active');
+  });
+});
 
 // --- INSPECTOR ---
 function selectLayer(id) { state.activeLayer = id; renderAll(); }
