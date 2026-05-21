@@ -1825,13 +1825,24 @@ function updateTimecode() {
 function generateThumbnail(vid) {
   return new Promise(resolve => {
     const c = document.createElement('canvas');
-    vid.onseeked = () => {
-      c.width = 160; c.height = 90;
-      c.getContext('2d').drawImage(vid, 0, 0, 160, 90);
-      resolve(c.toDataURL('image/jpeg', 0.7));
-      vid.onseeked = null;
+    c.width = 120; c.height = 68; // Smaller = less memory
+    const ctx = c.getContext('2d');
+    
+    const doCapture = () => {
+      try { ctx.drawImage(vid, 0, 0, 120, 68); resolve(c.toDataURL('image/jpeg', 0.5)); }
+      catch(e) { resolve(''); }
     };
-    vid.currentTime = 0.5;
+    
+    // If already seeked enough, capture immediately
+    if (vid.readyState >= 2 && vid.currentTime > 0) { doCapture(); return; }
+    
+    const timeout = setTimeout(() => { vid.onseeked = null; doCapture(); }, 3000);
+    vid.onseeked = () => {
+      clearTimeout(timeout);
+      vid.onseeked = null;
+      doCapture();
+    };
+    vid.currentTime = Math.min(0.5, (vid.duration || 1) * 0.1);
   });
 }
 
@@ -1842,45 +1853,74 @@ function getNextStartTime(trackId) {
 }
 
 async function handleVideoFiles(files) {
-  setProcessing(true, 'Processing media…', 'Generating thumbnails');
   const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
-  if (!valid.length) { setProcessing(false); return; }
+  if (!valid.length) return;
   
-  try {
-    const newItems = await Promise.all(valid.map(file => new Promise(resolve => {
-      const src = URL.createObjectURL(file);
-      if (file.type.startsWith('video/')) {
-        const vid = document.createElement('video');
-        vid.src = src;
-        vid.onloadedmetadata = async () => {
-          if (!state.items.some(i => i.type === 'video')) {
-            renderCanvas.width = vid.videoWidth || 1920;
-            renderCanvas.height = vid.videoHeight || 1080;
-          }
-          const thumb = await generateThumbnail(vid);
-          resolve({ id: uid(), type: 'video', name: file.name, file, src, thumbnail: thumb, 
-            start: getNextStartTime('v1'), duration: vid.duration, trimStart: 0, trimEnd: vid.duration, track: 'v1',
+  setProcessing(true, 'Processing media\u2026', `Loading 1 of ${valid.length}`);
+  const newItems = [];
+  
+  // Process ONE file at a time — avoids hanging browser tab
+  for (let i = 0; i < valid.length; i++) {
+    const file = valid[i];
+    setProcessing(true, 'Processing media\u2026', `File ${i+1} of ${valid.length}: ${file.name.substring(0,28)}`);
+    await new Promise(r => setTimeout(r, 10)); // Yield to browser
+
+    try {
+      const item = await new Promise((resolve, reject) => {
+        const src = URL.createObjectURL(file);
+        if (file.type.startsWith('video/')) {
+          const vid = document.createElement('video');
+          vid.preload = 'metadata';
+          // Timeout: don't hang forever if video won't load
+          const fallback = setTimeout(() => {
+            resolve({ id: uid(), type: 'video', name: file.name, file, src, thumbnail: '',
+              start: getNextStartTime('v1'), duration: 30, trimStart: 0, trimEnd: 30, track: 'v1',
+              filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
+              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+              transition: {fadeIn:0,fadeOut:0} });
+          }, 8000);
+          vid.onloadedmetadata = async () => {
+            clearTimeout(fallback);
+            if (!state.items.some(it => it.type==='video') && !newItems.some(it => it.type==='video')) {
+              renderCanvas.width = vid.videoWidth || 1920;
+              renderCanvas.height = vid.videoHeight || 1080;
+            }
+            const thumb = await generateThumbnail(vid);
+            resolve({ id: uid(), type: 'video', name: file.name, file, src, thumbnail: thumb,
+              start: getNextStartTime('v1'), duration: vid.duration, trimStart: 0, trimEnd: vid.duration, track: 'v1',
+              filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
+              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+              transition: {fadeIn:0,fadeOut:0} });
+          };
+          vid.onerror = () => { clearTimeout(fallback); reject(new Error('Cannot load: ' + file.name)); };
+          vid.src = src;
+        } else {
+          resolve({ id: uid(), type: 'image', name: file.name, file, src, thumbnail: src,
+            start: getNextStartTime('v2'), duration: 5, trimStart: 0, trimEnd: 5, track: 'v2',
             filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
-            transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume: 1 });
-        };
-      } else {
-        resolve({ id: uid(), type: 'image', name: file.name, file, src, thumbnail: src, 
-          start: getNextStartTime('v2'), duration: 5, trimStart: 0, trimEnd: 5, track: 'v2',
-          filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
-          transform: {x:0,y:0,scaleX:0.3,scaleY:0.3,rotation:0}, blendMode:'normal', opacity:100, volume: 1,
-          transition: {fadeIn: 0, fadeOut: 0} });
+            transform: {x:0,y:0,scaleX:0.3,scaleY:0.3,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+            transition: {fadeIn:0,fadeOut:0} });
+        }
+      });
+      if (item) {
+        newItems.push(item);
+        state.items.push(item);
+        if (!state.activeLayer) state.activeLayer = item.id;
+        computeTotalDuration();
+        syncAudioGraph();
+        renderTimeline(); // Partial refresh — don't re-render everything
       }
-    })));
-    state.items.push(...newItems);
+    } catch(e) { showToast('Skipped', e.message, true); }
+  }
+
+  if (newItems.length) {
     pushHistory();
-    computeTotalDuration();
-    if (!state.activeLayer) state.activeLayer = newItems[0].id;
-    syncAudioGraph();
     renderAll();
-    showToast('Media added', newItems.length + ' file(s) added');
-  } catch(e) { showToast('Error', e.message, true); }
+    showToast('Media added \u2713', `${newItems.length} file(s) added to timeline`);
+  }
   setProcessing(false);
 }
+
 async function handleAudioFiles(files) {
   const valid = files.filter(f => f.type.startsWith('audio/'));
   if (!valid.length) return;

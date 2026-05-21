@@ -3,8 +3,24 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Editroy',
-  description: 'Manage and process your documents with Editroy.',
+  title: 'Editroy — AI-Powered Video & Document Editor',
+  description: 'Editroy is a powerful online video editor and document manager. Edit videos, add overlays, text, audio and export in HD — all in your browser.',
+  metadataBase: new URL('https://www.editroy.com'),
+  alternates: { canonical: 'https://www.editroy.com' },
+  openGraph: {
+    title: 'Editroy — AI-Powered Video & Document Editor',
+    description: 'Edit videos, add overlays, text, transitions and export in HD — all in your browser. No install needed.',
+    url: 'https://www.editroy.com',
+    siteName: 'Editroy',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Editroy — AI-Powered Video Editor',
+    description: 'Edit videos online for free. No installs, no limits.',
+    site: '@editroy',
+  },
+  keywords: ['video editor', 'online video editor', 'free video editor', 'document editor', 'editroy', 'canva alternative'],
 };
 
 export default function RootLayout({
