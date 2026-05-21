@@ -210,7 +210,7 @@ export default function DashboardPage() {
   }, [receivedFiles, addDocuments, toast, clearReceivedFiles]);
   // --- WebRTC Integration END ---
 
-  const uniqueId = useMemo(() => `FILEFLOW-USER-${user?.id || '12345'}`, [user]);
+  const uniqueId = useMemo(() => `EDITROY-USER-${user?.id || '12345'}`, [user]);
 
   const selectedBatchFiles = useMemo(() => {
     if (!batchToView?.files) return [];
@@ -373,7 +373,7 @@ export default function DashboardPage() {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
-    doc.text('FileFlow - Upload Your Documents', pageWidth / 2, margin + 5, { align: 'center' });
+    doc.text('Editroy - Upload Your Documents', pageWidth / 2, margin + 5, { align: 'center' });
 
     const directUploadY = margin + 20;
     doc.setFont('helvetica', 'bold');
@@ -399,7 +399,7 @@ export default function DashboardPage() {
     const whatsappText = `1. Scan to open a chat with our bot.\n2. Send the message: Connect me using ID: ${uniqueId}\n3. Once connected, send documents to the bot.`;
     doc.text(whatsappText, margin + 70, whatsappY + 15, { maxWidth: pageWidth - margin * 2 - 70 });
     
-    doc.save('FileFlow_QR_Sheet.pdf');
+    doc.save('Editroy_QR_Sheet.pdf');
   };
   
   const handleBatchSelectionChange = (fileName: string, isSelected: boolean) => {
@@ -471,7 +471,7 @@ export default function DashboardPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-primary">FileFlow Dashboard</CardTitle>
+          <CardTitle className="text-3xl font-headline text-primary">Editroy Dashboard</CardTitle>
           <CardDescription>Welcome back! Here's an overview of your document queue and available tools.</CardDescription>
         </CardHeader>
         <CardContent>

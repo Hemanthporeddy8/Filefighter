@@ -13,7 +13,7 @@ export default function GmailIntegrationPage() {
             <Mail className="mr-2 h-6 w-6 text-red-500" /> Gmail Integration
           </CardTitle>
           <CardDescription>
-            Connect FileFlow to your Gmail account to automatically import attachments.
+            Connect Editroy to your Gmail account to automatically import attachments.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -39,7 +39,7 @@ export default function GmailIntegrationPage() {
                 <strong>Webhook for Push Notifications</strong>: To receive emails in real-time, the backend would subscribe to Gmail push notifications via Google Cloud Pub/Sub. This requires setting up a Pub/Sub topic and a subscription that points to a secure webhook endpoint on your server.
               </li>
                <li>
-                <strong>Email and Attachment Processing</strong>: The backend must include logic to parse incoming emails, identify and download attachments, and add the files to the user's document queue in FileFlow's database.
+                <strong>Email and Attachment Processing</strong>: The backend must include logic to parse incoming emails, identify and download attachments, and add the files to the user's document queue in Editroy's database.
               </li>
             </ul>
           </div>

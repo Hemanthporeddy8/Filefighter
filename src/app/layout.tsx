@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'FileFlow',
-  description: 'Manage and process your documents with FileFlow.',
+  title: 'Editroy',
+  description: 'Manage and process your documents with Editroy.',
 };
 
 export default function RootLayout({

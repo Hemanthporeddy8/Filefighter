@@ -300,7 +300,7 @@ function UploadPageContent() {
                         <CardTitle className="text-destructive">Invalid Link</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p>This upload link is missing a session ID. Please re-scan the QR code from the FileFlow dashboard.</p>
+                        <p>This upload link is missing a session ID. Please re-scan the QR code from the Editroy dashboard.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -355,7 +355,7 @@ function UploadPageContent() {
                             <div className="space-y-1">
                                 <CardTitle className="flex items-center"><FilePlus2 className="mr-2 text-primary"/>Send Files to Dashboard</CardTitle>
                                 <CardDescription>
-                                    Your files will be sent to your active FileFlow session.
+                                    Your files will be sent to your active Editroy session.
                                 </CardDescription>
                             </div>
                            <StatusIndicator status={dashboardStatus} />

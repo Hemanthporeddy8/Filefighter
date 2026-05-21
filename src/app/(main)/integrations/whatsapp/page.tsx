@@ -13,7 +13,7 @@ export default function WhatsAppIntegrationPage() {
             <MessageSquare className="mr-2 h-6 w-6 text-green-500" /> WhatsApp Integration
           </CardTitle>
           <CardDescription>
-            Connect FileFlow to WhatsApp to receive documents directly from your chats.
+            Connect Editroy to WhatsApp to receive documents directly from your chats.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -39,7 +39,7 @@ export default function WhatsAppIntegrationPage() {
                 <strong>OAuth 2.0 for User Authorization</strong>: To connect a user's WhatsApp, the backend would implement an OAuth 2.0 flow to securely grant permissions without exposing user credentials.
               </li>
                <li>
-                <strong>File Handling Logic</strong>: The backend must process incoming files from the webhook, temporarily store them, and then add them to the user's document queue in FileFlow's database.
+                <strong>File Handling Logic</strong>: The backend must process incoming files from the webhook, temporarily store them, and then add them to the user's document queue in Editroy's database.
               </li>
             </ul>
           </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>FileFlow — Video Editor</title>
+<title>Editroy — Video Editor</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════════════════
@@ -1780,7 +1780,7 @@ async function handleExport() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `filefighter-${Date.now()}.webm`;
+      a.download = `editroy-${Date.now()}.webm`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
 

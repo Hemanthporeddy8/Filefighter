@@ -90,7 +90,7 @@ export function BatchUpload({ onBatchCreate }: BatchUploadProps) {
         uploadedAt: new Date(),
         size: formatFileSize(newDocs.reduce((acc, _, index) => acc + filesToUpload[index].size, 0)),
         source: 'Direct Upload',
-        senderContact: user?.email || 'user@fileflow.com',
+        senderContact: user?.email || 'user@editroy.com',
         files: newDocs,
       };
 

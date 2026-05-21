@@ -416,7 +416,7 @@ export default function ImageEditorPage() {
 
   const [showWatermarkControls, setShowWatermarkControls] = useState(false);
   const [watermarkType, setWatermarkType] = useState<'text' | 'image'>('text');
-  const [watermarkText, setWatermarkText] = useState('FileFlow');
+  const [watermarkText, setWatermarkText] = useState('Editroy');
   const [watermarkTextColor, setWatermarkTextColor] = useState('#ffffff');
   const [watermarkTextSize, setWatermarkTextSize] = useState(48);
   const [watermarkPosition, setWatermarkPosition] = useState('center');

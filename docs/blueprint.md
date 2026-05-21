@@ -1,4 +1,4 @@
-# **App Name**: FileFlow
+# **App Name**: Editroy
 
 ## Core Features:
 

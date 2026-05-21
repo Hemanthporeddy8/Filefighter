@@ -6,7 +6,7 @@ export interface User {
   role: 'user' | 'admin';
 }
 
-const DB_NAME = 'FileFlowAuthDB';
+const DB_NAME = 'EditroyAuthDB';
 const STORE_NAME = 'users';
 
 const openAuthDB = (): Promise<IDBDatabase> => {

@@ -24,8 +24,8 @@ import Script from 'next/script';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { ErrorBoundary } from '@/components/app/error-boundary';
 
-// Placeholder SVG for FileFlow icon if lucide-react doesn't have it
-const FileFlowIcon = () => (
+// Placeholder SVG for Editroy icon if lucide-react doesn't have it
+const EditroyIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-primary">
       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
@@ -66,8 +66,8 @@ export default function DashboardLayout({
         <Sidebar Rail={<SidebarRail />} collapsible="icon" className="peer">
           <SidebarHeader className="p-4 flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <FileFlowIcon />
-              <h1 className="text-2xl font-headline font-semibold text-primary group-data-[collapsible=icon]:hidden">FileFlow</h1>
+              <EditroyIcon />
+              <h1 className="text-2xl font-headline font-semibold text-primary group-data-[collapsible=icon]:hidden">Editroy</h1>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -81,7 +81,7 @@ export default function DashboardLayout({
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-sidebar-foreground">User</p>
-                <p className="text-xs text-sidebar-foreground/70">user@fileflow.com</p>
+                <p className="text-xs text-sidebar-foreground/70">user@editroy.com</p>
               </div>
             </div>
             <Button

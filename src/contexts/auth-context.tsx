@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = 'fileflow_auth_status';
+const AUTH_STORAGE_KEY = 'editroy_auth_status';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

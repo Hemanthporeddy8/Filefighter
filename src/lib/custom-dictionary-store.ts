@@ -1,6 +1,6 @@
 // src/lib/custom-dictionary-store.ts
 
-const DB_NAME = 'FileFlowDictionaryDB';
+const DB_NAME = 'EditroyDictionaryDB';
 const STORE_NAME = 'customDictionaries';
 const DB_VERSION = 1;
 

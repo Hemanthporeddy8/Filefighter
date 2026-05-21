@@ -12,7 +12,7 @@ import { playNotificationSound, playSuccessSound } from '@/lib/audio-player';
 const MAX_QUEUE_SIZE = 50;
 
 // IndexedDB setup
-const DB_NAME = 'FileFlowDB';
+const DB_NAME = 'EditroyDB';
 const DB_VERSION = 1;
 const DOC_STORE_NAME = 'documents';
 const POLICY_STORE_NAME = 'settings';
@@ -57,8 +57,8 @@ interface DocumentContextType {
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
-const QR_SESSION_ID_KEY = 'fileflow_qr_session_id';
-const WA_SESSION_ID_KEY = 'fileflow_wa_session_id';
+const QR_SESSION_ID_KEY = 'editroy_qr_session_id';
+const WA_SESSION_ID_KEY = 'editroy_wa_session_id';
 
 type UploadNotificationState = {
   [key in DocumentSource]?: boolean;
@@ -188,7 +188,7 @@ export function DocumentProvider({ children }: { children: React.ReactNode }) {
       ...doc,
       id: doc.id || `doc-${doc.name}-${Date.now()}`,
       source,
-      senderContact: source === 'Direct Upload' ? (user?.email || 'user@fileflow.com') : doc.senderContact,
+      senderContact: source === 'Direct Upload' ? (user?.email || 'user@editroy.com') : doc.senderContact,
       senderSessionId: source === 'QR Upload' ? qrSessionId : undefined,
     }));
 

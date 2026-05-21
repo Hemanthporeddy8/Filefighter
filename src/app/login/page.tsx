@@ -54,7 +54,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 p-3 rounded-full bg-primary text-primary-foreground w-fit">
             <QrCode size={32} />
           </div>
-          <CardTitle className="text-3xl font-headline text-primary">FileFlow</CardTitle>
+          <CardTitle className="text-3xl font-headline text-primary">Editroy</CardTitle>
           <CardDescription className="text-muted-foreground">
             Sign in to access your offline workspace
           </CardDescription>
@@ -110,7 +110,7 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       <footer className="mt-8 text-center text-sm text-foreground/70">
-        <p>&copy; {new Date().getFullYear()} FileFlow.</p>
+        <p>&copy; {new Date().getFullYear()} Editroy.</p>
         <p className="mt-1 opacity-70 border max-w-sm rounded-md p-2 text-xs">Note: Your accounts and files are saved <b>locally</b> in this browser using IndexedDB. Clearing browser data will delete accounts.</p>
       </footer>
     </div>
