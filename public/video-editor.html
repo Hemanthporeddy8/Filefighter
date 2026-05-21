@@ -1584,88 +1584,229 @@ function seekTo(t) {
   }
 }
 
-// --- EXPORT PIPELINE ---
+// --- EXPORT PIPELINE (Frame-by-Frame Renderer) ---
 async function handleExport() {
   if (!state.items.length) { showToast('Nothing to export', 'Add clips first', true); return; }
   if (state.isPlaying) togglePlay();
-  seekTo(0);
-  isExporting = true;
-  exportChunks = [];
-  
-  setProcessing(true, 'Exporting Video…', 'Rendering frames, please wait');
-  
+
+  setProcessing(true, 'Preparing Export…', 'Loading media files');
+
   try {
-    const videoStream = renderCanvas.captureStream(state.fps);
-    
-    // Create AudioContext destination for export audio mixing
+    const fps = state.fps || 30;
+    const duration = state.totalDuration;
+    const totalFrames = Math.ceil(duration * fps);
+
+    // --- AUDIO SETUP ---
+    // Create a fresh AudioContext for mixing
     const exportAudioCtx = new AudioContext();
+    const masterGainNode = exportAudioCtx.createGain();
+    masterGainNode.gain.value = state.masterVolume;
     const exportDest = exportAudioCtx.createMediaStreamDestination();
-    
-    // Connect all audio sources to the export destination
-    const exportSources = [];
-    state.items.filter(i => i.type === 'video' || i.type === 'audio').forEach(item => {
-      const node = audioNodesMap.get(item.id);
-      if (node) {
-        try {
-          const exportAudio = document.createElement('audio');
-          exportAudio.src = item.src;
-          exportAudio.volume = 0; // Mute HTML element
-          const src = exportAudioCtx.createMediaElementSource(exportAudio);
-          const gain = exportAudioCtx.createGain();
-          gain.gain.value = item.volume ?? 1;
-          src.connect(gain);
-          gain.connect(exportDest);
-          exportSources.push({ audio: exportAudio, item });
-        } catch(e) { console.warn('Export audio setup failed for', item.name, e); }
-      }
-    });
-    
-    const tracks = [...videoStream.getVideoTracks()];
-    if (exportDest.stream.getAudioTracks().length > 0) {
-      tracks.push(...exportDest.stream.getAudioTracks());
+    masterGainNode.connect(exportDest);
+
+    // Create an audio element + WebAudio node for each video/audio item
+    const audioEls = [];
+    for (const item of state.items.filter(i => i.type === 'video' || i.type === 'audio')) {
+      const el = document.createElement('audio');
+      el.src = item.src;
+      el.preload = 'auto';
+      // Wait for audio to load
+      await new Promise(r => { el.oncanplay = r; el.onerror = r; el.load(); });
+      try {
+        const src = exportAudioCtx.createMediaElementSource(el);
+        const gainNode = exportAudioCtx.createGain();
+        gainNode.gain.value = Math.min(1, item.volume ?? 1);
+        src.connect(gainNode);
+        gainNode.connect(masterGainNode);
+        audioEls.push({ el, item, gain: gainNode });
+      } catch(e) { console.warn('Audio connect failed:', e); }
     }
+
+    // --- VIDEO SETUP: pre-load all video elements ---
+    const exportVids = new Map();
+    for (const item of state.items.filter(i => i.type === 'video')) {
+      const vid = document.createElement('video');
+      vid.src = item.src;
+      vid.muted = true;
+      vid.preload = 'auto';
+      await new Promise(r => { vid.oncanplay = r; vid.onerror = r; vid.load(); });
+      exportVids.set(item.id, vid);
+    }
+
+    // --- RECORDER SETUP ---
+    const videoStream = renderCanvas.captureStream(fps);
+    const allTracks = [...videoStream.getVideoTracks()];
+    if (exportDest.stream.getAudioTracks().length > 0) {
+      allTracks.push(...exportDest.stream.getAudioTracks());
+    }
+    const combinedStream = new MediaStream(allTracks);
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+      ? 'video/webm;codecs=vp8,opus'
+      : 'video/webm';
+
+    const chunks = [];
+    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 8000000 });
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.start();
+
+    // Start all audio elements from beginning (they play in real-time while we render frames)
+    // This is accurate because we render at exactly fps rate and audio runs alongside
+    for (const { el, item } of audioEls) {
+      el.currentTime = item.trimStart + 0; // Start at trim start for t=0
+      // Only play if this item starts at t=0
+      if (item.start <= 0.05) {
+        el.play().catch(() => {});
+      }
+    }
+
+    // --- FRAME-BY-FRAME RENDER LOOP ---
+    const frameMs = 1000 / fps;
     
-    const combinedStream = new MediaStream(tracks);
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-    exportRecorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 5000000 });
-    exportRecorder.ondataavailable = e => { if (e.data.size > 0) exportChunks.push(e.data); };
-    exportRecorder.onstop = () => {
-      exportSources.forEach(s => { s.audio.pause(); s.audio.src = ''; });
+    for (let frame = 0; frame < totalFrames; frame++) {
+      const t = frame / fps;
+      state.globalTime = t;
+
+      // Update audio elements playback state
+      for (const { el, item } of audioEls) {
+        const isActive = t >= item.start && t < item.start + item.duration;
+        if (isActive) {
+          const targetTime = item.trimStart + (t - item.start);
+          // Only seek if significantly off (seeking is expensive)
+          if (Math.abs(el.currentTime - targetTime) > 0.15) {
+            el.currentTime = targetTime;
+          }
+          if (el.paused) el.play().catch(() => {});
+        } else {
+          if (!el.paused) el.pause();
+        }
+      }
+
+      // Render canvas frame
+      renderCtx.fillStyle = '#000';
+      renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+
+      const renderOrder = { 'v1': 1, 'v2': 2, 't1': 3, 'a1': 0 };
+      const activeItems = state.items
+        .filter(i => t >= i.start && t < i.start + i.duration)
+        .sort((a, b) => (renderOrder[a.track] || 0) - (renderOrder[b.track] || 0));
+
+      for (const item of activeItems) {
+        if (item.type === 'video') {
+          const vid = exportVids.get(item.id);
+          if (!vid) continue;
+          const localTime = item.trimStart + (t - item.start);
+          // Seek and wait for frame to decode
+          if (Math.abs(vid.currentTime - localTime) > 0.05) {
+            vid.currentTime = localTime;
+            await new Promise(r => {
+              const onSeeked = () => { vid.removeEventListener('seeked', onSeeked); r(); };
+              vid.addEventListener('seeked', onSeeked);
+              setTimeout(r, 200); // Max wait 200ms
+            });
+          }
+          if (vid.videoWidth) {
+            renderCtx.save();
+            const cx = renderCanvas.width / 2;
+            const cy = renderCanvas.height / 2;
+            renderCtx.translate(cx + (item.transform.x||0), cy + (item.transform.y||0));
+            renderCtx.scale(item.transform.scaleX??1, item.transform.scaleY??1);
+            renderCtx.rotate((item.transform.rotation||0)*Math.PI/180);
+            renderCtx.globalAlpha = (item.opacity??100)/100;
+            applyFilterCtx(renderCtx, item.filters);
+            const fitScale = Math.min(renderCanvas.width/vid.videoWidth, renderCanvas.height/vid.videoHeight);
+            const w = vid.videoWidth * fitScale, h = vid.videoHeight * fitScale;
+            renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+            renderCtx.restore();
+          }
+        } else if (item.type === 'image') {
+          const img = imageCache.get(item.id);
+          if (img && img.complete && img.naturalWidth) {
+            renderCtx.save();
+            const cx = renderCanvas.width / 2;
+            const cy = renderCanvas.height / 2;
+            // Transition fade
+            let alpha = (item.opacity??100)/100;
+            if (item.transition) {
+              const elapsed = t - item.start;
+              const remaining = (item.start + item.duration) - t;
+              if (item.transition.fadeIn > 0 && elapsed < item.transition.fadeIn) alpha *= elapsed / item.transition.fadeIn;
+              if (item.transition.fadeOut > 0 && remaining < item.transition.fadeOut) alpha *= remaining / item.transition.fadeOut;
+            }
+            renderCtx.translate(cx + (item.transform.x||0), cy + (item.transform.y||0));
+            renderCtx.scale(item.transform.scaleX??0.3, item.transform.scaleY??0.3);
+            renderCtx.rotate((item.transform.rotation||0)*Math.PI/180);
+            renderCtx.globalAlpha = alpha;
+            applyFilterCtx(renderCtx, item.filters);
+            const fitScale = Math.min(renderCanvas.width/img.naturalWidth, renderCanvas.height/img.naturalHeight);
+            const w = img.naturalWidth * fitScale, h = img.naturalHeight * fitScale;
+            renderCtx.drawImage(img, -w/2, -h/2, w, h);
+            renderCtx.restore();
+          }
+        } else if (item.type === 'text') {
+          renderCtx.save();
+          const cx = renderCanvas.width / 2;
+          const cy = renderCanvas.height / 2;
+          renderCtx.translate(cx + (item.transform.x||0), cy + (item.transform.y||0));
+          renderCtx.scale(item.transform.scaleX??1, item.transform.scaleY??1);
+          renderCtx.rotate((item.transform.rotation||0)*Math.PI/180);
+          renderCtx.globalAlpha = (item.opacity??100)/100;
+          renderCtx.font = `${item.transform.weight||700} ${item.transform.size||64}px ${item.transform.font||'Inter'}`;
+          renderCtx.fillStyle = item.color || '#fff';
+          renderCtx.textAlign = 'center';
+          renderCtx.textBaseline = 'middle';
+          renderCtx.fillText(item.name, 0, 0);
+          renderCtx.restore();
+        }
+      }
+
+      // Update progress
+      const pct = Math.round((frame / totalFrames) * 100);
+      setProcessing(true, `Exporting… ${pct}%`, `Frame ${frame+1} of ${totalFrames}`);
+
+      // Wait exactly one frame duration before next frame
+      await new Promise(r => setTimeout(r, frameMs));
+    }
+
+    // Stop recorder and save
+    recorder.stop();
+    recorder.onstop = () => {
+      // Cleanup
+      for (const { el } of audioEls) { el.pause(); el.src = ''; }
       exportAudioCtx.close();
-      saveExport();
+
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `filefighter-${Date.now()}.webm`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      setProcessing(false);
+      showToast('Export complete! ✓', 'Video downloaded');
+      state.globalTime = 0;
+      seekTo(0);
     };
-    exportRecorder.start(100);
-    
-    // Start export audio playback
-    exportSources.forEach(s => {
-      s.audio.currentTime = s.item.trimStart;
-      s.audio.play().catch(() => {});
-    });
-    
-    lastTs = performance.now();
-    rafId = requestAnimationFrame(playLoop);
-  } catch(e) {
-    isExporting = false;
+
+  } catch(err) {
     setProcessing(false);
-    showToast('Export failed', e.message, true);
+    showToast('Export failed', err.message, true);
+    console.error('Export error:', err);
   }
 }
-function finishExport() {
-  isExporting = false;
-  if (exportRecorder && exportRecorder.state !== 'inactive') exportRecorder.stop();
+
+// Helper: apply CSS filter string to canvas context
+function applyFilterCtx(ctx, f) {
+  if (!f) return;
+  ctx.filter = `brightness(${f.brightness??100}%) contrast(${f.contrast??100}%) saturate(${f.saturate??100}%) grayscale(${f.grayscale??0}%)${f.sepia ? ` sepia(${f.sepia}%)` : ''}${f.blur ? ` blur(${f.blur}px)` : ''}`;
 }
-function saveExport() {
-  const blob = new Blob(exportChunks, { type: 'video/webm' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `filefighter-export-${Date.now()}.webm`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  setProcessing(false);
-  showToast('Export complete', 'Downloaded as WebM');
-  state.globalTime = 0;
-  seekTo(0);
-}
+
+// Legacy stubs (no longer used but kept to avoid errors)
+function finishExport() {}
+function saveExport() {}
+
 
 // --- UPLOADS & DURATION ---
 function computeTotalDuration() {
