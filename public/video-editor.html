@@ -985,7 +985,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
     <div class="tab-panel" id="tab-settings">
       <div class="panel-header"><h3>Settings</h3></div>
       <div class="panel-body">
-        <div class="section-label" style="margin-bottom:6px">Canvas resolution</div>
+        <div class="section-label" style="margin-bottom:6px">CANVAS RESOLUTION</div>
         <div class="settings-grid">
           <button class="setting-option active" data-res="1920x1080">
             <svg width="16" height="9" viewBox="0 0 16 9" fill="currentColor" opacity=".5"><rect width="16" height="9" rx="1.5"/></svg>
@@ -1000,11 +1000,22 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
             <span>1080×1080</span><small>1:1</small>
           </button>
         </div>
-        <div class="section-label" style="margin-top:14px;margin-bottom:6px">Frame rate</div>
+        <div class="section-label" style="margin-top:14px;margin-bottom:6px">FRAME RATE</div>
         <div class="settings-grid">
           <button class="setting-option active" data-fps="24">24 fps</button>
           <button class="setting-option" data-fps="30">30 fps</button>
           <button class="setting-option" data-fps="60">60 fps</button>
+        </div>
+        <div class="section-label" style="margin-top:14px;margin-bottom:6px">AI TOOLS</div>
+        <button class="add-layer-btn" id="btn-ai-bg-remove" style="border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.06);color:var(--violet)">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8a3 3 0 0 0 6 0"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="6" r="1" fill="currentColor" stroke="none"/></svg>
+          AI Background Removal
+          <span style="font-size:9px;background:rgba(139,92,246,.2);padding:1px 5px;border-radius:3px;margin-left:2px">Soon</span>
+        </button>
+        <div class="section-label" style="margin-top:14px;margin-bottom:6px">EXPORT FORMAT</div>
+        <div class="settings-grid">
+          <button class="setting-option active" data-fmt="webm"><span>WebM</span><small>VP9</small></button>
+          <button class="setting-option" data-fmt="mp4"><span>MP4</span><small>H.264</small></button>
         </div>
       </div>
     </div>
@@ -2326,7 +2337,8 @@ function getItemBoundsOnScreen(item) {
 function updateSelectionOverlay() {
   if (!state.activeLayer) { selOverlay.style.display = 'none'; return; }
   const item = state.items.find(i => i.id === state.activeLayer);
-  if (!item || item.type === 'audio') { selOverlay.style.display = 'none'; return; }
+  // Only show overlay for images and text (NOT video, NOT audio)
+  if (!item || item.type === 'audio' || item.type === 'video') { selOverlay.style.display = 'none'; return; }
   
   const b = getItemBoundsOnScreen(item);
   if (!b) return;
@@ -2467,6 +2479,38 @@ previewCanvas?.addEventListener('wheel', e => {
     if (isResizing) { isResizing = false; resizer.classList.remove('dragging'); document.body.style.cursor = ''; }
   });
 })();
+
+// --- SETTINGS PANEL BINDINGS ---
+document.querySelectorAll('.setting-option[data-res]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.setting-option[data-res]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const [w, h] = btn.dataset.res.split('x').map(Number);
+    renderCanvas.width = w;
+    renderCanvas.height = h;
+    showToast(`Resolution: ${w}×${h}`, 'Canvas size updated');
+    renderFrame();
+  });
+});
+document.querySelectorAll('.setting-option[data-fps]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.setting-option[data-fps]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.fps = Number(btn.dataset.fps);
+    showToast(`Frame rate: ${state.fps} fps`);
+  });
+});
+document.querySelectorAll('.setting-option[data-fmt]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.setting-option[data-fmt]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.exportFormat = btn.dataset.fmt;
+    showToast(`Export format: ${btn.dataset.fmt.toUpperCase()}`);
+  });
+});
+document.getElementById('btn-ai-bg-remove')?.addEventListener('click', () => {
+  showToast('AI Background Removal', 'Coming soon! We are working on this feature.', false);
+});
 
 // Init
 pushHistory();
