@@ -1455,7 +1455,6 @@ function renderFrame() {
     pc.height = renderCanvas.height;
   }
   pc.getContext('2d').drawImage(renderCanvas, 0, 0);
-  if (typeof updateSelectionOverlay === 'function') updateSelectionOverlay();
 }
 
 function drawVisual(item, localTime) {
@@ -1777,6 +1776,7 @@ function renderAll() {
   updateActionButtons();
   buildRuler();
   seekTo(state.globalTime);
+  if (typeof updateSelectionOverlay === 'function') updateSelectionOverlay();
 }
 
 function updateActionButtons() {
@@ -2410,6 +2410,7 @@ document.addEventListener('mousemove', e => {
     canvasDrag.item.transform.y = canvasDrag.startItemY + dy;
     renderFrame(); renderInspector(); updateSelectionOverlay();
   }
+  // Scroll-wheel resize overlay update is handled in wheel listener
 });
 
 document.addEventListener('mouseup', () => {
@@ -2440,13 +2441,6 @@ previewCanvas?.addEventListener('wheel', e => {
   item.transform.scaleY = Math.max(0.05, Math.min(5, (item.transform.scaleY ?? 1) + delta));
   renderFrame(); renderInspector(); updateSelectionOverlay();
 }, { passive: false });
-
-// Patch renderAll to also update selection overlay
-const _origRenderAll = renderAll;
-function renderAll() {
-  _origRenderAll(); 
-  updateSelectionOverlay();
-}
 
 // --- TIMELINE RESIZER ---
 (function() {
