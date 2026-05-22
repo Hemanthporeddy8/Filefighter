@@ -645,18 +645,11 @@ function getNextStartTime(trackId) {
 }
 
 const MAX_FILE_SIZE_MB = 200;
-const MAX_DURATION_MIN = 10;
-const MAX_UPLOAD_COUNT = 5;
-
 async function handleVideoFiles(files) {
   const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
   if (!valid.length) return;
 
-  // --- STRICT FILE LIMITS (checked before any heavy processing) ---
-  if (valid.length > MAX_UPLOAD_COUNT) {
-    showToast(`Max ${MAX_UPLOAD_COUNT} files at once`, `You tried ${valid.length} files. Select fewer.`, true);
-    return;
-  }
+  // --- SIZE LIMIT (200MB max per file) ---
   const tooBig = valid.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
   if (tooBig.length) {
     const mb = (tooBig[0].size / 1024 / 1024).toFixed(0);
@@ -689,12 +682,6 @@ async function handleVideoFiles(files) {
           }, 8000);
           vid.onloadedmetadata = async () => {
             clearTimeout(fallback);
-            // Duration check
-            if (vid.duration > MAX_DURATION_MIN * 60) {
-              resolve(null);
-              showToast('Video too long', `Max ${MAX_DURATION_MIN} minutes. Trim your video first.`, true);
-              return;
-            }
             if (!state.items.some(it => it.type==='video') && !newItems.some(it => it.type==='video')) {
               // Set preview canvas to scaled-down size (480p for preview, upscale with CSS)
               const aspect = (vid.videoWidth || 1920) / (vid.videoHeight || 1080);
