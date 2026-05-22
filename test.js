@@ -33,6 +33,15 @@ let isExporting = false;
 let exportRecorder = null;
 let exportChunks = [];
 
+// Timeline performance state
+let _playheadEl = null;
+let _playheadContainerW = 0;
+let _dragRafId = null;
+let _isDragging = false;
+let _dragPreviewThrottle = 0;
+const DRAG_PREVIEW_FPS = 10; // fps during drag (was full 24fps)
+const DRAG_PREVIEW_MS = 1000 / DRAG_PREVIEW_FPS;
+
 // --- UTILS ---
 function formatTime(t) {
   if (isNaN(t) || t < 0) return '00:00.00';
@@ -825,15 +834,29 @@ function renderTimeline() {
               `;
           }
           el.dataset.id = item.id;
-          el.style.left = left + '%';
-          el.style.width = Math.max(width, 1) + '%';
+          // Use pixel positions for GPU-friendly layout
+          const trackContentEl = track.querySelector('.track-content');
+          const trackPx = trackContentEl ? trackContentEl.getBoundingClientRect().width : 0;
+          const dur = state.totalDuration || 1;
+          if (trackPx > 0) {
+            el.style.left = ((item.start / dur) * trackPx) + 'px';
+            el.style.width = Math.max((item.duration / dur) * trackPx, 4) + 'px';
+          } else {
+            el.style.left = left + '%';
+            el.style.width = Math.max(width, 1) + '%';
+          }
           
           el.addEventListener('mousedown', e => {
             e.preventDefault();
             e.stopPropagation();
             if(e.target.dataset.action) handleDrag(e, item.id, e.target.dataset.action);
-            else handleDrag(e, item.id, 'move'); 
+            else handleDrag(e, item.id, 'move');
           });
+          el.addEventListener('touchstart', e => {
+            e.stopPropagation();
+            if(e.target.dataset.action) handleDrag(e, item.id, e.target.dataset.action);
+            else handleDrag(e, item.id, 'move');
+          }, { passive: true });
           el.setAttribute('draggable', 'false');
           track.appendChild(el);
       });
@@ -857,20 +880,153 @@ function renderTimeline() {
 }
 
 function updatePlayhead() {
-  const pct = state.totalDuration > 0 ? (state.globalTime / state.totalDuration) * 100 : 0;
-  const p = document.getElementById('playhead');
-  if(p) p.style.left = pct + '%';
+  if (!_playheadEl) _playheadEl = document.getElementById('playhead');
+  if (!_playheadContainerW) {
+    const container = document.querySelector('.playhead-container');
+    if (container) _playheadContainerW = container.getBoundingClientRect().width;
+  }
+  const pct = state.totalDuration > 0 ? (state.globalTime / state.totalDuration) : 0;
+  const px = pct * (_playheadContainerW || 0);
+  if (_playheadEl) _playheadEl.style.transform = 'translateX(' + px + 'px)';
   updateTimecode();
+}
+// Invalidate cached playhead width on resize
+window.addEventListener('resize', () => { _playheadContainerW = 0; });
+
+// Timeline scrubbing with RAF-based smooth playhead update
+let _scrubbing = false;
+let _scrubRafId = null;
+
+function doScrub(clientX) {
+  const inner = document.getElementById('tracks-inner');
+  if (!inner) return;
+  const rect = inner.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, x / rect.width));
+  seekTo(pct * state.totalDuration);
 }
 
 document.getElementById('tracks-scroll')?.addEventListener('mousedown', e => {
   if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
-  const inner = document.getElementById('tracks-inner');
-  const rect = inner.getBoundingClientRect();
-  const x = e.clientX - rect.left; 
-  const pct = Math.max(0, Math.min(1, x / rect.width));
-  seekTo(pct * state.totalDuration);
+  _scrubbing = true;
+  doScrub(e.clientX);
+  
+  const onMove = (ev) => {
+    if (!_scrubbing) return;
+    cancelAnimationFrame(_scrubRafId);
+    _scrubRafId = requestAnimationFrame(() => doScrub(ev.clientX));
+  };
+  const onUp = () => {
+    _scrubbing = false;
+    cancelAnimationFrame(_scrubRafId);
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove, { passive: true });
+  document.addEventListener('mouseup', onUp);
 });
+
+// Touch scrubbing on timeline
+document.getElementById('tracks-scroll')?.addEventListener('touchstart', e => {
+  if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
+  if (!e.touches[0]) return;
+  _scrubbing = true;
+  doScrub(e.touches[0].clientX);
+  
+  const onMove = (ev) => {
+    if (!_scrubbing || !ev.touches[0]) return;
+    cancelAnimationFrame(_scrubRafId);
+    _scrubRafId = requestAnimationFrame(() => doScrub(ev.touches[0].clientX));
+  };
+  const onEnd = () => {
+    _scrubbing = false;
+    cancelAnimationFrame(_scrubRafId);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  };
+  document.addEventListener('touchmove', onMove, { passive: true });
+  document.addEventListener('touchend', onEnd);
+}, { passive: true });
+
+// --- MOMENTUM SCROLL FOR TIMELINE ---
+(function() {
+  const FRICTION = 0.88;       // Higher = more glide (Canva-like)
+  const MIN_VEL = 0.5;         // Stop threshold px/frame
+  let scrollEl = null;
+  let velX = 0;
+  let animId = null;
+  let lastScrollX = 0;
+  let lastScrollTime = 0;
+  let isScrolling = false;
+
+  function getScrollEl() {
+    if (!scrollEl) scrollEl = document.getElementById('tracks-scroll');
+    return scrollEl;
+  }
+
+  function momentumLoop() {
+    const el = getScrollEl();
+    if (!el) return;
+    velX *= FRICTION;
+    if (Math.abs(velX) < MIN_VEL) { animId = null; return; }
+    el.scrollLeft += velX;
+    animId = requestAnimationFrame(momentumLoop);
+  }
+
+  // Wheel: intercept and add momentum on trackpad/mouse
+  document.addEventListener('wheel', (e) => {
+    const el = getScrollEl();
+    if (!el || !el.contains(e.target)) return;
+    // If trackpad pinch/horizontal scroll, intercept
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
+      e.preventDefault();
+      cancelAnimationFrame(animId);
+      velX = e.deltaX * 0.6; // Scale factor for feel
+      el.scrollLeft += velX;
+      animId = requestAnimationFrame(momentumLoop);
+    }
+  }, { passive: false });
+
+  // Touch: flick gesture
+  let touchStartX = 0;
+  let touchLastX = 0;
+  let touchLastTime = 0;
+  let touchVelX = 0;
+
+  document.addEventListener('touchstart', (e) => {
+    const el = getScrollEl();
+    if (!el || !el.contains(e.target) || e.touches.length !== 1) return;
+    cancelAnimationFrame(animId);
+    velX = 0;
+    touchStartX = e.touches[0].clientX;
+    touchLastX = touchStartX;
+    touchLastTime = performance.now();
+    isScrolling = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    const el = getScrollEl();
+    if (!el || !el.contains(e.target) || e.touches.length !== 1) return;
+    if (_isDragging) return; // Don't momentum-scroll during clip drag
+    const x = e.touches[0].clientX;
+    const dx = touchLastX - x;
+    const now = performance.now();
+    const dt = now - touchLastTime || 1;
+    touchVelX = dx / dt * 16; // velocity in px/frame
+    touchLastX = x;
+    touchLastTime = now;
+    el.scrollLeft += dx;
+    isScrolling = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!isScrolling) return;
+    isScrolling = false;
+    velX = touchVelX;
+    animId = requestAnimationFrame(momentumLoop);
+    touchVelX = 0;
+  }, { passive: true });
+})();
 
 // --- ABSOLUTE POSITIONING DRAG LOGIC ---
 let dragState = null;
@@ -879,52 +1035,109 @@ function handleDrag(e, itemId, action) {
   const item = state.items.find(i => i.id === itemId);
   if (!item) return;
   selectLayer(itemId);
+  _isDragging = true;
+  _dragPreviewThrottle = 0;
   
+  const startX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
   dragState = { 
-      type: action, 
-      item, 
-      startX: e.clientX, 
-      startStart: item.start, 
-      startDuration: item.duration,
-      startTrimStart: item.trimStart, 
-      startTrimEnd: item.trimEnd, 
-      trackWidth: document.getElementById('tracks-inner').getBoundingClientRect().width 
+    type: action, 
+    item, 
+    startX,
+    startStart: item.start, 
+    startDuration: item.duration,
+    startTrimStart: item.trimStart, 
+    startTrimEnd: item.trimEnd, 
+    trackWidth: document.getElementById('tracks-inner').getBoundingClientRect().width 
   };
-  document.addEventListener('mousemove', onDragMove);
+  // Set drag cursor on body
+  if (action === 'move') document.body.classList.add('is-dragging');
+  else document.body.classList.add('is-trimming');
+  // Add visual feedback to the dragged clip
+  const trackEl = document.getElementById('track-' + item.track);
+  const clipEl = trackEl?.querySelector('[data-id="' + item.id + '"]');
+  if (clipEl) clipEl.classList.add('dragging');
+  document.addEventListener('mousemove', onDragMove, { passive: true });
   document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchmove', onDragMove, { passive: true });
+  document.addEventListener('touchend', onDragEnd);
 }
 function onDragMove(e) {
   if (!dragState) return;
-  const dx = e.clientX - dragState.startX;
+  const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : dragState.startX);
+  const dx = clientX - dragState.startX;
   const dt = (dx / dragState.trackWidth) * state.totalDuration;
   const item = dragState.item;
   
   if (dragState.type === 'move') {
-      item.start = Math.max(0, dragState.startStart + dt);
+    item.start = Math.max(0, dragState.startStart + dt);
   } else if (dragState.type === 'trim-start') {
-      // Dragging left handle: change start time and duration, update trimStart
-      const shift = Math.min(dt, dragState.startDuration - 0.1); // Prevent 0 duration
-      item.start = Math.max(0, dragState.startStart + shift);
-      item.duration = dragState.startDuration - (item.start - dragState.startStart);
-      item.trimStart = dragState.startTrimStart + (item.start - dragState.startStart);
+    const shift = Math.min(dt, dragState.startDuration - 0.1);
+    item.start = Math.max(0, dragState.startStart + shift);
+    item.duration = dragState.startDuration - (item.start - dragState.startStart);
+    item.trimStart = dragState.startTrimStart + (item.start - dragState.startStart);
   } else if (dragState.type === 'trim-end') {
-      // Dragging right handle: change duration, update trimEnd
-      item.duration = Math.max(0.1, dragState.startDuration + dt);
-      item.trimEnd = dragState.startTrimStart + item.duration;
+    item.duration = Math.max(0.1, dragState.startDuration + dt);
+    item.trimEnd = dragState.startTrimStart + item.duration;
   }
   
   computeTotalDuration();
-  renderTimeline();
-  renderInspector();
-  renderFrame();
-}
-function onDragEnd() {
-  if (dragState) {
-    pushHistory();
-    dragState = null;
-    document.removeEventListener('mousemove', onDragMove);
-    document.removeEventListener('mouseup', onDragEnd);
+  
+  // FAST PATH: update only the dragged clip's DOM element via transform, skip full renderTimeline()
+  applyClipTransformFast(item);
+  
+  // Throttle inspector + preview frame during drag
+  if (!_dragRafId) {
+    _dragRafId = requestAnimationFrame(() => {
+      _dragRafId = null;
+      renderInspector();
+      // Low-fps preview during drag
+      const now = performance.now();
+      if (now - _dragPreviewThrottle > DRAG_PREVIEW_MS) {
+        _dragPreviewThrottle = now;
+        renderFrame();
+      }
+    });
   }
+}
+
+// Apply clip position/width update via DOM mutation (no full re-render)
+function applyClipTransformFast(item) {
+  const duration = state.totalDuration;
+  if (!duration) return;
+  const trackEl = document.getElementById('track-' + item.track);
+  if (!trackEl) return;
+  const trackW = trackEl.querySelector('.track-content')?.getBoundingClientRect().width || 0;
+  if (!trackW) return;
+  
+  const clipEl = trackEl.querySelector('[data-id="' + item.id + '"]');
+  if (!clipEl) return;
+  
+  const leftPx = (item.start / duration) * trackW;
+  const wPx = Math.max((item.duration / duration) * trackW, 4);
+  clipEl.style.left = leftPx + 'px';
+  clipEl.style.width = wPx + 'px';
+}
+
+function onDragEnd(e) {
+  if (!dragState) return;
+  cancelAnimationFrame(_dragRafId);
+  _dragRafId = null;
+  _isDragging = false;
+  // Restore body cursor
+  document.body.classList.remove('is-dragging', 'is-trimming');
+  // Remove dragging class from clip
+  const trackEl = document.getElementById('track-' + dragState.item.track);
+  const clipEl = trackEl?.querySelector('[data-id="' + dragState.item.id + '"]');
+  if (clipEl) clipEl.classList.remove('dragging');
+  pushHistory();
+  dragState = null;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  // Full re-render once drag ends
+  renderTimeline();
+  renderFrame();
 }
 
 // --- RAIL NAVIGATION (Left sidebar) ---
