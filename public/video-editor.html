@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0a0a0a"/>
 <title>Editroy — Video Editor</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -359,6 +363,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;f
   max-width:100%;max-height:100%;
   border-radius:2px;display:none;
   position:absolute;cursor:grab;
+  image-rendering:auto;
+  object-fit:contain;
 }
 .preview-img-canvas:active{cursor:grabbing}
 .preview-img-canvas.visible{display:block}
@@ -1310,9 +1316,9 @@ const mediaDest = audioCtx.createMediaStreamDestination();
 masterGain.connect(mediaDest);
 
 const renderCanvas = document.createElement('canvas');
-renderCanvas.width = 1920;
-renderCanvas.height = 1080;
-const renderCtx = renderCanvas.getContext('2d', { alpha: false });
+renderCanvas.width = 480;  // Preview at 480p — saves 16x RAM vs 1080p
+renderCanvas.height = 270;
+const renderCtx = renderCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
 
 const audioNodesMap = new Map(); 
 const activeVideos = new Map();
@@ -1333,6 +1339,22 @@ function formatTime(t) {
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
 }
 function uid() { return '_' + Math.random().toString(36).slice(2,9) + Date.now(); }
+
+// Mobile/low-power detection
+function isMobile() {
+  return navigator.maxTouchPoints > 1 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+const MOBILE = isMobile();
+if (MOBILE) {
+  // Show mobile mode badge
+  document.addEventListener('DOMContentLoaded', () => {
+    const badge = document.createElement('div');
+    badge.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;background:rgba(99,102,241,.9);color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;font-family:Inter,sans-serif;pointer-events:none';
+    badge.textContent = '⚡ Mobile mode';
+    document.body.appendChild(badge);
+    setTimeout(() => badge.remove(), 4000);
+  });
+}
 function showToast(title, desc='', isError=false) {
   const el = document.getElementById('toast');
   document.getElementById('toast-title').textContent = title;
@@ -1349,6 +1371,7 @@ function setProcessing(show, title='Processing…', desc='Please wait') {
 }
 
 // --- STATE MANAGEMENT ---
+const MAX_HISTORY = 15;
 function pushHistory() {
   const snapshot = state.items.map(i => ({...i, filters: {...i.filters}, transform: {...i.transform}}));
   if (state.historyIndex < state.history.length - 1) {
@@ -1356,6 +1379,11 @@ function pushHistory() {
   }
   state.history.push(snapshot);
   state.historyIndex++;
+  // Trim old history to prevent RAM growth
+  if (state.history.length > MAX_HISTORY) {
+    state.history = state.history.slice(state.history.length - MAX_HISTORY);
+    state.historyIndex = state.history.length - 1;
+  }
   updateActionButtons();
 }
 document.getElementById('btn-undo').addEventListener('click', () => {
@@ -1395,8 +1423,21 @@ function syncAudioGraph() {
 }
 
 // --- RENDER PIPELINE ---
+// Throttled play loop — max 24fps, skip when tab hidden
+const TARGET_FPS = 24;
+const FRAME_MS = 1000 / TARGET_FPS;
+let lastRenderTs = 0;
+
 function playLoop(ts) {
   if (!state.isPlaying && !isExporting) return;
+  
+  // Skip render if tab is hidden (massive CPU saver)
+  if (document.hidden && !isExporting) {
+    lastTs = ts;
+    rafId = requestAnimationFrame(playLoop);
+    return;
+  }
+
   if (lastTs !== null) {
     const dt = (ts - lastTs) / 1000;
     state.globalTime += dt;
@@ -1413,13 +1454,22 @@ function playLoop(ts) {
     }
   }
   lastTs = ts;
-  renderFrame();
+
+  // Throttle canvas render to TARGET_FPS
+  if (ts - lastRenderTs >= FRAME_MS) {
+    lastRenderTs = ts;
+    renderFrame();
+  }
+  
   updateMediaPlayback();
   updatePlayhead();
   if (state.isPlaying || isExporting) rafId = requestAnimationFrame(playLoop);
 }
 
 function renderFrame() {
+  // Don't render when tab is hidden (unless exporting)
+  if (document.hidden && !isExporting) return;
+  
   renderCtx.fillStyle = '#000';
   renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
   
@@ -1585,16 +1635,33 @@ function seekTo(t) {
 }
 
 // --- EXPORT PIPELINE (Frame-by-Frame Renderer) ---
+let exportCancelled = false;
 async function handleExport() {
   if (!state.items.length) { showToast('Nothing to export', 'Add clips first', true); return; }
   if (state.isPlaying) togglePlay();
 
+  // Use full resolution for export (stored when video was loaded, or fallback)
+  const exportW = state.exportWidth || 1280;
+  const exportH = state.exportHeight || 720;
+  const fps = state.fps || 30;
+  const duration = state.totalDuration;
+  const totalFrames = Math.ceil(duration * fps);
+
+  // Safety check: estimate memory usage
+  const estimatedMB = Math.round((totalFrames * exportW * exportH * 4) / (1024 * 1024));
+  if (estimatedMB > 800) {
+    showToast('Export too heavy', `Estimated ${estimatedMB}MB RAM needed. Reduce duration or resolution in Settings.`, true);
+    return;
+  }
+
+  exportCancelled = false;
   setProcessing(true, 'Preparing Export…', 'Loading media files');
+  
+  // Allow Escape to cancel
+  const onEsc = (e) => { if (e.key === 'Escape') { exportCancelled = true; document.removeEventListener('keydown', onEsc); } };
+  document.addEventListener('keydown', onEsc);
 
   try {
-    const fps = state.fps || 30;
-    const duration = state.totalDuration;
-    const totalFrames = Math.ceil(duration * fps);
 
     // --- AUDIO SETUP ---
     // Create a fresh AudioContext for mixing
@@ -1646,6 +1713,7 @@ async function handleExport() {
       ? 'video/webm;codecs=vp8,opus'
       : 'video/webm';
 
+    const exportStartTime = performance.now();
     const chunks = [];
     const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 8000000 });
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -1661,6 +1729,11 @@ async function handleExport() {
       }
     }
 
+    // Temporarily resize canvas to export resolution
+    const prevW = renderCanvas.width, prevH = renderCanvas.height;
+    renderCanvas.width = exportW;
+    renderCanvas.height = exportH;
+    
     // --- FRAME-BY-FRAME RENDER LOOP ---
     const frameMs = 1000 / fps;
     
@@ -1761,14 +1834,30 @@ async function handleExport() {
         }
       }
 
-      // Update progress
+      // Check cancel
+      if (exportCancelled) {
+        setProcessing(false);
+        showToast('Export cancelled', 'Press Export to try again');
+        for (const { el } of audioEls) { el.pause(); el.src = ''; }
+        exportAudioCtx.close();
+        recorder.stop();
+        return;
+      }
+      
+      // Update progress with ETA
       const pct = Math.round((frame / totalFrames) * 100);
-      setProcessing(true, `Exporting… ${pct}%`, `Frame ${frame+1} of ${totalFrames}`);
+      const elapsed = (performance.now() - exportStartTime) / 1000;
+      const eta = frame > 0 ? Math.round((elapsed / frame) * (totalFrames - frame)) : '?';
+      setProcessing(true, `Exporting ${pct}%`, `Frame ${frame+1}/${totalFrames} • ~${eta}s remaining • Esc to cancel`);
 
-      // Wait exactly one frame duration before next frame
-      await new Promise(r => setTimeout(r, frameMs));
+      // Yield to browser — prevents tab freeze
+      await new Promise(r => setTimeout(r, frameMs > 8 ? frameMs : 8));
     }
 
+    // Restore preview canvas size
+    renderCanvas.width = prevW;
+    renderCanvas.height = prevH;
+    
     // Stop recorder and save
     recorder.stop();
     recorder.onstop = () => {
@@ -1852,11 +1941,27 @@ function getNextStartTime(trackId) {
   return Math.max(...trackItems.map(i => i.start + i.duration));
 }
 
+const MAX_FILE_SIZE_MB = 200;
+const MAX_DURATION_MIN = 10;
+const MAX_UPLOAD_COUNT = 5;
+
 async function handleVideoFiles(files) {
   const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
   if (!valid.length) return;
-  
-  setProcessing(true, 'Processing media\u2026', `Loading 1 of ${valid.length}`);
+
+  // --- STRICT FILE LIMITS (checked before any heavy processing) ---
+  if (valid.length > MAX_UPLOAD_COUNT) {
+    showToast(`Max ${MAX_UPLOAD_COUNT} files at once`, `You tried ${valid.length} files. Select fewer.`, true);
+    return;
+  }
+  const tooBig = valid.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+  if (tooBig.length) {
+    const mb = (tooBig[0].size / 1024 / 1024).toFixed(0);
+    showToast('File too large', `Max ${MAX_FILE_SIZE_MB}MB. "${tooBig[0].name}" is ${mb}MB.`, true);
+    return;
+  }
+
+  setProcessing(true, 'Processing media…', `Loading 1 of ${valid.length}`);
   const newItems = [];
   
   // Process ONE file at a time — avoids hanging browser tab
@@ -1881,9 +1986,21 @@ async function handleVideoFiles(files) {
           }, 8000);
           vid.onloadedmetadata = async () => {
             clearTimeout(fallback);
+            // Duration check
+            if (vid.duration > MAX_DURATION_MIN * 60) {
+              resolve(null);
+              showToast('Video too long', `Max ${MAX_DURATION_MIN} minutes. Trim your video first.`, true);
+              return;
+            }
             if (!state.items.some(it => it.type==='video') && !newItems.some(it => it.type==='video')) {
-              renderCanvas.width = vid.videoWidth || 1920;
-              renderCanvas.height = vid.videoHeight || 1080;
+              // Set preview canvas to scaled-down size (480p for preview, upscale with CSS)
+              const aspect = (vid.videoWidth || 1920) / (vid.videoHeight || 1080);
+              const previewH = isMobile() ? 135 : 270;
+              renderCanvas.width = Math.round(previewH * aspect);
+              renderCanvas.height = previewH;
+              // Store original resolution for export
+              state.exportWidth = vid.videoWidth || 1920;
+              state.exportHeight = vid.videoHeight || 1080;
             }
             const thumb = await generateThumbnail(vid);
             resolve({ id: uid(), type: 'video', name: file.name, file, src, thumbnail: thumb,
@@ -1982,6 +2099,12 @@ function updateActionButtons() {
   document.getElementById('btn-split').disabled = !hasMedia;
 }
 
+// Throttle timeline renders — debounced 50ms
+let _tlTimer = null;
+function renderTimelineDebounced() {
+  clearTimeout(_tlTimer);
+  _tlTimer = setTimeout(renderTimeline, 50);
+}
 function renderTimeline() {
   ['v1', 'v2', 't1', 'a1'].forEach(trackId => {
       const track = document.getElementById('track-' + trackId);
@@ -2273,7 +2396,30 @@ document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
 // --- SPLIT & DELETE ---
 document.getElementById('btn-delete')?.addEventListener('click', () => {
   if (!state.activeLayer) return;
-  state.items = state.items.filter(c => c.id !== state.activeLayer);
+  const id = state.activeLayer;
+  const item = state.items.find(i => i.id === id);
+  
+  // Cleanup memory for deleted item
+  if (item) {
+    // Revoke blob URL to free memory
+    if (item.src && item.src.startsWith('blob:')) URL.revokeObjectURL(item.src);
+    // Remove from active videos map
+    if (activeVideos.has(id)) {
+      const vid = activeVideos.get(id);
+      vid.pause(); vid.src = ''; vid.load();
+      activeVideos.delete(id);
+    }
+    // Remove from audio map
+    if (audioNodesMap.has(id)) {
+      const node = audioNodesMap.get(id);
+      node.audio.pause(); node.audio.src = '';
+      audioNodesMap.delete(id);
+    }
+    // Remove from image cache
+    imageCache.delete(id);
+  }
+  
+  state.items = state.items.filter(c => c.id !== id);
   state.activeLayer = null;
   pushHistory(); computeTotalDuration(); syncAudioGraph(); renderAll();
 });
@@ -2321,6 +2467,17 @@ document.getElementById('btn-skip-end')?.addEventListener('click', () => seekTo(
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && !e.target.matches('input,textarea,select')) { e.preventDefault(); togglePlay(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); document.getElementById('btn-undo').click(); }
+});
+
+// Pause playback when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.isPlaying) {
+    // Pause audio elements but keep isPlaying=true so RAF continues position tracking
+    for (const node of audioNodesMap.values()) { if (!node.audio.paused) node.audio.pause(); }
+  } else if (!document.hidden && state.isPlaying) {
+    // Resume audio
+    updateMediaPlayback();
+  }
 });
 
 // --- TEXT LAYER FEATURE ---
