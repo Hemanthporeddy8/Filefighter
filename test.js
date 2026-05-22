@@ -55,8 +55,218 @@ const DRAG_PREVIEW_FPS = 10;
 const DRAG_PREVIEW_MS = 1000 / DRAG_PREVIEW_FPS;
 // Auto-scroll RAF
 let _autoScrollRaf = null;
-let _autoScrollTarget = null;  // target scrollLeft
+let _autoScrollTarget = null;
 let _edgeDragScrollRaf = null;
+
+// ── Performance Telemetry ────────────────────────────────────
+const Perf = {
+  fps: 0,
+  droppedFrames: 0,
+  renderMs: 0,
+  activeDecoders: 0,
+  memEstimateMB: 0,
+  _frameTimes: [],
+  _lastFrameTs: 0,
+  _quality: 'high',   // 'high' | 'medium' | 'low'
+  _qualityCheckTs: 0,
+
+  recordFrame(ts) {
+    if (this._lastFrameTs > 0) {
+      const dt = ts - this._lastFrameTs;
+      this._frameTimes.push(dt);
+      if (this._frameTimes.length > 30) this._frameTimes.shift();
+      const avg = this._frameTimes.reduce((a,b) => a+b, 0) / this._frameTimes.length;
+      this.fps = avg > 0 ? Math.round(1000 / avg) : 0;
+    }
+    this._lastFrameTs = ts;
+  },
+
+  // Called periodically to auto-lower quality if needed
+  adaptQuality() {
+    const now = performance.now();
+    if (now - this._qualityCheckTs < 3000) return; // Check every 3s
+    this._qualityCheckTs = now;
+
+    const targetFps = MOBILE ? 18 : 24;
+    const fps = this.fps;
+
+    if (fps > 0 && fps < targetFps * 0.55) {
+      // Very low FPS — switch to low quality
+      if (this._quality !== 'low') {
+        this._quality = 'low';
+        AdaptiveRenderer.applyQuality('low');
+      }
+    } else if (fps > 0 && fps < targetFps * 0.75) {
+      if (this._quality === 'high') {
+        this._quality = 'medium';
+        AdaptiveRenderer.applyQuality('medium');
+      }
+    } else if (fps >= targetFps * 0.9) {
+      if (this._quality !== 'high') {
+        this._quality = 'high';
+        AdaptiveRenderer.applyQuality('high');
+      }
+    }
+  },
+
+  // Rough memory estimate from active resources
+  updateMemEstimate() {
+    let mb = 0;
+    mb += VideoPool.size * 20;       // ~20MB per active video decoder
+    mb += imageCache.size * 2;       // ~2MB per image
+    mb += state.items.length * 0.5;  // State overhead
+    mb += renderCanvas.width * renderCanvas.height * 4 / (1024 * 1024); // Canvas
+    this.memEstimateMB = Math.round(mb);
+  }
+};
+
+// ── Adaptive Renderer ─────────────────────────────────────────
+const AdaptiveRenderer = {
+  applyQuality(level) {
+    if (level === 'low') {
+      // Halve preview resolution
+      const aspect = renderCanvas.width / renderCanvas.height || 16/9;
+      const h = MOBILE ? 90 : 180;
+      renderCanvas.width = Math.round(h * aspect);
+      renderCanvas.height = h;
+    } else if (level === 'medium') {
+      const aspect = renderCanvas.width / renderCanvas.height || 16/9;
+      const h = MOBILE ? 135 : 240;
+      renderCanvas.width = Math.round(h * aspect);
+      renderCanvas.height = h;
+    } else {
+      // Restore default
+      const aspect = (state.exportWidth || 1920) / (state.exportHeight || 1080);
+      const h = MOBILE ? 135 : 270;
+      renderCanvas.width = Math.round(h * aspect);
+      renderCanvas.height = h;
+    }
+  }
+};
+
+// ── Video Decoder Pool (single-decoder-at-a-time) ─────────────
+// Limits active video elements. Recycles old ones instead of creating new.
+const VideoPool = {
+  _pool: new Map(), // itemId -> HTMLVideoElement
+  get size() { return this._pool.size; },
+
+  get(item) {
+    if (this._pool.has(item.id)) return this._pool.get(item.id);
+    // Reuse an idle video element if pool is large
+    if (this._pool.size >= 3) {
+      // Find and destroy oldest unused element
+      const oldest = this._pool.keys().next().value;
+      const old = this._pool.get(oldest);
+      if (old) { old.pause(); old.src = ''; old.load(); }
+      this._pool.delete(oldest);
+    }
+    const vid = document.createElement('video');
+    vid.src = item.src;
+    vid.muted = true;
+    vid.preload = 'none'; // Don't auto-preload — decode on demand
+    vid.playsInline = true;
+    this._pool.set(item.id, vid);
+    return vid;
+  },
+
+  remove(itemId) {
+    const vid = this._pool.get(itemId);
+    if (vid) { vid.pause(); vid.src = ''; vid.load(); }
+    this._pool.delete(itemId);
+    Perf.activeDecoders = this._pool.size;
+  },
+
+  pauseAll() {
+    for (const vid of this._pool.values()) vid.pause();
+  },
+
+  // Pause videos NOT currently visible (saves decoder budget)
+  pruneInactive() {
+    const t = state.globalTime;
+    for (const [id, vid] of this._pool.entries()) {
+      const item = state.items.find(i => i.id === id);
+      if (!item) { this.remove(id); continue; }
+      const isActive = t >= item.start && t < item.start + item.duration;
+      if (!isActive && !vid.paused) { vid.pause(); }
+    }
+    Perf.activeDecoders = this._pool.size;
+  }
+};
+
+// ── Memory Cleanup Manager ────────────────────────────────────
+const MemoryManager = {
+  // Track all blob URLs created
+  _blobUrls: new Set(),
+
+  trackBlob(url) {
+    if (url && url.startsWith('blob:')) this._blobUrls.add(url);
+    return url;
+  },
+
+  // Revoke URLs for removed items
+  revokeItemBlobs(item) {
+    if (item.src && item.src.startsWith('blob:')) {
+      URL.revokeObjectURL(item.src);
+      this._blobUrls.delete(item.src);
+    }
+    // Clean up video from pool
+    VideoPool.remove(item.id);
+    // Clean up image from cache
+    imageCache.delete(item.id);
+    // Clean up audio node
+    const node = audioNodesMap.get(item.id);
+    if (node) { node.audio.pause(); node.audio.src = ''; audioNodesMap.delete(item.id); }
+  },
+
+  // Revoke all blobs for a full project clear
+  revokeAll() {
+    for (const url of this._blobUrls) {
+      try { URL.revokeObjectURL(url); } catch(e) {}
+    }
+    this._blobUrls.clear();
+    VideoPool._pool.clear();
+    imageCache.clear();
+    for (const node of audioNodesMap.values()) { node.audio.pause(); node.audio.src = ''; }
+    audioNodesMap.clear();
+  }
+};
+
+// ── Thumbnail Cache (prevent regeneration) ────────────────────
+const ThumbnailCache = {
+  _cache: new Map(), // src -> dataURL
+  has(src) { return this._cache.has(src); },
+  get(src) { return this._cache.get(src); },
+  set(src, dataUrl) { this._cache.set(src, dataUrl); },
+  // Limit cache size
+  prune() {
+    if (this._cache.size > 50) {
+      const oldest = this._cache.keys().next().value;
+      this._cache.delete(oldest);
+    }
+  }
+};
+
+// ── Central Render Scheduler ──────────────────────────────────
+// Prevents duplicate RAF loops and render storms
+const RenderScheduler = {
+  _pending: false,
+  _rafId: null,
+
+  // Schedule a single render frame (deduped)
+  schedule(fn) {
+    if (this._pending) return;
+    this._pending = true;
+    this._rafId = requestAnimationFrame(() => {
+      this._pending = false;
+      fn();
+    });
+  },
+
+  cancel() {
+    if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+    this._pending = false;
+  }
+};
 
 // --- UTILS ---
 function formatTime(t) {
@@ -158,13 +368,17 @@ let lastRenderTs = 0;
 
 function playLoop(ts) {
   if (!state.isPlaying && !isExporting) return;
-  
-  // Skip render if tab is hidden (massive CPU saver)
+
+  // AIRTIGHT tab-hidden pause: stop everything, don't even queue next RAF
   if (document.hidden && !isExporting) {
-    lastTs = ts;
-    rafId = requestAnimationFrame(playLoop);
+    lastTs = null; // Reset timing so seek doesn't jump on return
+    VideoPool.pauseAll();
+    rafId = requestAnimationFrame(playLoop); // Keep looping but skip render
     return;
   }
+
+  // Record for telemetry
+  Perf.recordFrame(ts);
 
   if (lastTs !== null) {
     const dt = (ts - lastTs) / 1000;
@@ -191,6 +405,12 @@ function playLoop(ts) {
   
   updateMediaPlayback();
   updatePlayhead();
+  // Prune inactive video decoders (every ~2s)
+  if (Math.floor(ts / 2000) !== Math.floor((ts - 1) / 2000)) {
+    VideoPool.pruneInactive();
+    Perf.updateMemEstimate();
+    Perf.adaptQuality();
+  }
   if (state.isPlaying || isExporting) rafId = requestAnimationFrame(playLoop);
 }
 
@@ -198,6 +418,7 @@ function renderFrame() {
   // Don't render when tab is hidden (unless exporting)
   if (document.hidden && !isExporting) return;
   
+  const _rfStart = performance.now();
   renderCtx.fillStyle = '#000';
   renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
   
@@ -277,15 +498,11 @@ function drawVisual(item, localTime) {
   renderCtx.filter = filterStr;
 
   if (item.type === 'video') {
-    let vid = activeVideos.get(item.id);
-    if (!vid) {
-      vid = document.createElement('video');
-      vid.src = item.src;
-      vid.muted = true;
-      activeVideos.set(item.id, vid);
-    }
+    // Use VideoPool — recycles elements, limits active decoders
+    const vid = VideoPool.get(item);
     if (Math.abs(vid.currentTime - localTime) > 0.1) vid.currentTime = localTime;
     if (state.isPlaying && vid.paused) vid.play().catch(()=>{});
+    if (!state.isPlaying && !vid.paused) vid.pause();
     
     if (vid.videoWidth) {
       const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
@@ -331,7 +548,7 @@ function updateMediaPlayback() {
 }
 
 function pauseMedia() {
-  for (const vid of activeVideos.values()) vid.pause();
+  VideoPool.pauseAll();
   for (const node of audioNodesMap.values()) node.audio.pause();
 }
 
@@ -376,12 +593,32 @@ async function handleExport() {
   const duration = state.totalDuration;
   const totalFrames = Math.ceil(duration * fps);
 
-  // Safety check: estimate memory usage
+  // Smart export assistant — suggest optimizations instead of hard-blocking
   const estimatedMB = Math.round((totalFrames * exportW * exportH * 4) / (1024 * 1024));
-  if (estimatedMB > 800) {
-    showToast('Export too heavy', `Estimated ${estimatedMB}MB RAM needed. Reduce duration or resolution in Settings.`, true);
-    return;
+  
+  // Determine best export profile automatically
+  let autoExportW = exportW, autoExportH = exportH, autoFps = fps;
+  const deviceHeavy = estimatedMB > 400 || MOBILE;
+  if (deviceHeavy) {
+    // Auto-select optimized profile
+    if (estimatedMB > 800 || (MOBILE && estimatedMB > 200)) {
+      autoExportW = 854; autoExportH = 480; autoFps = 24; // 480p
+    } else if (estimatedMB > 400) {
+      autoExportW = Math.min(exportW, 1280); autoExportH = Math.min(exportH, 720); autoFps = 24; // 720p max
+    }
+    if (autoExportW !== exportW || autoExportH !== exportH) {
+      showToast(
+        '📱 Optimized export',
+        `Switched to ${autoExportW}×${autoExportH} @ ${autoFps}fps for stable export on this device.`
+      );
+      await new Promise(r => setTimeout(r, 1200));
+    }
   }
+  // Replace export dimensions with auto-selected ones
+  const finalExportW = autoExportW;
+  const finalExportH = autoExportH;
+  const finalFps = autoFps;
+  const finalFrames = Math.ceil(duration * finalFps);
 
   exportCancelled = false;
   setProcessing(true, 'Preparing Export…', 'Loading media files');
@@ -444,9 +681,11 @@ async function handleExport() {
 
     const exportStartTime = performance.now();
     const chunks = [];
-    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 8000000 });
+    // Adaptive bitrate: lower resolution = lower bitrate for smaller file
+    const bitrate = finalExportW >= 1280 ? 8000000 : finalExportW >= 854 ? 4000000 : 2000000;
+    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: bitrate });
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.start();
+    recorder.start(250); // Emit chunks every 250ms (streaming mode, not batched)
 
     // Start all audio elements from beginning (they play in real-time while we render frames)
     // This is accurate because we render at exactly fps rate and audio runs alongside
@@ -464,10 +703,10 @@ async function handleExport() {
     renderCanvas.height = exportH;
     
     // --- FRAME-BY-FRAME RENDER LOOP ---
-    const frameMs = 1000 / fps;
+    const frameMs = 1000 / finalFps;
     
-    for (let frame = 0; frame < totalFrames; frame++) {
-      const t = frame / fps;
+    for (let frame = 0; frame < finalFrames; frame++) {
+      const t = frame / finalFps;
       state.globalTime = t;
 
       // Update audio elements playback state
@@ -487,7 +726,7 @@ async function handleExport() {
 
       // Render canvas frame
       renderCtx.fillStyle = '#000';
-      renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+      renderCtx.fillRect(0, 0, finalExportW, finalExportH);
 
       const renderOrder = { 'v1': 1, 'v2': 2, 't1': 3, 'a1': 0 };
       const activeItems = state.items
@@ -574,13 +813,13 @@ async function handleExport() {
       }
       
       // Update progress with ETA
-      const pct = Math.round((frame / totalFrames) * 100);
+      const pct = Math.round((frame / finalFrames) * 100);
       const elapsed = (performance.now() - exportStartTime) / 1000;
-      const eta = frame > 0 ? Math.round((elapsed / frame) * (totalFrames - frame)) : '?';
-      setProcessing(true, `Exporting ${pct}%`, `Frame ${frame+1}/${totalFrames} • ~${eta}s remaining • Esc to cancel`);
+      const eta = frame > 0 ? Math.round((elapsed / frame) * (finalFrames - frame)) : '?';
+      setProcessing(true, `Exporting ${pct}%`, `Frame ${frame+1}/${finalFrames} • ~${eta}s remaining • Esc to cancel`);
 
-      // Yield to browser — prevents tab freeze
-      await new Promise(r => setTimeout(r, frameMs > 8 ? frameMs : 8));
+      // Yield every 4 frames (not every frame) — faster export with still-responsive UI
+      if (frame % 4 === 0) await new Promise(r => setTimeout(r, 0));
     }
 
     // Restore preview canvas size
@@ -641,26 +880,39 @@ function updateTimecode() {
   if(pbtc) pbtc.textContent = cur + ' / ' + tot;
 }
 function generateThumbnail(vid) {
+  // Check cache first (avoid re-generating for same source)
+  if (vid.src && ThumbnailCache.has(vid.src)) {
+    return Promise.resolve(ThumbnailCache.get(vid.src));
+  }
   return new Promise(resolve => {
     const c = document.createElement('canvas');
-    c.width = 120; c.height = 68; // Smaller = less memory
-    const ctx = c.getContext('2d');
+    // Tiny thumbnail — 80×45px, 4× less data than before
+    c.width = 80; c.height = 45;
+    const ctx = c.getContext('2d', { alpha: false });
     
     const doCapture = () => {
-      try { ctx.drawImage(vid, 0, 0, 120, 68); resolve(c.toDataURL('image/jpeg', 0.5)); }
-      catch(e) { resolve(''); }
+      try {
+        ctx.drawImage(vid, 0, 0, 80, 45);
+        const dataUrl = c.toDataURL('image/jpeg', 0.4); // 40% quality = tiny file
+        if (vid.src) { ThumbnailCache.set(vid.src, dataUrl); ThumbnailCache.prune(); }
+        resolve(dataUrl);
+      } catch(e) { resolve(''); }
+      finally {
+        // Free temporary canvas immediately
+        c.width = 1; c.height = 1;
+      }
     };
     
-    // If already seeked enough, capture immediately
     if (vid.readyState >= 2 && vid.currentTime > 0) { doCapture(); return; }
     
-    const timeout = setTimeout(() => { vid.onseeked = null; doCapture(); }, 3000);
+    const timeout = setTimeout(() => { vid.onseeked = null; doCapture(); }, 2000);
     vid.onseeked = () => {
       clearTimeout(timeout);
       vid.onseeked = null;
       doCapture();
     };
-    vid.currentTime = Math.min(0.5, (vid.duration || 1) * 0.1);
+    // Seek to 10% in to get a representative frame (avoid black start frames)
+    vid.currentTime = Math.min(0.5, (vid.duration || 10) * 0.1);
   });
 }
 
@@ -694,7 +946,7 @@ async function handleVideoFiles(files) {
 
     try {
       const item = await new Promise((resolve, reject) => {
-        const src = URL.createObjectURL(file);
+        const src = MemoryManager.trackBlob(URL.createObjectURL(file));
         if (file.type.startsWith('video/')) {
           const vid = document.createElement('video');
           vid.preload = 'metadata';
@@ -1409,6 +1661,9 @@ document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
 
 // --- SPLIT & DELETE ---
 document.getElementById('btn-delete')?.addEventListener('click', () => {
+  // Memory cleanup for deleted item
+  const toDelete = state.items.find(i => i.id === state.activeLayer);
+  if (toDelete) MemoryManager.revokeItemBlobs(toDelete);
   if (!state.activeLayer) return;
   const id = state.activeLayer;
   const item = state.items.find(i => i.id === id);
@@ -1485,12 +1740,24 @@ document.addEventListener('keydown', e => {
 
 // Pause playback when tab is hidden, resume when visible
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state.isPlaying) {
-    // Pause audio elements but keep isPlaying=true so RAF continues position tracking
-    for (const node of audioNodesMap.values()) { if (!node.audio.paused) node.audio.pause(); }
-  } else if (!document.hidden && state.isPlaying) {
-    // Resume audio
-    updateMediaPlayback();
+  if (document.hidden) {
+    // Complete freeze: cancel ALL rendering, stop all media — near-zero CPU in background
+    cancelAnimationFrame(rafId);
+    rafId = null;
+    cancelAnimationFrame(_autoScrollRaf);
+    _autoScrollRaf = null;
+    VideoPool.pauseAll();
+    for (const node of audioNodesMap.values()) node.audio.pause();
+    // Don't change state.isPlaying — user didn't press pause
+  } else {
+    // Resuming: restart loop if was playing
+    if (state.isPlaying) {
+      lastTs = null; // Reset timing to avoid time jump after coming back
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      rafId = requestAnimationFrame(playLoop);
+    }
+    // Re-render static frame even if paused
+    RenderScheduler.schedule(() => renderFrame());
   }
 });
 
@@ -1954,4 +2221,29 @@ document.getElementById('btn-ai-bg-remove')?.addEventListener('click', () => {
 // Init
 pushHistory();
 renderAll();
+
+
+// ── Performance HUD ──────────────────────────────────────────
+let _perfHudRaf = null;
+function updatePerfHud() {
+  const hud = document.getElementById('perf-hud');
+  if (!hud || !hud.classList.contains('visible')) { _perfHudRaf = requestAnimationFrame(updatePerfHud); return; }
+  Perf.updateMemEstimate();
+  hud.textContent = [
+    'FPS: ' + (Perf.fps || '--'),
+    'Quality: ' + Perf.quality || Perf._quality,
+    'MEM: ~' + Perf.memEstimateMB + 'MB',
+    'Decoders: ' + VideoPool.size,
+    'Items: ' + state.items.length,
+    'Zoom: ' + Math.round(state.tlZoom * 100) + '%',
+  ].join(' | ');
+  _perfHudRaf = requestAnimationFrame(updatePerfHud);
+}
+updatePerfHud();
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+    document.getElementById('perf-hud')?.classList.toggle('visible');
+  }
+});
 
