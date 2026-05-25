@@ -908,6 +908,48 @@ img,video,canvas{max-width:100%;height:auto}
   opacity: 0.95;
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
 }
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES
+   ════════════════════════════════════════════════════════ */
+html.light, :root[data-theme='light'] {
+  --bg0:#f3f4f6;
+  --bg1:#ffffff;
+  --bg2:#f9fafb;
+  --bg3:#e5e7eb;
+  --bg4:#d1d5db;
+  --border:rgba(0,0,0,.08);
+  --border2:rgba(0,0,0,.14);
+  --text:#111827;
+  --text2:rgba(17,24,39,.75);
+  --text3:rgba(17,24,39,.45);
+  --accent:#4f46e5;
+  --accent-hover:#4338ca;
+}
+
+html.light .tb-btn:hover {
+  background: rgba(0,0,0,.05);
+}
+html.light .clip-item:hover, html.light .audio-item:hover {
+  background: rgba(0,0,0,.04);
+}
+html.light .track-content {
+  background: #fdfdfd;
+}
+html.light .track-label {
+  background: #f3f4f6;
+  border-right: 1px solid rgba(0,0,0,.08);
+}
+html.light .ruler-row {
+  background: #e5e7eb;
+}
+html.light .playhead {
+  background: #ef4444; /* red playhead in light mode for better contrast */
+}
+html.light .playhead-head {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239,68,68,.3);
+}
 </style>
 <link rel="manifest" href="/manifest.json"/>
 </head>
@@ -940,6 +982,15 @@ img,video,canvas{max-width:100%;height:auto}
       <button class="tb-btn danger" id="btn-delete" title="Delete selected" disabled>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4,4 12,4"/><path d="M6 4V3h4v1"/><rect x="4" y="4" width="8" height="10" rx="1"/></svg>
         Delete
+      </button>
+      <div class="topbar-sep"></div>
+      <button class="tb-btn" id="btn-theme-toggle" title="Toggle theme (Light/Dark/System)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        <span>Theme: System</span>
       </button>
     </div>
 

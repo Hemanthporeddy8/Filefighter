@@ -66,8 +66,16 @@ class ExportEngine {
       return;
     }
 
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+      ? 'video/webm;codecs=vp8,opus'
+      : MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
+      ? 'video/mp4;codecs=h264'
+      : 'video/webm';
+
     const recorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp8',
+      mimeType,
       videoBitsPerSecond: settings.bitrate
     });
 
@@ -95,7 +103,7 @@ class ExportEngine {
         if (currentFrame >= totalFrames) {
           recorder.stop();
           setTimeout(() => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
+            const blob = new Blob(chunks, { type: mimeType });
             onComplete(blob);
             this._cleanup();
           }, 100);

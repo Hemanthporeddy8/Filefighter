@@ -49,6 +49,16 @@ function pps() { return BASE_PPS * state.tlZoom; }
 function timeToPx(t) { return t * pps(); }
 function pxToTime(px) { return px / pps(); }
 
+function getTlScroll() {
+  const el = document.getElementById('tracks-scroll');
+  return el ? el.scrollLeft : 0;
+}
+
+function getTlViewportW() {
+  const el = document.getElementById('tracks-scroll');
+  return el ? el.clientWidth : 800;
+}
+
 // Uid generator helper
 function uid() { return 'clip-' + Math.random().toString(36).substring(2, 11); }
 
@@ -60,8 +70,63 @@ function formatTime(s) {
   return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 }
 
+// ── THEME MANAGEMENT ──────────────────────────────────────────
+let currentTheme = localStorage.getItem('theme') || 'system';
+
+export function applyTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('theme', theme);
+  
+  const root = document.documentElement;
+  root.classList.remove('light', 'dark');
+  
+  if (theme === 'dark') {
+    root.classList.add('dark');
+  } else if (theme === 'light') {
+    root.classList.add('light');
+  } else {
+    // System Theme Match
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.add('light');
+    }
+  }
+  
+  // Update UI topbar button state
+  const themeBtn = document.getElementById('btn-theme-toggle');
+  if (themeBtn) {
+    const span = themeBtn.querySelector('span');
+    if (span) {
+      span.textContent = `Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`;
+    }
+    
+    // Cycle custom icons based on active mode
+    const svg = themeBtn.querySelector('svg');
+    if (svg) {
+      if (theme === 'light') {
+        svg.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+      } else if (theme === 'dark') {
+        svg.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      } else {
+        svg.innerHTML = '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>';
+      }
+    }
+  }
+}
+
+// Watch for system color scheme updates in system mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (currentTheme === 'system') {
+    applyTheme('system');
+  }
+});
+
 // ── STARTUP INITIALIZATION ────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  // Apply active layout theme
+  applyTheme(currentTheme);
   const previewCanvas = document.getElementById('preview-img-canvas');
   
   // 1. Phase 1: Device Profiler
@@ -246,6 +311,9 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     let img = memoryManager.imageCache.get(item.id);
     if (!img) {
       img = new Image();
+      img.onload = () => {
+        renderScheduler.triggerSingleUpdate();
+      };
       img.src = item.src;
       memoryManager.imageCache.set(item.id, img);
     }
@@ -411,6 +479,11 @@ function renderTimeline() {
 }
 
 function renderAll() {
+  const canvas = document.getElementById('preview-img-canvas');
+  if (canvas) canvas.classList.add('visible');
+  const video = document.getElementById('preview-video');
+  if (video) video.style.display = 'none';
+  
   renderTimeline();
   renderScheduler.triggerSingleUpdate();
   renderInspector();
@@ -794,6 +867,16 @@ function setupEventListeners() {
     }
   });
 
+  document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
+    let next;
+    if (currentTheme === 'system') next = 'light';
+    else if (currentTheme === 'light') next = 'dark';
+    else next = 'system';
+    
+    applyTheme(next);
+    showToast('Theme Changed ✓', `Applied ${next} theme`);
+  });
+
   // Playback & Export clicks
   document.getElementById('btn-play').addEventListener('click', togglePlay);
   document.getElementById('btn-skip-start').addEventListener('click', () => seekTo(0));
@@ -816,7 +899,8 @@ function setupEventListeners() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `editroy-export-${Date.now()}.webm`;
+        const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        a.download = `editroy-export-${Date.now()}.${ext}`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setProcessing(false);
         showToast('Export complete ✓', 'File downloaded');

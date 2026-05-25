@@ -35,8 +35,20 @@ class VideoDecoderPool {
     const vid = document.createElement('video');
     vid.src = item.proxySrc || item.src; // Automatically leverage proxy if generated!
     vid.muted = true;
-    vid.preload = 'none'; // Absolutely prevent immediate decoding on import
+    vid.preload = 'auto'; // Preload active clips for immediate rendering
     vid.playsInline = true;
+
+    // Redraw canvas as soon as metadata or initial frames arrive
+    vid.onloadedmetadata = () => {
+      import('/video-editor/engine/render-scheduler.js').then(({ renderScheduler }) => {
+        renderScheduler.triggerSingleUpdate();
+      });
+    };
+    vid.oncanplay = () => {
+      import('/video-editor/engine/render-scheduler.js').then(({ renderScheduler }) => {
+        renderScheduler.triggerSingleUpdate();
+      });
+    };
     
     // Disable heavy hardware processing states if low-end
     if (adaptiveQuality.activeConfig.aggressiveCleanup) {
