@@ -6,12 +6,18 @@ const nextConfig = {
     return [
       {
         source: '/video-editor',
-        destination: '/video-editor.html',
+        destination: '/video-editor/index.html',
       },
     ];
   },
   experimental: {
     serverComponentsExternalPackages: ['onnxruntime-node', '@imgly/background-removal'],
+    // Tree-shake large icon/UI libraries — only bundle icons actually used
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'date-fns',
+    ],
   },
   images: {
     remotePatterns: [

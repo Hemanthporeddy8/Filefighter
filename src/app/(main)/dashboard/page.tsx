@@ -1,9 +1,10 @@
 // src/app/(main)/dashboard/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import type { DocumentQueueItem, DocumentSource } from "@/types";
 import { Trash2, UploadCloud, CheckCircle, AlertTriangle, Loader2, Clock, FilePlus, FilePlus2, Mail, QrCode, Printer, Pencil, ImageIcon, Download, Eye, Settings, Bell, Send, X, RefreshCw, Share2, Copy, MessageSquare, Merge } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { QrCodeDisplay } from "@/components/app/qr-code-display";
 import {
   Dialog,
   DialogContent,
@@ -52,13 +52,63 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/auth-context';
 import { useDocumentQueue } from '@/contexts/document-context';
 import { Checkbox } from '@/components/ui/checkbox';
-import jsPDF from 'jspdf';
-import { QRCodeCanvas } from 'qrcode.react';
-import { formatDistanceToNow } from 'date-fns';
-import { BatchUpload } from '@/components/app/batch-upload';
-import { useWebRTC } from '@/hooks/use-webrtc';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { loadJsPDF, idlePreload } from '@/lib/lazy-loader';
+import { LazyTableRow } from '@/components/app/lazy-table-row';
 
+// ── LAZY-LOADED heavy components ─────────────────────────────
+// These are NOT included in the initial dashboard bundle.
+// They only load when the user interacts with them.
+
+/** QR code display — uses qrcode.react (heavy canvas lib) */
+const QrCodeDisplay = dynamic(
+  () => import('@/components/app/qr-code-display'),
+  {
+    loading: () => <Skeleton className="h-[120px] w-[120px] rounded-md" />,
+    ssr: false,
+  }
+);
+
+/** Batch upload dialog — loads when dialog is opened */
+const BatchUpload = dynamic(
+  () => import('@/components/app/batch-upload').then(m => ({ default: m.BatchUpload })),
+  {
+    loading: () => <div className="h-32 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>,
+    ssr: false,
+  }
+);
+
+/** Same Share panel — loads useWebRTC ONLY when dialog opens */
+const SameSharePanel = dynamic(
+  () => import('@/components/app/same-share-panel').then(m => ({ default: m.SameSharePanel })),
+  {
+    loading: () => (
+      <div className="h-[300px] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Initializing secure session...</p>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+/** Lazy date formatter — date-fns is large, only format when needed */
+let _fmtDistanceToNow: ((date: Date | number, opts?: {addSuffix?: boolean}) => string) | null = null;
+function lazyFormatDistanceToNow(date: Date | number, opts?: { addSuffix?: boolean }): string {
+  if (_fmtDistanceToNow) return _fmtDistanceToNow(date, opts);
+  // Fallback: show absolute date until module loads
+  const d = new Date(date);
+  return d.toLocaleDateString();
+}
+// Start loading date-fns in background after mount (not blocking)
+if (typeof window !== 'undefined') {
+  idlePreload(() =>
+    import('date-fns').then(({ formatDistanceToNow }) => {
+      _fmtDistanceToNow = formatDistanceToNow;
+    })
+  );
+}
 
 const StatusBadge = ({ status }: { status: DocumentQueueItem['status'] }) => {
   switch (status) {
@@ -150,67 +200,35 @@ export default function DashboardPage() {
   
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   
-  // --- WebRTC Integration START ---
-  const [isSameShareDialogOpen, setIsSameShareDialogOpen] = useState(false);
-  const [webRTCSessionId, setWebRTCSessionId] = useState<string | null>(null);
-
-  // Initialize WebRTC hook as host when the dialog opens
-  const { isConnected, receivedFiles, clearReceivedFiles, statusMessage } = useWebRTC(true, webRTCSessionId);
-
-  useEffect(() => {
-    if (isSameShareDialogOpen && !webRTCSessionId) {
-      // Generate a unique session ID for this WebRTC session
-      setWebRTCSessionId(`webrtc-session-${Date.now()}`);
-    } else if (!isSameShareDialogOpen) {
-      // Reset session when dialog closes
-      setWebRTCSessionId(null);
-    }
-  }, [isSameShareDialogOpen, webRTCSessionId]);
-  
-  const getWebRTCShareUrl = () => {
-    if (typeof window !== 'undefined' && webRTCSessionId) {
-        return `${window.location.origin}/share?sessionId=${webRTCSessionId}`;
-    }
-    return '';
-  };
-  
-  useEffect(() => {
-    if (receivedFiles.length > 0) {
-      const docsToCreate: DocumentQueueItem[] = [];
-      const filePromises = receivedFiles.map(file => {
-          return new Promise<DocumentQueueItem>(resolve => {
-            const fileBlob = new Blob([file.data], { type: file.type });
-            const dataUri = URL.createObjectURL(fileBlob);
-            
-            const fileItem = {
-              id: `doc-${file.name}-${Date.now()}-${Math.random()}`,
-              name: file.name,
-              type: file.type.startsWith('image/') ? 'Image' : file.type.startsWith('video/') ? 'Video' : 'PDF',
-              status: 'Queued',
-              uploadedAt: new Date(),
-              size: formatFileSize(file.size),
-              source: 'QR Upload',
-              senderContact: 'Same Share User',
-              dataUri: dataUri,
-            };
-            docsToCreate.push(fileItem as DocumentQueueItem);
-            resolve(fileItem as DocumentQueueItem);
-          });
-      });
-
-      Promise.all(filePromises).then((newDocs) => {
-        addDocuments(newDocs);
-        toast({
-          title: "File(s) Received!",
-          description: `${newDocs.length} file(s) arrived via Same Share.`,
-        });
-        clearReceivedFiles();
-      })
-    }
-  }, [receivedFiles, addDocuments, toast, clearReceivedFiles]);
-  // --- WebRTC Integration END ---
-
   const uniqueId = useMemo(() => `EDITROY-USER-${user?.id || '12345'}`, [user]);
+
+  // ── WebRTC state (dialog open/close only) ─────────────────────
+  // The actual WebRTC hook lives inside <SameSharePanel> which
+  // mounts ONLY when the dialog is opened, so the hook never runs at page load.
+  const [isSameShareDialogOpen, setIsSameShareDialogOpen] = useState(false);
+
+  // Receive files callback — passed down to SameSharePanel
+  const handleReceivedFiles = useCallback((files: Array<{name: string; data: ArrayBuffer; type: string; size: number}>) => {
+    const docsToCreate: DocumentQueueItem[] = files.map(file => {
+      const fileBlob = new Blob([file.data], { type: file.type });
+      const dataUri = URL.createObjectURL(fileBlob);
+      return {
+        id: `doc-${file.name}-${Date.now()}-${Math.random()}`,
+        name: file.name,
+        type: file.type.startsWith('image/') ? 'Image' : file.type.startsWith('video/') ? 'Video' : 'PDF',
+        status: 'Queued',
+        uploadedAt: new Date(),
+        size: formatFileSize(file.size),
+        source: 'QR Upload',
+        senderContact: 'Same Share User',
+        dataUri,
+      } as DocumentQueueItem;
+    });
+    addDocuments(docsToCreate);
+    toast({ title: `${docsToCreate.length} file(s) received via Same Share!` });
+  }, [addDocuments, toast]);
+  // ── END WebRTC state ─────────────────────────────────────────
+
 
   const selectedBatchFiles = useMemo(() => {
     if (!batchToView?.files) return [];
@@ -356,8 +374,10 @@ export default function DashboardPage() {
     return '';
   };
 
-  const downloadQrSheet = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
+  // LAZY: jsPDF is loaded on-demand only when user clicks download
+  const downloadQrSheet = async () => {
+    const jsPDF = await loadJsPDF();
+    const doc = new (jsPDF as any)('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
@@ -555,7 +575,7 @@ export default function DashboardPage() {
                             notifications.map(noti => (
                                 <DropdownMenuItem key={noti.id} className="flex flex-col items-start gap-1">
                                     <p className="text-sm whitespace-normal">{noti.message}</p>
-                                    <p className="text-xs text-muted-foreground">{formatDistanceToNow(noti.time, { addSuffix: true })}</p>
+                                    <p className="text-xs text-muted-foreground">{lazyFormatDistanceToNow(noti.time, { addSuffix: true })}</p>
                                 </DropdownMenuItem>
                             ))
                         ) : ( <DropdownMenuItem disabled>No new notifications</DropdownMenuItem> )}
@@ -635,7 +655,7 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {documents.map((doc) => (
-                  <TableRow key={doc.id} className="hover:bg-muted/50 transition-colors" data-state={selectedDocs.has(doc.id) ? 'selected' : ''}>
+                  <LazyTableRow key={doc.id} className="hover:bg-muted/50 transition-colors" data-state={selectedDocs.has(doc.id) ? 'selected' : ''} colSpan={isSelectionModeActive ? 9 : 8}>
                     {isSelectionModeActive && (
                       <TableCell>
                         <Checkbox
@@ -701,7 +721,7 @@ export default function DashboardPage() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
-                  </TableRow>
+                  </LazyTableRow>
                 ))}
               </TableBody>
             </Table>
@@ -779,36 +799,23 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Same Share dialog — SameSharePanel mounts ONLY when dialog is open */}
+      {/* This means useWebRTC hook is NEVER initialized until user clicks */}
       <Dialog open={isSameShareDialogOpen} onOpenChange={setIsSameShareDialogOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Same Share (Direct P2P Transfer)</DialogTitle>
-                <DialogDescription>
-                    Scan the QR code with another device on any network to send files directly to this dashboard. Powered by WebRTC for a zero-cost, private transfer.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4 flex flex-col items-center">
-                {webRTCSessionId ? (
-                    <>
-                        <QrCodeDisplay value={getWebRTCShareUrl()} size={256} id="same-share-webrtc-qr" />
-                        <div className="flex items-center gap-2 text-sm">
-                            <span className={cn("h-2.5 w-2.5 rounded-full", isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse')}></span>
-                            <span>{isConnected ? 'A peer is connected.' : 'Waiting for a peer to connect...'}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center">
-                            This QR code is unique for this session. Close this dialog to invalidate it.
-                        </p>
-                    </>
-                ) : (
-                    <div className="h-[256px] flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin"/>
-                        <p className="ml-2">Initializing secure session...</p>
-                    </div>
-                )}
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsSameShareDialogOpen(false)}>Close</Button>
-            </DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Same Share (Direct P2P Transfer)</DialogTitle>
+            <DialogDescription>
+              Scan the QR code with another device on any network to send files directly to this dashboard. Powered by WebRTC for a zero-cost, private transfer.
+            </DialogDescription>
+          </DialogHeader>
+          {/* SameSharePanel only mounts when dialog is open — lazy loads useWebRTC */}
+          {isSameShareDialogOpen && (
+            <SameSharePanel onFilesReceived={handleReceivedFiles} />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSameShareDialogOpen(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

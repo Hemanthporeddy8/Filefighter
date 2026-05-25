@@ -3,11 +3,28 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/app/file-upload';
-import { BackgroundRemover } from '@/components/app/background-remover';
-import { Download, UploadCloud } from 'lucide-react';
+import { Download, UploadCloud, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// LAZY: AI background removal model is very heavy (~50MB+ WASM + ONNX weights).
+// Only load when user has uploaded an image and actually needs it.
+const BackgroundRemover = dynamic(
+  () => import('@/components/app/background-remover').then(m => ({ default: m.BackgroundRemover })),
+  {
+    loading: () => (
+      <div className="flex flex-col items-center justify-center py-12 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <p className="text-sm text-gray-500">Loading AI model...</p>
+        <p className="text-xs text-gray-400">This may take a moment on first use</p>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
 
 export default function BackgroundRemoverPage() {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
