@@ -124,14 +124,27 @@ function pushHistory() {
 }
 
 function updateActionButtons() {
+  const hasMedia = state.items.length > 0;
+  
+  // Toggle preview empty state overlay
+  const previewEmpty = document.getElementById('preview-empty');
+  if (previewEmpty) previewEmpty.style.display = hasMedia ? 'none' : 'flex';
+  
+  // Undo, Split, Delete states
   document.getElementById('btn-undo').disabled = (state.historyIndex <= 0);
   const selected = !!state.activeLayer;
   document.getElementById('btn-split').disabled = !selected;
   document.getElementById('btn-delete').disabled = !selected;
-  document.getElementById('btn-export-top').disabled = (state.items.length === 0);
   
+  // Export buttons
+  document.getElementById('btn-export-top').disabled = !hasMedia;
   const mainExp = document.getElementById('btn-export-main');
-  if (mainExp) mainExp.disabled = (state.items.length === 0);
+  if (mainExp) mainExp.disabled = !hasMedia;
+  
+  // Playback & Frame step buttons
+  document.getElementById('btn-play').disabled = !hasMedia;
+  const frameBack = document.getElementById('btn-frame-back'); if (frameBack) frameBack.disabled = !hasMedia;
+  const frameFwd = document.getElementById('btn-frame-fwd'); if (frameFwd) frameFwd.disabled = !hasMedia;
 }
 
 // ── TELEMETRY SYSTEM DRAW CHECKS ──────────────────────────────
@@ -785,6 +798,8 @@ function setupEventListeners() {
   document.getElementById('btn-play').addEventListener('click', togglePlay);
   document.getElementById('btn-skip-start').addEventListener('click', () => seekTo(0));
   document.getElementById('btn-skip-end').addEventListener('click', () => seekTo(state.totalDuration - 0.01));
+  document.getElementById('btn-frame-back')?.addEventListener('click', () => seekTo(state.globalTime - 1 / state.fps));
+  document.getElementById('btn-frame-fwd')?.addEventListener('click', () => seekTo(state.globalTime + 1 / state.fps));
 
   // Export handlers (yielding watchdogs, Phase 10)
   const runExport = () => {
