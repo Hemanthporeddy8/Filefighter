@@ -63,7 +63,7 @@ import { LazyTableRow } from '@/components/app/lazy-table-row';
 
 /** QR code display — uses qrcode.react (heavy canvas lib) */
 const QrCodeDisplay = dynamic(
-  () => import('@/components/app/qr-code-display'),
+  () => import('@/components/app/qr-code-display').then(m => ({ default: m.QrCodeDisplay })),
   {
     loading: () => <Skeleton className="h-[120px] w-[120px] rounded-md" />,
     ssr: false,
