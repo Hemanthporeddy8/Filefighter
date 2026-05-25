@@ -126,7 +126,8 @@ class TimelineVirtualizer {
 
         // Apply HTML template once or if it has modified parameters
         const isAudio = trackId === 'a1';
-        const expectedClass = (isAudio ? 'tl-audio-block' : 'tl-clip') + (isSelected ? ' selected' : '');
+        const isOffline = !item.src;
+        const expectedClass = (isAudio ? 'tl-audio-block' : 'tl-clip') + (isSelected ? ' selected' : '') + (isOffline ? ' offline' : '');
         
         if (el.className !== expectedClass) {
           el.className = expectedClass;

@@ -950,6 +950,24 @@ html.light .playhead-head {
   background: #ef4444;
   box-shadow: 0 0 0 2px rgba(239,68,68,.3);
 }
+
+/* Offline clip states */
+.tl-clip.offline, .tl-audio-block.offline {
+  background: repeating-linear-gradient(45deg, #2c1a1a, #2c1a1a 10px, #1a0a0a 10px, #1a0a0a 20px) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+.tl-clip.offline::after {
+  content: '⚠️ Re-link file';
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  font-size: 8px;
+  color: #ef4444;
+  font-weight: 600;
+  background: rgba(0,0,0,0.6);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
 </style>
 <link rel="manifest" href="/manifest.json"/>
 </head>
@@ -990,7 +1008,21 @@ html.light .playhead-head {
           <line x1="8" y1="21" x2="16" y2="21"/>
           <line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
-        <span>Theme: System</span>
+      </button>
+      <div class="topbar-sep"></div>
+      <button class="tb-btn" id="btn-history" title="History Backups (Limit 3)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        History (<span id="backup-count">0</span>/3)
+      </button>
+      <button class="tb-btn danger" id="btn-reset-project" title="Reset Project">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <polyline points="3 3 3 8 8 8"/>
+        </svg>
+        Reset
       </button>
     </div>
 
@@ -1488,6 +1520,33 @@ html.light .playhead-head {
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-title" id="toast-title"></div><div class="toast-desc" id="toast-desc"></div></div>
 
+<!-- Backups Modal -->
+<div class="processing-overlay" id="backups-modal-overlay" style="display: none; z-index: 1000;">
+  <div class="processing-card" style="width: 420px; max-height: 80vh; overflow-y: auto; text-align: left; align-items: stretch; padding: 20px 24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <h3 style="font-size: 14px; font-weight:600; color: #fff;">Project Backups (Limit 3)</h3>
+      <button id="btn-close-backups" style="background:none; border:none; color: var(--text3); cursor:pointer; font-size:16px;">&times;</button>
+    </div>
+    
+    <div style="font-size: 11px; color: var(--text3); margin-bottom: 14px; line-height: 1.4;">
+      Backups are stored inside your browser. Every backup contains a full <strong>ZIP archive</strong> including all uploaded video clips, images, and track configurations.
+    </div>
+
+    <div id="backups-list" style="display:flex; flex-direction:column; gap: 8px; margin-bottom: 16px;">
+      <!-- Populated dynamically -->
+      <div style="text-align:center; padding: 12px; color: var(--text3); font-style:italic; font-size:11px;">No backups stored yet. Click Reset to start anew and backup your current work!</div>
+    </div>
+
+    <div style="display:flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px;">
+      <button class="add-layer-btn" id="btn-import-zip" style="flex:1;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Backup ZIP
+      </button>
+      <input type="file" id="input-zip-uploader" accept=".zip" style="display:none;" />
+    </div>
+  </div>
+</div>
+
 <!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-item" id="ctx-select">
@@ -1500,6 +1559,9 @@ html.light .playhead-head {
 </div>
 
 <div id="perf-hud">FPS: 60</div>
+
+<!-- Load JSZip first -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XGZ5dGP5Y7gMWTj6j5Z/N9k5b45g5zXJ8l2V9645w43wE4iL/e2+C130+MhWJd3+yqZz902xU64/G+845fVqW9A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script type="module" src="/video-editor/index.js"></script>
 </body>

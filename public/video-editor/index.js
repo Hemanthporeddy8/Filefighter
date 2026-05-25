@@ -510,6 +510,36 @@ async function handleVideoFiles(files) {
   // Sequentially process files to avoid hanging the browser tab (Phase 3)
   for (let i = 0; i < valid.length; i++) {
     const file = valid[i];
+    
+    // Check if we have an offline clip with the same name that we can re-link
+    const matchingOfflineItem = state.items.find(it => it.name === file.name && !it.src);
+    if (matchingOfflineItem) {
+      setProcessing(true, 'Re-linking media…', `Restoring "${file.name}"`);
+      const src = memoryManager.trackBlob(URL.createObjectURL(file));
+      matchingOfflineItem.file = file;
+      matchingOfflineItem.src = src;
+      matchingOfflineItem.thumbnail = file.type.startsWith('video/') ? '' : src;
+      
+      if (file.type.startsWith('video/')) {
+        const vid = document.createElement('video');
+        vid.preload = 'metadata';
+        vid.src = src;
+        await new Promise(r => { vid.onloadedmetadata = r; vid.onerror = r; });
+        if (vid.videoWidth) {
+          const thumb = await generateThumbnail(vid);
+          matchingOfflineItem.thumbnail = thumb;
+        }
+      }
+      
+      // Fire proxy generator in background if needed
+      if (file.type.startsWith('video/') && videoProxy.shouldProxy(file, 1280, 720)) {
+        videoProxy.generateProxy(matchingOfflineItem, () => {});
+      }
+      
+      showToast('File Re-linked! ✓', `Restored timeline clip: ${file.name}`);
+      continue;
+    }
+
     setProcessing(true, 'Processing media…', `Loading File ${i + 1}/${valid.length}: ${file.name.substring(0,25)}`);
     await new Promise(r => setTimeout(r, 20)); // Yield thread
 
@@ -633,33 +663,54 @@ async function handleAudioFiles(files) {
   
   setProcessing(true, 'Analyzing audio channels...', 'Analyzing...');
   
-  const newTracks = await Promise.all(valid.map(file => new Promise(resolve => {
-    const src = URL.createObjectURL(file);
-    const audio = document.createElement('audio');
-    audio.src = src;
+  const newTracks = [];
+  
+  for (const file of valid) {
+    // Check if we have an offline audio track with the same name
+    const matchingOffline = state.items.find(it => it.name === file.name && !it.src && it.type === 'audio');
+    if (matchingOffline) {
+      const src = URL.createObjectURL(file);
+      matchingOffline.file = file;
+      matchingOffline.src = src;
+      syncAudioGraph();
+      showToast('Audio Re-linked! ✓', `Restored timeline track: ${file.name}`);
+      continue;
+    }
     
-    audio.onloadedmetadata = () => {
-      // Setup dynamic background audio analysis worker (Phase 3 & Central Workers)
-      const item = { 
-        id: uid(), type: 'audio', name: file.name, file, src, 
-        start: getNextStartTime('a1'), duration: audio.duration, trimStart: 0, trimEnd: audio.duration, track: 'a1', volume: 1 
-      };
+    const item = await new Promise(resolve => {
+      const src = URL.createObjectURL(file);
+      const audio = document.createElement('audio');
+      audio.src = src;
       
-      // Perform background channel downsampling inside audio-processor.worker
-      _extractWaveformWorker(file, item).then(peaks => {
-        item.waveformPeaks = peaks;
-        resolve(item);
-      });
-    };
-  })));
+      audio.onloadedmetadata = () => {
+        const item = { 
+          id: uid(), type: 'audio', name: file.name, file, src, 
+          start: getNextStartTime('a1'), duration: audio.duration, trimStart: 0, trimEnd: audio.duration, track: 'a1', volume: 1 
+        };
+        
+        _extractWaveformWorker(file, item).then(peaks => {
+          item.waveformPeaks = peaks;
+          resolve(item);
+        });
+      };
+    });
+    
+    if (item) {
+      newTracks.push(item);
+      state.items.push(item);
+    }
+  }
 
-  state.items.push(...newTracks);
-  pushHistory();
-  computeTotalDuration();
-  syncAudioGraph();
+  if (newTracks.length) {
+    pushHistory();
+    computeTotalDuration();
+    syncAudioGraph();
+  }
   renderAll();
   setProcessing(false);
-  showToast('Audio added ✓', newTracks.length + ' track(s) added');
+  if (newTracks.length) {
+    showToast('Audio added ✓', newTracks.length + ' track(s) added');
+  }
 }
 
 /**
@@ -1497,3 +1548,312 @@ function getItemBoundsOnScreen(item) {
   }
   return { cx, cy, halfW, halfH };
 }
+
+// ── PROJECT BACKUPS & RESETS (IndexedDB + JSZip) ─────────────
+const DB_NAME = 'EditroyBackupsDB';
+const STORE_NAME = 'backups';
+
+function openBackupsDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getAllBackups() {
+  const db = await openBackupsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result.sort((a,b) => b.timestamp - a.timestamp));
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveBackup(id, name, zipBlob) {
+  const db = await openBackupsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const backupItem = { id, name, timestamp: Date.now(), data: zipBlob };
+    const request = store.put(backupItem);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function deleteBackup(id) {
+  const db = await openBackupsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// 1. Create a full ZIP backup of the project containing all original files + JSON metadata
+async function createProjectZip() {
+  if (typeof JSZip === 'undefined') {
+    throw new Error('JSZip library is not loaded.');
+  }
+
+  const zip = new JSZip();
+  const metadata = state.items.map(item => {
+    const { file, src, proxySrc, thumbnail, ...rest } = item;
+    return {
+      ...rest,
+      fileName: file ? file.name : (item.name || ''),
+      fileSize: file ? file.size : 0,
+      fileType: file ? file.type : ''
+    };
+  });
+
+  zip.file('project.json', JSON.stringify({
+    metadata,
+    totalDuration: state.totalDuration,
+    masterVolume: state.masterVolume
+  }));
+
+  const mediaFolder = zip.folder('media');
+  const addedFiles = new Set();
+
+  for (const item of state.items) {
+    if (item.file && !addedFiles.has(item.file.name)) {
+      addedFiles.add(item.file.name);
+      mediaFolder.file(item.file.name, item.file);
+    }
+  }
+
+  return await zip.generateAsync({ type: 'blob' });
+}
+
+// 2. Load a project from a Zip Blob
+async function loadProjectFromZip(zipBlob) {
+  if (typeof JSZip === 'undefined') {
+    throw new Error('JSZip library is not loaded.');
+  }
+  
+  setProcessing(true, 'Extracting backup…', 'Decompressing Zip archive...');
+  const zip = await JSZip.loadAsync(zipBlob);
+  const jsonText = await zip.file('project.json').async('string');
+  const project = JSON.parse(jsonText);
+
+  // Clear current project
+  state.items.forEach(item => memoryManager.freeClipResources(item));
+  state.items = [];
+  state.activeLayer = null;
+
+  // Process files inside zip and recreate local Blob URLs
+  const mediaFolder = zip.folder('media');
+  const filePromises = project.metadata.map(async (meta) => {
+    const clip = { ...meta };
+    if (meta.fileName) {
+      const fileEntry = mediaFolder.file(meta.fileName);
+      if (fileEntry) {
+        const fileBlob = await fileEntry.async('blob');
+        const file = new File([fileBlob], meta.fileName, { type: meta.fileType });
+        clip.file = file;
+        clip.src = memoryManager.trackBlob(URL.createObjectURL(file));
+        
+        if (clip.type === 'video') {
+          // Re-generate thumbnail for video asynchronously
+          const vid = document.createElement('video');
+          vid.preload = 'metadata';
+          vid.src = clip.src;
+          await new Promise(r => { vid.onloadedmetadata = r; vid.onerror = r; });
+          if (vid.videoWidth) {
+            clip.thumbnail = await generateThumbnail(vid);
+          }
+        } else if (clip.type === 'image') {
+          clip.thumbnail = clip.src;
+        }
+      }
+    }
+    return clip;
+  });
+
+  state.items = await Promise.all(filePromises);
+  state.totalDuration = project.totalDuration || 30;
+  state.masterVolume = project.masterVolume || 1;
+
+  setProcessing(false);
+  pushHistory();
+  computeTotalDuration();
+  syncAudioGraph();
+  renderAll();
+  showToast('Backup restored ✓', 'Loaded configurations successfully');
+}
+
+// 3. Render backups in the overlay list
+async function updateBackupsModal() {
+  const listEl = document.getElementById('backups-list');
+  if (!listEl) return;
+
+  const backups = await getAllBackups();
+  document.getElementById('backup-count').textContent = backups.length;
+
+  if (backups.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align:center; padding: 12px; color: var(--text3); font-style:italic; font-size:11px;">
+        No backups stored yet. Click Reset to start anew and backup your current work!
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = backups.map(b => `
+    <div style="display:flex; justify-content:space-between; align-items:center; background: var(--bg2); border:1px solid var(--border); padding: 8px 12px; border-radius: 8px; gap: 8px;">
+      <div style="min-width:0; flex:1;">
+        <div style="font-size:12px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${b.name}">${b.name}</div>
+        <div style="font-size:10px; color: var(--text3); margin-top:2px;">${new Date(b.timestamp).toLocaleString()}</div>
+      </div>
+      <div style="display:flex; gap: 4px; flex-shrink:0;">
+        <button class="panel-hdr-btn btn-restore-item" data-id="${b.id}" title="Restore" style="width:26px; height:26px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+        <button class="panel-hdr-btn btn-download-item" data-id="${b.id}" title="Download ZIP file" style="width:26px; height:26px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="panel-hdr-btn danger btn-delete-item" data-id="${b.id}" title="Delete" style="width:26px; height:26px; color: var(--red);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  // Bind clicks
+  listEl.querySelectorAll('.btn-restore-item').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const b = backups.find(x => x.id === btn.dataset.id);
+      if (b) {
+        await loadProjectFromZip(b.data);
+        document.getElementById('backups-modal-overlay').style.display = 'none';
+      }
+    });
+  });
+
+  listEl.querySelectorAll('.btn-download-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const b = backups.find(x => x.id === btn.dataset.id);
+      if (b) {
+        const url = URL.createObjectURL(b.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${b.name.replace(/\s+/g, '_')}_backup.zip`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        showToast('Backup Zip Downloaded! ✓');
+      }
+    });
+  });
+
+  listEl.querySelectorAll('.btn-delete-item').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to delete this backup?')) {
+        await deleteBackup(btn.dataset.id);
+        updateBackupsModal();
+        showToast('Backup deleted ✓');
+      }
+    });
+  });
+}
+
+// 4. project Reset & backup flow
+async function handleResetProject() {
+  const currentCount = state.items.length;
+  
+  if (currentCount > 0) {
+    const askSave = confirm('Would you like to store your current project as a ZIP backup before resetting?\n\nSelecting YES saves a full archive locally in your browser (Limit 3).');
+    
+    if (askSave) {
+      const backups = await getAllBackups();
+      if (backups.length >= 3) {
+        // Enforce 3 backups ceiling
+        const overwrite = confirm('Limit of 3 backups reached! Would you like to overwrite your oldest backup to store this one?');
+        if (!overwrite) {
+          showToast('Reset aborted', 'Free up a backup slot first.', true);
+          return;
+        }
+        // Purge oldest backup (last item)
+        await deleteBackup(backups[backups.length - 1].id);
+      }
+
+      const backupName = prompt('Enter a name for this project backup:', `Project Backup ${new Date().toLocaleDateString()}`);
+      if (backupName) {
+        setProcessing(true, 'Creating Zip backup…', 'Writing file streams...');
+        try {
+          const zipBlob = await createProjectZip();
+          await saveBackup('bk-' + Date.now(), backupName, zipBlob);
+          showToast('Backup stored! ✓', 'Saved ZIP archive locally');
+        } catch (err) {
+          showToast('Backup failed', err.message, true);
+        } finally {
+          setProcessing(false);
+        }
+      }
+    }
+  }
+
+  // Clear tracks and reset variables
+  state.items.forEach(item => memoryManager.freeClipResources(item));
+  state.items = [];
+  state.activeLayer = null;
+  state.globalTime = 0;
+  state.totalDuration = 30;
+  state.masterVolume = 1;
+
+  sessionStore.clearSession();
+  pushHistory();
+  computeTotalDuration();
+  syncAudioGraph();
+  renderAll();
+  showToast('Project Reset ✓', 'Started a fresh session');
+  
+  updateBackupsModal();
+}
+
+// Setup button bindings on load
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('backups-modal-overlay');
+  
+  document.getElementById('btn-history')?.addEventListener('click', () => {
+    updateBackupsModal();
+    if (modal) modal.style.display = 'flex';
+  });
+
+  document.getElementById('btn-close-backups')?.addEventListener('click', () => {
+    if (modal) modal.style.display = 'none';
+  });
+
+  document.getElementById('btn-reset-project')?.addEventListener('click', handleResetProject);
+
+  // ZIP uploader triggers
+  const btnZipUpload = document.getElementById('btn-import-zip');
+  const zipInput = document.getElementById('input-zip-uploader');
+  
+  btnZipUpload?.addEventListener('click', () => zipInput?.click());
+  zipInput?.addEventListener('change', async () => {
+    if (zipInput.files && zipInput.files[0]) {
+      try {
+        await loadProjectFromZip(zipInput.files[0]);
+        if (modal) modal.style.display = 'none';
+      } catch (err) {
+        showToast('Restore failed', 'Invalid backup ZIP file.', true);
+      } finally {
+        zipInput.value = '';
+      }
+    }
+  });
+
+  // Initial count load
+  getAllBackups().then(backups => {
+    const badge = document.getElementById('backup-count');
+    if (badge) badge.textContent = backups.length;
+  });
+});
+
