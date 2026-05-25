@@ -36,6 +36,9 @@ export const state = {
   showToast: (title, desc = '', isError = false) => showToast(title, desc, isError)
 };
 
+let handleDragState = null;
+let canvasDrag = null;
+
 // ── Timeline viewport constants ──────────────────────────────
 const BASE_PPS = 80;            // pixels-per-second at zoom 1×
 const TL_ZOOM_MIN = 0.15;
@@ -1095,7 +1098,7 @@ function setupEventListeners() {
   })();
 
   // ── CANVAS INTERACTION (drag to move, scroll to resize) ──
-  let canvasDrag = null;
+  canvasDrag = null;
   const previewCanvas = document.getElementById('preview-canvas');
   const renderCanvas = document.getElementById('preview-img-canvas');
 
@@ -1340,6 +1343,35 @@ function updateSelectionOverlay() {
   selOverlay.style.height = height + 'px';
   selOverlay.style.border = '2px solid rgba(99,102,241,.9)';
   selOverlay.style.borderRadius = '3px';
+  selOverlay.style.pointerEvents = 'none';
+
+  const canInteract = item.type !== 'video';
+  const handleStyle = canInteract ? 'pointer-events:auto;' : '';
+  // Draw corner handles
+  selOverlay.innerHTML = canInteract ? `
+    <div data-handle="nw" style="position:absolute;width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:2px;top:-5px;left:-5px;cursor:nwse-resize;${handleStyle}"></div>
+    <div data-handle="ne" style="position:absolute;width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:2px;top:-5px;right:-5px;cursor:nesw-resize;${handleStyle}"></div>
+    <div data-handle="sw" style="position:absolute;width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:2px;bottom:-5px;left:-5px;cursor:nesw-resize;${handleStyle}"></div>
+    <div data-handle="se" style="position:absolute;width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:2px;bottom:-5px;right:-5px;cursor:nwse-resize;${handleStyle}"></div>
+    <div data-handle="move" style="position:absolute;inset:0;cursor:move;${handleStyle}"></div>
+  ` : '';
+
+  // Bind handle events
+  selOverlay.querySelectorAll('[data-handle]').forEach(h => {
+    h.style.pointerEvents = 'auto';
+    h.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const rect = pc.getBoundingClientRect();
+      handleDragState = {
+        handle: h.dataset.handle,
+        item, startMouseX: e.clientX, startMouseY: e.clientY,
+        startX: item.transform.x || 0, startY: item.transform.y || 0,
+        startScaleX: item.transform.scaleX ?? 1, startScaleY: item.transform.scaleY ?? 1,
+        scaleFactorX: pc.width / rect.width,
+        scaleFactorY: pc.height / rect.height
+      };
+    });
+  });
 }
 
 function getItemBoundsOnScreen(item) {
