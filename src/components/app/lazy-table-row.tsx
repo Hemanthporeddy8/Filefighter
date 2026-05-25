@@ -7,6 +7,7 @@ interface LazyTableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   children: React.ReactNode;
   placeholderHeight?: string;
   colSpan?: number;
+  'data-state'?: string;
 }
 
 /**
