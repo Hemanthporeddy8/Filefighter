@@ -590,7 +590,7 @@ function _extractWaveformWorker(file, item) {
         const rawChannel = buffer.getChannelData(0); // Left channel
 
         // Load background worker as dynamic blob URL
-        const worker = new Worker('./workers/audio-processor.js', { type: 'module' });
+        const worker = new Worker('/video-editor/workers/audio-processor.js', { type: 'module' });
         
         worker.onmessage = (e) => {
           if (e.data.type === 'WAVEFORM_COMPLETE') {
