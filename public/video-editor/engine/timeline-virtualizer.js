@@ -109,6 +109,7 @@ class TimelineVirtualizer {
 
           // Double tap triggers split handler on clip
           el.addEventListener('mousedown', e => {
+            if (e.button === 2) return; // Ignore right-clicks on mousedown
             e.preventDefault(); e.stopPropagation();
             if (e.target.dataset.action) this.state.handleDrag(e, item.id, e.target.dataset.action);
             else this.state.handleDrag(e, item.id, 'move');
@@ -119,6 +120,14 @@ class TimelineVirtualizer {
             if (e.target.dataset.action) this.state.handleDrag(e, item.id, e.target.dataset.action);
             else this.state.handleDrag(e, item.id, 'move');
           }, { passive: true });
+
+          el.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.showTimelineContextMenu === 'function') {
+              window.showTimelineContextMenu(e, item.id);
+            }
+          });
 
           track.appendChild(el);
           this._nodeMap.set(item.id, el);

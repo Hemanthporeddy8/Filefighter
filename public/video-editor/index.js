@@ -297,9 +297,17 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
 
   if (item.type === 'video') {
     const vid = decoderPool.get(item);
-    if (Math.abs(vid.currentTime - localTime) > 0.1) vid.currentTime = localTime;
-    if (stateMachine.is(EditorStates.PLAYING) && vid.paused) vid.play().catch(()=>{});
-    if (!stateMachine.is(EditorStates.PLAYING) && !vid.paused) vid.pause();
+    const isPlaying = stateMachine.is(EditorStates.PLAYING);
+    const threshold = isPlaying ? 0.35 : 0.05;
+    if (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold) {
+      vid.currentTime = localTime;
+    }
+    if (isPlaying && vid.paused && !vid.seeking) {
+      vid.play().catch(()=>{});
+    }
+    if (!isPlaying && !vid.paused) {
+      vid.pause();
+    }
     
     if (vid.videoWidth) {
       const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
@@ -336,8 +344,10 @@ function updateMediaPlayback() {
     if (isActive && stateMachine.is(EditorStates.PLAYING)) {
       const targetTime = item.trimStart + (state.globalTime - item.start);
       node.audio.volume = Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
-      if (Math.abs(node.audio.currentTime - targetTime) > 0.3) node.audio.currentTime = targetTime;
-      if (node.audio.paused) {
+      if (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > 0.3) {
+        node.audio.currentTime = targetTime;
+      }
+      if (node.audio.paused && !node.audio.seeking) {
         node.audio.play().catch(e => console.warn("Audio play blocked", e));
       }
     } else {
@@ -396,7 +406,7 @@ function syncAudioGraph() {
 
 function computeTotalDuration() {
   const maxEnd = state.items.reduce((max, item) => Math.max(max, item.start + item.duration), 0);
-  state.totalDuration = Math.max(maxEnd + 2, 10);
+  state.totalDuration = Math.max(maxEnd, 10);
   updateTimecode();
 }
 
@@ -785,9 +795,9 @@ function selectLayer(id) {
 
 // ── RENDER INSPECTOR VALUES ────────────────────────────────────
 function renderInspector() {
-  const empty = document.getElementById('prop-empty');
-  const videoPane = document.getElementById('prop-video');
-  const textPane = document.getElementById('prop-text');
+  const empty = document.getElementById('rp-empty');
+  const videoPane = document.getElementById('rp-video');
+  const textPane = document.getElementById('rp-text');
   
   if (!state.activeLayer) {
     if(empty) empty.style.display = 'flex';
@@ -841,11 +851,25 @@ function renderInspector() {
     if(textPane) textPane.style.display = 'flex';
     
     const textInput = document.getElementById('in-text-content');
-    const colorInput = document.getElementById('in-text-color');
+    const fontSelect = document.getElementById('sel-font');
     const sizeInput = document.getElementById('in-text-size');
-    if(textInput) textInput.value = item.name;
-    if(colorInput) colorInput.value = item.color || '#ffffff';
-    if(sizeInput) sizeInput.value = item.transform.size || 64;
+    const colorInput = document.getElementById('in-text-color');
+    const startInput = document.getElementById('in-text-start');
+    const durInput = document.getElementById('in-text-dur');
+    const xInput = document.getElementById('in-text-x');
+    const yInput = document.getElementById('in-text-y');
+
+    if (textInput) textInput.value = item.name || '';
+    if (fontSelect) fontSelect.value = item.transform.font || 'Inter';
+    if (sizeInput) sizeInput.value = item.transform.size || 64;
+    if (colorInput) colorInput.value = item.color || '#ffffff';
+    
+    setSlider('sl-text-opacity', 'val-text-opacity', item.opacity ?? 100);
+    
+    if (startInput) startInput.value = item.start.toFixed(2);
+    if (durInput) durInput.value = item.duration.toFixed(2);
+    if (xInput) xInput.value = item.transform.x || 0;
+    if (yInput) yInput.value = item.transform.y || 0;
   }
   
   const textList = document.getElementById('text-layers-list');
@@ -867,6 +891,52 @@ function renderInspector() {
 function setSlider(id, valId, val) {
   const s = document.getElementById(id); const v = document.getElementById(valId);
   if(s) s.value = val; if(v) v.textContent = val;
+}
+
+function deleteLayer(itemId) {
+  const toDelete = state.items.find(i => i.id === itemId);
+  if (toDelete) {
+    const deletedStart = toDelete.start;
+    const deletedDuration = toDelete.duration;
+    const deletedTrack = toDelete.track;
+
+    memoryManager.freeClipResources(toDelete);
+    state.items = state.items.filter(c => c.id !== toDelete.id);
+
+    // Ripple shift subsequent clips in the same track
+    state.items.forEach(item => {
+      if (item.track === deletedTrack && item.start > deletedStart) {
+        item.start = Math.max(0, item.start - deletedDuration);
+      }
+    });
+
+    if (state.activeLayer === itemId) {
+      state.activeLayer = null;
+    }
+    pushHistory();
+    computeTotalDuration();
+    syncAudioGraph();
+    renderAll();
+  }
+}
+
+function addTextLayer(text, size, weight) {
+  const item = {
+    id: uid(), type: 'text', name: text || 'Your text here', 
+    start: state.globalTime, duration: 5, trimStart: 0, trimEnd: 5, track: 't1',
+    color: '#ffffff', 
+    filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
+    transform: { x: 0, y: 0, size: size || 64, weight: weight || 700, font: 'Inter', scaleX:1, scaleY:1, rotation:0 },
+    opacity: 100, volume: 0, blendMode: 'normal',
+    transition: { fadeIn: 0, fadeOut: 0 }
+  };
+  state.items.push(item);
+  state.activeLayer = item.id;
+  pushHistory();
+  computeTotalDuration();
+  syncAudioGraph();
+  renderAll();
+  showToast('Text added', 'Edit it in the Properties panel');
 }
 
 // ── UI EVENT LISTENERS ATTACHMENT ─────────────────────────────
@@ -906,15 +976,45 @@ function setupEventListeners() {
   });
 
   document.getElementById('btn-delete').addEventListener('click', () => {
-    const toDelete = state.items.find(i => i.id === state.activeLayer);
-    if (toDelete) {
-      memoryManager.freeClipResources(toDelete);
-      state.items = state.items.filter(c => c.id !== toDelete.id);
-      state.activeLayer = null;
-      pushHistory();
-      computeTotalDuration();
-      syncAudioGraph();
-      renderAll();
+    if (state.activeLayer) {
+      deleteLayer(state.activeLayer);
+    }
+  });
+
+  // ── TIMELINE CONTEXT MENU ──
+  // Hide context menu when clicking outside
+  document.addEventListener('click', () => {
+    const ctxMenu = document.getElementById('ctx-menu');
+    if (ctxMenu) ctxMenu.classList.remove('show');
+  });
+
+  // Position and show context menu
+  window.showTimelineContextMenu = function(e, itemId) {
+    const ctxMenu = document.getElementById('ctx-menu');
+    if (!ctxMenu) return;
+    
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.top = e.clientY + 'px';
+    ctxMenu.classList.add('show');
+    
+    ctxMenu.dataset.targetId = itemId;
+  };
+
+  // Select item from context menu
+  document.getElementById('ctx-select')?.addEventListener('click', () => {
+    const ctxMenu = document.getElementById('ctx-menu');
+    const targetId = ctxMenu?.dataset.targetId;
+    if (targetId) {
+      selectLayer(targetId);
+    }
+  });
+
+  // Delete item (Ripple Delete) from context menu
+  document.getElementById('ctx-delete')?.addEventListener('click', () => {
+    const ctxMenu = document.getElementById('ctx-menu');
+    const targetId = ctxMenu?.dataset.targetId;
+    if (targetId) {
+      deleteLayer(targetId);
     }
   });
 
@@ -1176,6 +1276,50 @@ function setupEventListeners() {
     }
   });
   document.getElementById('sl-text-opacity')?.addEventListener('change', () => pushHistory());
+
+  document.getElementById('sel-font')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { item.transform.font = e.target.value; renderFrame(state); pushHistory(); }
+  });
+
+  document.getElementById('in-text-start')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { 
+      item.start = Math.max(0, parseFloat(e.target.value) || 0); 
+      computeTotalDuration(); renderTimeline(); pushHistory(); 
+    }
+  });
+
+  document.getElementById('in-text-dur')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { 
+      item.duration = Math.max(0.2, parseFloat(e.target.value) || 1); 
+      computeTotalDuration(); renderTimeline(); pushHistory(); 
+    }
+  });
+
+  document.getElementById('in-text-x')?.addEventListener('input', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { item.transform.x = parseFloat(e.target.value) || 0; renderFrame(state); }
+  });
+  document.getElementById('in-text-x')?.addEventListener('change', () => pushHistory());
+
+  document.getElementById('in-text-y')?.addEventListener('input', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { item.transform.y = parseFloat(e.target.value) || 0; renderFrame(state); }
+  });
+  document.getElementById('in-text-y')?.addEventListener('change', () => pushHistory());
+
+  // ── TEXT ADDITION & PRESETS ──
+  document.getElementById('btn-add-text')?.addEventListener('click', () => addTextLayer('Your text here', 64, 700));
+  document.querySelectorAll('.text-preset').forEach(el => {
+    el.addEventListener('click', () => {
+      const size = parseInt(el.dataset.size) || 64;
+      const weight = parseInt(el.dataset.weight) || 700;
+      const label = el.querySelector('span')?.textContent || 'Text';
+      addTextLayer(label, size, weight);
+    });
+  });
 
   // ── EFFECT CARDS ──
   document.querySelectorAll('.effect-card').forEach(el => {
