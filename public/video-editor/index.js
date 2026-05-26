@@ -724,7 +724,7 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     }
     
     try {
-      const threshold = isPlaying ? 0.35 : 0.05;
+      const threshold = isPlaying ? 0.15 : 0.03;
       let shouldSeek = !vid._hasSeekedOnce || (isPlaying 
         ? (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold)
         : (Math.abs(vid.currentTime - localTime) > threshold));
@@ -830,7 +830,7 @@ function updateMediaPlayback() {
       const targetTime = item.trimStart + (state.globalTime - item.start);
       node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
       
-      const threshold = isPlaying ? 0.3 : 0.05;
+      const threshold = isPlaying ? 0.15 : 0.03;
       const shouldSeek = isPlaying 
         ? (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > threshold)
         : (Math.abs(node.audio.currentTime - targetTime) > threshold);
