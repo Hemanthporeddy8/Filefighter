@@ -148,6 +148,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     () => updatePlayhead()
   );
 
+  stateMachine.onChange(st => {
+    const icon = document.getElementById('play-icon');
+    if (!icon) return;
+    if (st === EditorStates.PLAYING) {
+      icon.innerHTML = '<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/>';
+    } else {
+      icon.innerHTML = '<polygon points="4,2 14,8 4,14"/>';
+    }
+  });
+
   // 4. Initialize Timeline virtualizer
   timelineVirtualizer.initialize(state, timeToPx, pxToTime);
 
@@ -298,9 +308,18 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
   if (item.type === 'video') {
     const vid = decoderPool.get(item);
     const isPlaying = stateMachine.is(EditorStates.PLAYING);
-    const threshold = isPlaying ? 0.35 : 0.05;
-    if (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold) {
-      vid.currentTime = localTime;
+    try {
+      if (vid.readyState >= 1) {
+        const threshold = isPlaying ? 0.35 : 0.05;
+        const shouldSeek = isPlaying 
+          ? (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold)
+          : (Math.abs(vid.currentTime - localTime) > threshold);
+        if (shouldSeek) {
+          vid.currentTime = localTime;
+        }
+      }
+    } catch (e) {
+      console.warn("Video seek failed", e);
     }
     if (isPlaying && vid.paused && !vid.seeking) {
       vid.play().catch(()=>{});
@@ -309,11 +328,15 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
       vid.pause();
     }
     
-    if (vid.videoWidth) {
-      const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
-      const w = vid.videoWidth * fitScale;
-      const h = vid.videoHeight * fitScale;
-      renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+    try {
+      if (vid.readyState >= 2 && vid.videoWidth) {
+        const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
+        const w = vid.videoWidth * fitScale;
+        const h = vid.videoHeight * fitScale;
+        renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+      }
+    } catch (e) {
+      console.warn("Video draw failed", e);
     }
   } else if (item.type === 'image') {
     let img = memoryManager.imageCache.get(item.id);
@@ -341,14 +364,27 @@ function updateMediaPlayback() {
     if (!node) return;
     
     const isActive = state.globalTime >= item.start && state.globalTime < (item.start + item.duration);
-    if (isActive && stateMachine.is(EditorStates.PLAYING)) {
+    const isPlaying = stateMachine.is(EditorStates.PLAYING);
+    
+    if (isActive) {
       const targetTime = item.trimStart + (state.globalTime - item.start);
       node.audio.volume = Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
-      if (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > 0.3) {
+      
+      const threshold = isPlaying ? 0.3 : 0.05;
+      const shouldSeek = isPlaying 
+        ? (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > threshold)
+        : (Math.abs(node.audio.currentTime - targetTime) > threshold);
+      
+      if (shouldSeek) {
         node.audio.currentTime = targetTime;
       }
-      if (node.audio.paused && !node.audio.seeking) {
-        node.audio.play().catch(e => console.warn("Audio play blocked", e));
+      
+      if (isPlaying) {
+        if (node.audio.paused && !node.audio.seeking) {
+          node.audio.play().catch(e => console.warn("Audio play blocked", e));
+        }
+      } else {
+        if (!node.audio.paused) node.audio.pause();
       }
     } else {
       if (!node.audio.paused) node.audio.pause();
@@ -486,6 +522,7 @@ function _autoScrollDuringPlayback() {
 function renderTimeline() {
   timelineVirtualizer.virtualizeTimeline();
   updateLeftPanelClips();
+  buildRuler();
 }
 
 function renderAll() {
@@ -888,6 +925,63 @@ function renderInspector() {
   updateActionButtons();
 }
 
+function buildRuler() {
+  const ruler = document.getElementById('ruler');
+  if (!ruler) return;
+  ruler.innerHTML = '';
+
+  const totalPx = timeToPx(state.totalDuration);
+  ruler.style.width = totalPx + 'px';
+  ruler.style.position = 'relative';
+
+  const step = state.tlZoom < 0.5 ? 5 : state.tlZoom > 3 ? 0.5 : 1;
+  const ppsVal = pps();
+  
+  for (let t = 0; t <= state.totalDuration; t += step) {
+    const left = t * ppsVal;
+    
+    if (step === 1 && state.tlZoom > 1) {
+      for (let sub = t + 0.1; sub < t + 1; sub += 0.1) {
+        const subLeft = sub * ppsVal;
+        const tick = document.createElement('div');
+        tick.className = 'ruler-tick';
+        tick.style.left = subLeft + 'px';
+        ruler.appendChild(tick);
+      }
+    }
+
+    const tick = document.createElement('div');
+    tick.className = 'ruler-tick major';
+    tick.style.left = left + 'px';
+    ruler.appendChild(tick);
+
+    const label = document.createElement('div');
+    label.className = 'ruler-label';
+    label.style.left = left + 'px';
+    label.textContent = formatTime(t).split('.')[0];
+    ruler.appendChild(label);
+  }
+}
+
+function setTlZoom(newZoom, anchorTime) {
+  const scrollEl = document.getElementById('tracks-scroll');
+  const oldZoom = state.tlZoom;
+  state.tlZoom = Math.max(TL_ZOOM_MIN, Math.min(TL_ZOOM_MAX, newZoom));
+  
+  if (scrollEl && anchorTime != null) {
+    const oldPx = anchorTime * BASE_PPS * oldZoom;
+    const newPx = anchorTime * BASE_PPS * state.tlZoom;
+    const screenOffset = oldPx - scrollEl.scrollLeft;
+    scrollEl.scrollLeft = newPx - screenOffset;
+  }
+
+  const zl = document.getElementById('zoom-label');
+  if (zl) zl.textContent = Math.round(state.tlZoom * 100) + '%';
+
+  renderTimeline();
+  updatePlayhead();
+}
+
 function setSlider(id, valId, val) {
   const s = document.getElementById(id); const v = document.getElementById(valId);
   if(s) s.value = val; if(v) v.textContent = val;
@@ -1099,17 +1193,103 @@ function setupEventListeners() {
   setupUploadZone('uz-image', 'input-image', handleVideoFiles);
   setupUploadZone('uz-audio', 'input-audio', handleAudioFiles);
 
-  // ── ZOOM BINDINGS ──
-  document.getElementById('btn-zoom-in').addEventListener('click', () => {
-    state.tlZoom = Math.min(TL_ZOOM_MAX, state.tlZoom + TL_ZOOM_STEP);
-    document.getElementById('zoom-label').textContent = Math.round(state.tlZoom * 100) + '%';
-    renderAll();
+  // ── TIMELINE SCRUBBING & ZOOM BINDINGS ──
+  let _scrubbing = false;
+  let _scrubRafId = null;
+
+  function doScrub(clientX) {
+    const scrollEl = document.getElementById('tracks-scroll');
+    if (!scrollEl) return;
+    const rect = scrollEl.getBoundingClientRect();
+    const x = (clientX - rect.left) + scrollEl.scrollLeft;
+    const t = Math.max(0, Math.min(state.totalDuration, pxToTime(x)));
+    seekTo(t);
+  }
+
+  const tracksScroll = document.getElementById('tracks-scroll');
+  
+  tracksScroll?.addEventListener('mousedown', e => {
+    if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
+    _scrubbing = true;
+    doScrub(e.clientX);
+    
+    const onMove = (ev) => {
+      if (!_scrubbing) return;
+      cancelAnimationFrame(_scrubRafId);
+      _scrubRafId = requestAnimationFrame(() => doScrub(ev.clientX));
+    };
+    const onUp = () => {
+      _scrubbing = false;
+      cancelAnimationFrame(_scrubRafId);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove, { passive: true });
+    document.addEventListener('mouseup', onUp);
   });
-  document.getElementById('btn-zoom-out').addEventListener('click', () => {
-    state.tlZoom = Math.max(TL_ZOOM_MIN, state.tlZoom - TL_ZOOM_STEP);
-    document.getElementById('zoom-label').textContent = Math.round(state.tlZoom * 100) + '%';
-    renderAll();
+
+  tracksScroll?.addEventListener('touchstart', e => {
+    if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
+    if (!e.touches[0]) return;
+    _scrubbing = true;
+    doScrub(e.touches[0].clientX);
+    
+    const onMove = (ev) => {
+      if (!_scrubbing || !ev.touches[0]) return;
+      cancelAnimationFrame(_scrubRafId);
+      _scrubRafId = requestAnimationFrame(() => doScrub(ev.touches[0].clientX));
+    };
+    const onEnd = () => {
+      _scrubbing = false;
+      cancelAnimationFrame(_scrubRafId);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
+    document.addEventListener('touchmove', onMove, { passive: true });
+    document.addEventListener('touchend', onEnd);
   });
+
+  // Timeline Zoom Buttons
+  document.getElementById('btn-zoom-in')?.addEventListener('click', () => {
+    const scrollEl = document.getElementById('tracks-scroll');
+    const anchor = scrollEl ? pxToTime(scrollEl.scrollLeft + scrollEl.clientWidth / 2) : state.globalTime;
+    setTlZoom(state.tlZoom * (1 + TL_ZOOM_STEP), anchor);
+  });
+  document.getElementById('btn-zoom-out')?.addEventListener('click', () => {
+    const scrollEl = document.getElementById('tracks-scroll');
+    const anchor = scrollEl ? pxToTime(scrollEl.scrollLeft + scrollEl.clientWidth / 2) : state.globalTime;
+    setTlZoom(state.tlZoom / (1 + TL_ZOOM_STEP), anchor);
+  });
+
+  // Ctrl+Wheel Zoom on Timeline
+  tracksScroll?.addEventListener('wheel', e => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const rect = tracksScroll.getBoundingClientRect();
+    const anchor = pxToTime((e.clientX - rect.left) + tracksScroll.scrollLeft);
+    const delta = e.deltaY > 0 ? -TL_ZOOM_STEP * 0.5 : TL_ZOOM_STEP * 0.5;
+    setTlZoom(state.tlZoom * (1 + delta), anchor);
+  }, { passive: false });
+
+  // Touch Pinch Zoom on Timeline
+  (function() {
+    let lastPinchDist = 0;
+    tracksScroll?.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+    }, { passive: true });
+    tracksScroll?.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2 || lastPinchDist === 0) return;
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const ratio = dist / lastPinchDist;
+      lastPinchDist = dist;
+      setTlZoom(state.tlZoom * ratio, state.globalTime);
+    }, { passive: true });
+    tracksScroll?.addEventListener('touchend', () => {
+      lastPinchDist = 0;
+    }, { passive: true });
+  })();
 
   // ── PREVIEW ZOOM ──
   let previewZoom = 100;

@@ -49,6 +49,11 @@ class VideoDecoderPool {
         renderScheduler.triggerSingleUpdate();
       });
     };
+    vid.onseeked = () => {
+      import('/video-editor/engine/render-scheduler.js').then(({ renderScheduler }) => {
+        renderScheduler.triggerSingleUpdate();
+      });
+    };
     
     // Disable heavy hardware processing states if low-end
     if (adaptiveQuality.activeConfig.aggressiveCleanup) {

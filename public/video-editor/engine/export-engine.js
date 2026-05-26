@@ -66,12 +66,18 @@ class ExportEngine {
       return;
     }
 
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')
+      ? 'video/mp4;codecs=h264,aac'
+      : MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
+      ? 'video/mp4;codecs=h264'
+      : MediaRecorder.isTypeSupported('video/mp4')
+      ? 'video/mp4'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=h264')
+      ? 'video/webm;codecs=h264'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
       ? 'video/webm;codecs=vp9,opus'
       : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
       ? 'video/webm;codecs=vp8,opus'
-      : MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
-      ? 'video/mp4;codecs=h264'
       : 'video/webm';
 
     const recorder = new MediaRecorder(stream, {
