@@ -340,6 +340,91 @@ function updateActionButtons() {
   const frameFwd = document.getElementById('btn-frame-fwd'); if (frameFwd) frameFwd.disabled = !hasMedia;
 }
 
+function getAnimationTransform(item, globalTime) {
+  const result = {
+    scaleX: 1,
+    scaleY: 1,
+    offsetX: 0,
+    offsetY: 0,
+    opacity: 1,
+    rotation: 0,
+    characterLimit: -1
+  };
+  
+  if (!item.animation || item.animation === 'none') {
+    return result;
+  }
+  
+  const elapsed = globalTime - item.start;
+  const animDur = 1.0;
+  
+  if (item.animation === 'fade') {
+    if (elapsed < animDur) {
+      result.opacity = Math.max(0, elapsed / animDur);
+    }
+  } else if (item.animation === 'zoom') {
+    if (elapsed < animDur) {
+      const progress = Math.max(0, elapsed / animDur);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      result.scaleX = ease;
+      result.scaleY = ease;
+      result.opacity = progress;
+    }
+  } else if (item.animation === 'slide') {
+    if (elapsed < animDur) {
+      const progress = Math.max(0, elapsed / animDur);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      result.offsetY = 100 * (1 - ease);
+      result.opacity = progress;
+    }
+  } else if (item.animation === 'pan') {
+    const driftAmt = 15;
+    const progress = Math.min(1, elapsed / item.duration);
+    result.offsetX = Math.sin(progress * Math.PI) * driftAmt;
+    result.offsetY = Math.cos(progress * Math.PI) * (driftAmt / 2);
+  } else if (item.animation === 'rotate') {
+    if (elapsed < animDur) {
+      const progress = Math.max(0, elapsed / animDur);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      result.rotation = -180 * (1 - ease);
+      result.scaleX = ease;
+      result.scaleY = ease;
+      result.opacity = progress;
+    }
+  } else if (item.animation === 'typewriter') {
+    const revealDur = 1.5;
+    if (elapsed < revealDur) {
+      const textLen = (item.name || '').length;
+      const progress = Math.max(0, elapsed / revealDur);
+      result.characterLimit = Math.floor(textLen * progress);
+    }
+  } else if (item.animation === 'bounce') {
+    if (elapsed < 0.8) {
+      const t = elapsed / 0.8;
+      let s = 1.0;
+      if (t < 0.6) {
+        s = 1.15 * Math.sin(t * Math.PI * (5/6));
+      } else {
+        const t2 = (t - 0.6) / 0.4;
+        s = 1.15 - 0.15 * Math.sin(t2 * Math.PI / 2);
+      }
+      result.scaleX = s;
+      result.scaleY = s;
+      result.opacity = Math.min(1, elapsed / 0.2);
+    }
+  } else if (item.animation === 'flicker') {
+    if (elapsed < 1.5) {
+      if (Math.random() < 0.22) {
+        result.opacity = 0.2;
+      } else if (Math.random() < 0.08) {
+        result.opacity = 0.0;
+      }
+    }
+  }
+  
+  return result;
+}
+
 // ── TELEMETRY SYSTEM DRAW CHECKS ──────────────────────────────
 function renderFrame(st) {
   const renderCanvas = document.getElementById('preview-img-canvas');
@@ -371,16 +456,60 @@ function renderFrame(st) {
         if (item.transition.fadeOut > 0 && remaining < item.transition.fadeOut) transAlpha = Math.min(transAlpha, Math.max(0, remaining / item.transition.fadeOut));
       }
       
-      renderCtx.translate(cx + (item.transform.x || 0), cy + (item.transform.y || 0));
-      renderCtx.scale(item.transform.scaleX ?? 1, item.transform.scaleY ?? 1);
-      renderCtx.rotate((item.transform.rotation || 0) * Math.PI / 180);
-      renderCtx.globalAlpha = ((item.opacity ?? 100) / 100) * transAlpha;
+      const anim = getAnimationTransform(item, st.globalTime);
+      
+      renderCtx.translate(cx + (item.transform.x || 0) + anim.offsetX, cy + (item.transform.y || 0) + anim.offsetY);
+      renderCtx.scale((item.transform.scaleX ?? 1) * anim.scaleX, (item.transform.scaleY ?? 1) * anim.scaleY);
+      renderCtx.rotate(((item.transform.rotation || 0) + anim.rotation) * Math.PI / 180);
+      renderCtx.globalAlpha = ((item.opacity ?? 100) / 100) * transAlpha * anim.opacity;
       
       renderCtx.font = `${item.transform.weight || 600} ${item.transform.size || 64}px "${item.transform.font || 'Inter'}"`;
       renderCtx.fillStyle = item.color || '#fff';
       renderCtx.textAlign = 'center';
       renderCtx.textBaseline = 'middle';
-      renderCtx.fillText(item.name, 0, 0);
+      
+      let displayText = item.name || '';
+      if (anim.characterLimit !== -1) {
+        displayText = displayText.slice(0, anim.characterLimit);
+      }
+      
+      if (item.textStyle === 'neon') {
+        renderCtx.shadowColor = item.color || '#ff007f';
+        renderCtx.shadowBlur = 20;
+        renderCtx.shadowOffsetX = 0;
+        renderCtx.shadowOffsetY = 0;
+        renderCtx.fillText(displayText, 0, 0);
+        renderCtx.shadowBlur = 10;
+        renderCtx.fillText(displayText, 0, 0);
+      } else if (item.textStyle === 'hollow') {
+        renderCtx.strokeStyle = item.color || '#fff';
+        renderCtx.lineWidth = Math.max(1.5, (item.transform.size || 48) * 0.05);
+        renderCtx.strokeText(displayText, 0, 0);
+      } else if (item.textStyle === 'shadow') {
+        renderCtx.save();
+        renderCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        renderCtx.fillText(displayText, 4, 4);
+        renderCtx.restore();
+        renderCtx.fillText(displayText, 0, 0);
+      } else if (item.textStyle === 'lift') {
+        renderCtx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        renderCtx.shadowBlur = 12;
+        renderCtx.shadowOffsetX = 2;
+        renderCtx.shadowOffsetY = 3;
+        renderCtx.fillText(displayText, 0, 0);
+      } else if (item.textStyle === 'glitch') {
+        renderCtx.save();
+        renderCtx.fillStyle = '#ff007f';
+        renderCtx.fillText(displayText, -3, -1);
+        renderCtx.fillStyle = '#00f3ff';
+        renderCtx.fillText(displayText, 3, 1);
+        renderCtx.restore();
+        renderCtx.fillStyle = item.color || '#fff';
+        renderCtx.fillText(displayText, 0, 0);
+      } else {
+        renderCtx.fillText(displayText, 0, 0);
+      }
+      
       renderCtx.restore();
     }
   });
@@ -539,10 +668,12 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     }
   }
   
-  renderCtx.translate(cx + (item.transform.x || 0), cy + (item.transform.y || 0));
-  renderCtx.scale(item.transform.scaleX ?? 1, item.transform.scaleY ?? 1);
-  renderCtx.rotate((item.transform.rotation || 0) * Math.PI / 180);
-  renderCtx.globalAlpha = ((item.opacity ?? 100) / 100) * transAlpha;
+  const anim = getAnimationTransform(item, state.globalTime);
+  
+  renderCtx.translate(cx + (item.transform.x || 0) + anim.offsetX, cy + (item.transform.y || 0) + anim.offsetY);
+  renderCtx.scale((item.transform.scaleX ?? 1) * anim.scaleX, (item.transform.scaleY ?? 1) * anim.scaleY);
+  renderCtx.rotate(((item.transform.rotation || 0) + anim.rotation) * Math.PI / 180);
+  renderCtx.globalAlpha = ((item.opacity ?? 100) / 100) * transAlpha * anim.opacity;
   
   if (item.blendMode && item.blendMode !== 'normal') {
     renderCtx.globalCompositeOperation = item.blendMode;
@@ -1226,6 +1357,7 @@ function renderInspector() {
     const fo = document.getElementById('in-fade-out'); if(fo) fo.value = item.transition?.fadeOut || 0;
     
     const bl = document.getElementById('sel-blend'); if(bl) bl.value = item.blendMode || 'normal';
+    const animSelect = document.getElementById('sel-animation'); if(animSelect) animSelect.value = item.animation || 'none';
   } else if (item.type === 'audio') {
     if(videoPane) videoPane.style.display = 'flex';
     if(textPane) textPane.style.display = 'none';
@@ -1263,6 +1395,11 @@ function renderInspector() {
     if (colorInput) colorInput.value = item.color || '#ffffff';
     
     setSlider('sl-text-opacity', 'val-text-opacity', item.opacity ?? 100);
+    
+    const styleSelect = document.getElementById('sel-text-style');
+    const animSelectText = document.getElementById('sel-text-animation');
+    if (styleSelect) styleSelect.value = item.textStyle || 'normal';
+    if (animSelectText) animSelectText.value = item.animation || 'none';
     
     if (startInput) startInput.value = item.start.toFixed(2);
     if (durInput) durInput.value = item.duration.toFixed(2);
@@ -1914,6 +2051,21 @@ function setupEventListeners() {
     if (item && item.type === 'text') { item.transform.font = e.target.value; renderFrame(state); pushHistory(); }
   });
 
+  document.getElementById('sel-text-style')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { item.textStyle = e.target.value; renderFrame(state); pushHistory(); }
+  });
+
+  document.getElementById('sel-text-animation')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'text') { item.animation = e.target.value; renderFrame(state); pushHistory(); }
+  });
+
+  document.getElementById('sel-animation')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item) { item.animation = e.target.value; renderFrame(state); pushHistory(); }
+  });
+
   document.getElementById('in-text-start')?.addEventListener('change', e => {
     const item = state.items.find(i => i.id === state.activeLayer);
     if (item && item.type === 'text') { 
@@ -2108,6 +2260,7 @@ function setupEventListeners() {
     renderFrame(state); renderInspector(); updateSelectionOverlay();
   }, { passive: false });
 
+  let _canvasDragRaf = null;
   document.addEventListener('mousemove', e => {
     if (handleDragState) {
       const dx = (e.clientX - handleDragState.startMouseX) * handleDragState.scaleFactorX;
@@ -2125,19 +2278,36 @@ function setupEventListeners() {
         else if (handleDragState.handle === 'ne') { item.transform.scaleX = newSX; item.transform.scaleY = Math.max(0.05, handleDragState.startScaleY - dy/200); }
         else if (handleDragState.handle === 'nw') { item.transform.scaleX = Math.max(0.05, handleDragState.startScaleX - dx/200); item.transform.scaleY = Math.max(0.05, handleDragState.startScaleY - dy/200); }
       }
-      renderFrame(state); renderInspector(); updateSelectionOverlay();
+      if (!_canvasDragRaf) {
+        _canvasDragRaf = requestAnimationFrame(() => {
+          _canvasDragRaf = null;
+          renderFrame(state);
+          updateSelectionOverlay();
+        });
+      }
     }
     if (canvasDrag) {
       const dx = (e.clientX - canvasDrag.startMouseX) * canvasDrag.scaleFactorX;
       const dy = (e.clientY - canvasDrag.startMouseY) * canvasDrag.scaleFactorY;
       canvasDrag.item.transform.x = canvasDrag.startItemX + dx;
       canvasDrag.item.transform.y = canvasDrag.startItemY + dy;
-      renderFrame(state); renderInspector(); updateSelectionOverlay();
+      if (!_canvasDragRaf) {
+        _canvasDragRaf = requestAnimationFrame(() => {
+          _canvasDragRaf = null;
+          renderFrame(state);
+          updateSelectionOverlay();
+        });
+      }
     }
   });
 
   document.addEventListener('mouseup', () => {
-    if (handleDragState || canvasDrag) { pushHistory(); handleDragState = null; canvasDrag = null; }
+    if (handleDragState || canvasDrag) {
+      pushHistory();
+      renderInspector();
+      handleDragState = null;
+      canvasDrag = null;
+    }
   });
 
   // ── TIMELINE CLIP DRAG FUNCTIONS ──
@@ -2205,7 +2375,6 @@ function setupEventListeners() {
     if (!_dragRafId) {
       _dragRafId = requestAnimationFrame(() => {
         _dragRafId = null;
-        renderInspector();
         const now = performance.now();
         if (now - _dragPreviewThrottle > DRAG_PREVIEW_MS) {
           _dragPreviewThrottle = now;
@@ -2245,6 +2414,7 @@ function setupEventListeners() {
     document.removeEventListener('touchmove', onDragMove);
     document.removeEventListener('touchend', onDragEnd);
     renderTimeline();
+    renderInspector();
     renderFrame(state);
   }
 
