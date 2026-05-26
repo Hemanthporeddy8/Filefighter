@@ -19,6 +19,82 @@ import { exportEngine } from './engine/export-engine.js';
 import { sessionStore } from './engine/session-store.js';
 import { aiBackgroundRemover } from './engine/ai-remover.js';
 
+// ── INDEXEDDB SESSION FILES PERSISTENCE ────────────────────────
+const FILES_DB_NAME = 'EditroySessionFilesDB';
+const FILES_STORE_NAME = 'session_files';
+
+function openFilesDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(FILES_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(FILES_STORE_NAME);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveSessionFile(itemId, file) {
+  try {
+    const db = await openFilesDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(FILES_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(FILES_STORE_NAME);
+      const request = store.put(file, itemId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[SessionFiles] saveSessionFile failed:', e);
+  }
+}
+
+async function getSessionFile(itemId) {
+  try {
+    const db = await openFilesDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(FILES_STORE_NAME, 'readonly');
+      const store = tx.objectStore(FILES_STORE_NAME);
+      const request = store.get(itemId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[SessionFiles] getSessionFile failed:', e);
+    return null;
+  }
+}
+
+async function deleteSessionFile(itemId) {
+  try {
+    const db = await openFilesDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(FILES_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(FILES_STORE_NAME);
+      const request = store.delete(itemId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[SessionFiles] deleteSessionFile failed:', e);
+  }
+}
+
+async function clearSessionFiles() {
+  try {
+    const db = await openFilesDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(FILES_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(FILES_STORE_NAME);
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[SessionFiles] clearSessionFiles failed:', e);
+  }
+}
+
 // ── GLOBAL STATE ──────────────────────────────────────────────
 export const state = {
   items: [], // Array of { id, type, file, src, proxySrc, thumbnail, start, duration, trimStart, trimEnd, track, volume, filters, transform, opacity, blendMode }
@@ -123,6 +199,43 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   }
 });
 
+async function restoreSessionFiles() {
+  const saved = sessionStore.loadSession();
+  if (!saved || saved.items.length === 0) return;
+  
+  setProcessing(true, 'Restoring session...', 'Re-linking active media files...');
+  
+  for (const item of state.items) {
+    if (item.type === 'text') continue;
+    
+    // Get stored file from IndexedDB
+    const file = await getSessionFile(item.id);
+    if (file) {
+      item.file = file;
+      item.src = memoryManager.trackBlob(URL.createObjectURL(file));
+      
+      if (item.type === 'image') {
+        item.thumbnail = item.src;
+      } else if (item.type === 'video') {
+        // If there's no thumbnail restored, generate a new one
+        if (!item.thumbnail) {
+          const vid = document.createElement('video');
+          vid.preload = 'metadata';
+          vid.src = item.src;
+          await new Promise(r => { vid.onloadedmetadata = r; vid.onerror = r; });
+          if (vid.videoWidth) {
+            item.thumbnail = await generateThumbnail(vid);
+          }
+        }
+      }
+    }
+  }
+  
+  setProcessing(false);
+  syncAudioGraph();
+  renderAll();
+}
+
 // ── STARTUP INITIALIZATION ────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   // Apply active layout theme
@@ -171,8 +284,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     state.totalDuration = saved.totalDuration || 30;
     state.masterVolume = saved.masterVolume || 1;
     computeTotalDuration();
-    renderAll();
-    showToast('💾 Session restored', 'Recovered clip layers.');
+    
+    restoreSessionFiles().then(() => {
+      showToast('💾 Session restored', 'Recovered clip layers.');
+    }).catch(err => {
+      console.error('Failed to restore session files:', err);
+      renderAll();
+    });
   } else {
     renderAll();
   }
@@ -258,7 +376,7 @@ function renderFrame(st) {
       renderCtx.rotate((item.transform.rotation || 0) * Math.PI / 180);
       renderCtx.globalAlpha = ((item.opacity ?? 100) / 100) * transAlpha;
       
-      renderCtx.font = `${item.transform.weight || 600} ${item.transform.size || 64}px ${item.transform.font || 'Inter'}`;
+      renderCtx.font = `${item.transform.weight || 600} ${item.transform.size || 64}px "${item.transform.font || 'Inter'}"`;
       renderCtx.fillStyle = item.color || '#fff';
       renderCtx.textAlign = 'center';
       renderCtx.textBaseline = 'middle';
@@ -308,14 +426,49 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
   if (item.type === 'video') {
     const vid = decoderPool.get(item);
     const isPlaying = stateMachine.is(EditorStates.PLAYING);
+    
+    // Force seek once on initialization to ensure the decoder starts loading/decoding the correct frame
+    if (vid._hasSeekedOnce === undefined) {
+      vid._hasSeekedOnce = false;
+    }
+    
     try {
-      if (vid.readyState >= 1) {
-        const threshold = isPlaying ? 0.35 : 0.05;
-        const shouldSeek = isPlaying 
-          ? (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold)
-          : (Math.abs(vid.currentTime - localTime) > threshold);
+      const threshold = isPlaying ? 0.35 : 0.05;
+      let shouldSeek = !vid._hasSeekedOnce || (isPlaying 
+        ? (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold)
+        : (Math.abs(vid.currentTime - localTime) > threshold));
+        
+      if (shouldSeek) {
+        const now = performance.now();
+        const lastSeek = vid._lastSeekTs || 0;
+        
+        // Cap scrubbing seeks to at most once per 60ms
+        if (!isPlaying && vid._hasSeekedOnce && (now - lastSeek < 60)) {
+          shouldSeek = false;
+          
+          // Schedule a deferred seek to ensure the final scrub position is rendered!
+          if (vid._deferredSeekTimeout) {
+            clearTimeout(vid._deferredSeekTimeout);
+          }
+          vid._deferredSeekTimeout = setTimeout(() => {
+            if (!stateMachine.is(EditorStates.PLAYING)) {
+              vid.currentTime = localTime;
+              vid._lastSeekTs = performance.now();
+              import('/video-editor/engine/render-scheduler.js').then(({ renderScheduler }) => {
+                renderScheduler.triggerSingleUpdate();
+              });
+            }
+          }, 65);
+        }
+        
         if (shouldSeek) {
           vid.currentTime = localTime;
+          vid._lastSeekTs = now;
+          vid._hasSeekedOnce = true;
+          if (vid._deferredSeekTimeout) {
+            clearTimeout(vid._deferredSeekTimeout);
+            vid._deferredSeekTimeout = null;
+          }
         }
       }
     } catch (e) {
@@ -368,7 +521,7 @@ function updateMediaPlayback() {
     
     if (isActive) {
       const targetTime = item.trimStart + (state.globalTime - item.start);
-      node.audio.volume = Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
+      node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
       
       const threshold = isPlaying ? 0.3 : 0.05;
       const shouldSeek = isPlaying 
@@ -426,7 +579,7 @@ function syncAudioGraph() {
       memoryManager.audioNodesMap.set(item.id, { audio });
     }
     const node = memoryManager.audioNodesMap.get(item.id);
-    node.audio.volume = Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
+    node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
   });
   
   // Prune deleted sound nodes
@@ -652,6 +805,11 @@ async function handleVideoFiles(files) {
         newItems.push(item);
         state.items.push(item);
         
+        // Save file to IndexedDB session files store so it survives page refresh
+        if (item.file) {
+          await saveSessionFile(item.id, item.file);
+        }
+        
         // 4. Phase 4: Progressive proxy generation (non-blocking)
         if (item.type === 'video' && videoProxy.shouldProxy(item.file, item.videoWidth || 1280, item.videoHeight || 720)) {
           videoProxy.generateProxy(item, (pct) => {
@@ -745,6 +903,11 @@ async function handleAudioFiles(files) {
     if (item) {
       newTracks.push(item);
       state.items.push(item);
+      
+      // Save file to IndexedDB session files store so it survives page refresh
+      if (item.file) {
+        await saveSessionFile(item.id, item.file);
+      }
     }
   }
 
@@ -865,6 +1028,20 @@ function renderInspector() {
     
     document.getElementById('sl-vol').disabled = (item.type === 'image');
     
+    // Mute button binding
+    const muteBtn = document.getElementById('btn-mute-clip');
+    if (muteBtn) {
+      muteBtn.textContent = item.muted ? '🔊 Unmute clip' : '🔇 Mute clip';
+      muteBtn.disabled = (item.type === 'image');
+    }
+
+    // Track lane dropdown binding
+    const trackLaneSelect = document.getElementById('sel-track-lane');
+    if (trackLaneSelect) {
+      trackLaneSelect.value = item.track || (item.type === 'video' ? 'v1' : 'v2');
+      trackLaneSelect.disabled = false;
+    }
+    
     const ts = document.getElementById('in-trim-start'); if(ts) ts.value = item.trimStart.toFixed(2);
     const te = document.getElementById('in-trim-end'); if(te) te.value = item.trimEnd.toFixed(2);
     
@@ -883,6 +1060,19 @@ function renderInspector() {
     if(textPane) textPane.style.display = 'none';
     setSlider('sl-vol', 'val-vol', Math.round((item.volume ?? 1) * 100));
     document.getElementById('sl-vol').disabled = false;
+
+    // Mute button binding for audio
+    const muteBtn = document.getElementById('btn-mute-clip');
+    if (muteBtn) {
+      muteBtn.textContent = item.muted ? '🔊 Unmute clip' : '🔇 Mute clip';
+      muteBtn.disabled = false;
+    }
+
+    // Track lane dropdown binding (disabled for audio)
+    const trackLaneSelect = document.getElementById('sel-track-lane');
+    if (trackLaneSelect) {
+      trackLaneSelect.disabled = true;
+    }
   } else if (item.type === 'text') {
     if(videoPane) videoPane.style.display = 'none';
     if(textPane) textPane.style.display = 'flex';
@@ -996,6 +1186,7 @@ function deleteLayer(itemId) {
 
     memoryManager.freeClipResources(toDelete);
     state.items = state.items.filter(c => c.id !== toDelete.id);
+    deleteSessionFile(itemId); // Remove from IndexedDB session store
 
     // Ripple shift subsequent clips in the same track
     state.items.forEach(item => {
@@ -1047,7 +1238,7 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('btn-split').addEventListener('click', () => {
+  document.getElementById('btn-split').addEventListener('click', async () => {
     const item = state.items.find(i => i.id === state.activeLayer);
     if (!item) return;
 
@@ -1062,6 +1253,28 @@ function setupEventListeners() {
     const b = { ...item, id: uid(), filters: {...item.filters}, transform: {...item.transform}, start: state.globalTime, trimStart: splitTimeLocal, duration: item.trimEnd - splitTimeLocal };
 
     state.items.splice(idx, 1, a, b);
+    
+    // Save new split clips' files to IndexedDB session files store so they survive page refresh
+    if (a.file) {
+      await saveSessionFile(a.id, a.file);
+    }
+    if (b.file) {
+      await saveSessionFile(b.id, b.file);
+    }
+    
+    // Remove the old item's hardware decoder and WebAudio resources safely without revoking Blob URL
+    decoderPool.remove(item.id);
+    const soundNode = memoryManager.audioNodesMap.get(item.id);
+    if (soundNode) {
+      soundNode.audio.pause();
+      soundNode.audio.removeAttribute('src');
+      soundNode.audio.load();
+      memoryManager.audioNodesMap.delete(item.id);
+    }
+    
+    // Delete the original split clip's file from IndexedDB
+    await deleteSessionFile(item.id);
+
     state.activeLayer = a.id;
     pushHistory();
     computeTotalDuration();
@@ -1358,6 +1571,27 @@ function setupEventListeners() {
     }
   });
 
+  document.getElementById('btn-mute-clip')?.addEventListener('click', () => {
+    const item = state.items.find(x => x.id === state.activeLayer);
+    if (item) {
+      item.muted = !item.muted;
+      const muteBtn = document.getElementById('btn-mute-clip');
+      if (muteBtn) muteBtn.textContent = item.muted ? '🔊 Unmute clip' : '🔇 Mute clip';
+      syncAudioGraph();
+      pushHistory();
+      renderAll();
+    }
+  });
+
+  document.getElementById('sel-track-lane')?.addEventListener('change', e => {
+    const item = state.items.find(x => x.id === state.activeLayer);
+    if (item) {
+      item.track = e.target.value;
+      pushHistory();
+      renderAll();
+    }
+  });
+
   // ── TRANSFORM FIELDS ──
   const bindTransformInput = (inputId, prop) => {
     document.getElementById(inputId)?.addEventListener('input', e => {
@@ -1575,6 +1809,39 @@ function setupEventListeners() {
   canvasDrag = null;
   const previewCanvas = document.getElementById('preview-canvas');
   const renderCanvas = document.getElementById('preview-img-canvas');
+
+  previewCanvas?.addEventListener('contextmenu', e => {
+    const renderCanvas = document.getElementById('preview-img-canvas');
+    if (!renderCanvas) return;
+    
+    const activeItems = state.items.filter(item => {
+      return state.globalTime >= item.start && state.globalTime < item.start + item.duration;
+    });
+    
+    const clickedItem = activeItems.find(item => {
+      if (item.type !== 'image' && item.type !== 'text') return false;
+      const bounds = getItemBoundsOnScreen(item);
+      if (!bounds) return false;
+      
+      const rect = renderCanvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      return (mouseX >= bounds.cx - bounds.halfW && 
+              mouseX <= bounds.cx + bounds.halfW && 
+              mouseY >= bounds.cy - bounds.halfH && 
+              mouseY <= bounds.cy + bounds.halfH);
+    });
+
+    if (clickedItem) {
+      e.preventDefault();
+      e.stopPropagation();
+      selectLayer(clickedItem.id);
+      if (typeof window.showTimelineContextMenu === 'function') {
+        window.showTimelineContextMenu(e, clickedItem.id);
+      }
+    }
+  });
 
   previewCanvas?.addEventListener('mousedown', e => {
     const item = state.items.find(i => i.id === state.activeLayer);
@@ -1866,9 +2133,21 @@ function getItemBoundsOnScreen(item) {
       halfH = img.naturalHeight * fitScale * (item.transform.scaleY ?? 1) * scaleY / 2;
     }
   } else if (item.type === 'text') {
-    const fontSize = (item.transform.size || 64) * (item.transform.scaleX ?? 1);
-    halfW = (item.name.length * fontSize * 0.35 * scaleX) / 2;
-    halfH = fontSize * scaleY / 2 + 8;
+    const ctx = pc.getContext('2d');
+    ctx.save();
+    const fontSize = item.transform.size || 64;
+    const fontName = item.transform.font || 'Inter';
+    const fontWeight = item.transform.weight || 600;
+    ctx.font = `${fontWeight} ${fontSize}px "${fontName}"`;
+    const metrics = ctx.measureText(item.name || '');
+    ctx.restore();
+    
+    const textWidth = metrics.width;
+    const scaleFactorX = (item.transform.scaleX ?? 1);
+    const scaleFactorY = (item.transform.scaleY ?? 1);
+    
+    halfW = (textWidth * scaleFactorX * scaleX) / 2 + 10;
+    halfH = (fontSize * scaleFactorY * scaleY) / 2 + 10;
   }
   return { cx, cy, halfW, halfH };
 }
@@ -2004,6 +2283,15 @@ async function loadProjectFromZip(zipBlob) {
   });
 
   state.items = await Promise.all(filePromises);
+
+  // Save restored files to session IndexedDB so they survive page refresh!
+  await clearSessionFiles();
+  for (const item of state.items) {
+    if (item.file && item.id) {
+      await saveSessionFile(item.id, item.file);
+    }
+  }
+
   state.totalDuration = project.totalDuration || 30;
   state.masterVolume = project.masterVolume || 1;
 
@@ -2132,6 +2420,7 @@ async function handleResetProject() {
   state.masterVolume = 1;
 
   sessionStore.clearSession();
+  await clearSessionFiles(); // Clear IndexedDB session files!
   pushHistory();
   computeTotalDuration();
   syncAudioGraph();

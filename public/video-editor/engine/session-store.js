@@ -17,9 +17,11 @@ class SessionStore {
       const serializableItems = items.map(item => {
         // Strip out active HTMLVideoElements and transient Blob URLs (re-bound on launch)
         const { file, src, proxySrc, thumbnail, ...rest } = item;
+        const savedThumb = (thumbnail && thumbnail.startsWith('data:')) ? thumbnail : '';
         
         return {
           ...rest,
+          thumbnail: savedThumb,
           // Save file reference names so PWA recovery can query re-links
           fileName: file ? file.name : (item.name || ''),
           fileSize: file ? file.size : 0,
