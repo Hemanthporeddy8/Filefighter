@@ -522,131 +522,141 @@ function renderFrame(st) {
     st.globalTime < (f.start + f.duration)
   );
 
-  activeFxList.forEach(fx => {
-    if (fx.fxType === 'blur') {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = renderCanvas.width;
-      tempCanvas.height = renderCanvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.drawImage(renderCanvas, 0, 0);
+  if (activeFxList.length > 0) {
+    // Persistent offscreen canvas layers cache (zero GC layout thrashing allocations)
+    if (!window._fxScratchCanvas) {
+      window._fxScratchCanvas = document.createElement('canvas');
+      window._fxScratchCtx = window._fxScratchCanvas.getContext('2d');
+    }
+    const w = renderCanvas.width;
+    const h = renderCanvas.height;
+    if (window._fxScratchCanvas.width !== w || window._fxScratchCanvas.height !== h) {
+      window._fxScratchCanvas.width = w;
+      window._fxScratchCanvas.height = h;
+    }
+    
+    activeFxList.forEach(fx => {
+      const scratchCanvas = window._fxScratchCanvas;
+      const scratchCtx = window._fxScratchCtx;
       
-      renderCtx.save();
-      renderCtx.filter = 'blur(6px)';
-      renderCtx.drawImage(tempCanvas, 0, 0);
-      renderCtx.restore();
-    } else if (fx.fxType === 'glitch') {
-      const w = renderCanvas.width;
-      const h = renderCanvas.height;
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = w;
-      tempCanvas.height = h;
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.drawImage(renderCanvas, 0, 0);
-      
-      renderCtx.clearRect(0, 0, w, h);
-      
-      const slices = 8;
-      for (let i = 0; i < slices; i++) {
-        const sy = (h / slices) * i;
-        const sh = h / slices;
-        const disp = (Math.random() - 0.5) * 20;
+      if (fx.fxType === 'blur') {
+        scratchCtx.clearRect(0, 0, w, h);
+        scratchCtx.drawImage(renderCanvas, 0, 0);
         
         renderCtx.save();
-        if (Math.random() < 0.35) {
-          renderCtx.globalAlpha = 0.8;
-          renderCtx.drawImage(tempCanvas, 0, sy, w, sh, disp - 5, sy, w, sh);
-          renderCtx.fillStyle = 'rgba(255, 0, 100, 0.12)';
-          renderCtx.fillRect(0, sy, w, sh);
-        } else {
-          renderCtx.drawImage(tempCanvas, 0, sy, w, sh, disp, sy, w, sh);
+        renderCtx.filter = 'blur(6px)';
+        renderCtx.drawImage(scratchCanvas, 0, 0);
+        renderCtx.restore();
+      } else if (fx.fxType === 'glitch') {
+        scratchCtx.clearRect(0, 0, w, h);
+        scratchCtx.drawImage(renderCanvas, 0, 0);
+        
+        renderCtx.clearRect(0, 0, w, h);
+        
+        const slices = 8;
+        for (let i = 0; i < slices; i++) {
+          const sy = (h / slices) * i;
+          const sh = h / slices;
+          const disp = (Math.random() - 0.5) * 20;
+          
+          renderCtx.save();
+          if (Math.random() < 0.35) {
+            renderCtx.globalAlpha = 0.8;
+            renderCtx.drawImage(scratchCanvas, 0, sy, w, sh, disp - 5, sy, w, sh);
+            renderCtx.fillStyle = 'rgba(255, 0, 100, 0.12)';
+            renderCtx.fillRect(0, sy, w, sh);
+          } else {
+            renderCtx.drawImage(scratchCanvas, 0, sy, w, sh, disp, sy, w, sh);
+          }
+          renderCtx.restore();
+        }
+      } else if (fx.fxType === 'vhs') {
+        renderCtx.save();
+        renderCtx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        for (let y = 0; y < h; y += 4) {
+          renderCtx.fillRect(0, y, w, 2);
+        }
+        const timeSeed = Date.now();
+        const noiseY = (timeSeed / 8) % h;
+        renderCtx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        renderCtx.fillRect(0, noiseY, w, Math.random() * 15 + 5);
+        
+        renderCtx.globalCompositeOperation = 'color';
+        renderCtx.fillStyle = 'rgba(0, 120, 255, 0.04)';
+        renderCtx.fillRect(0, 0, w, h);
+        renderCtx.restore();
+      } else if (fx.fxType === 'film') {
+        renderCtx.save();
+        renderCtx.globalCompositeOperation = 'color';
+        renderCtx.fillStyle = 'rgba(150, 100, 50, 0.2)';
+        renderCtx.fillRect(0, 0, w, h);
+        renderCtx.restore();
+        
+        renderCtx.save();
+        renderCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        renderCtx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          if (Math.random() < 0.6) {
+            const scratchX = Math.random() * w;
+            renderCtx.beginPath();
+            renderCtx.moveTo(scratchX, 0);
+            renderCtx.lineTo(scratchX + (Math.random() - 0.5) * 10, h);
+            renderCtx.stroke();
+          }
+        }
+        renderCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        for (let i = 0; i < 4; i++) {
+          if (Math.random() < 0.5) {
+            renderCtx.beginPath();
+            renderCtx.arc(Math.random() * w, Math.random() * h, Math.random() * 2 + 1, 0, Math.PI * 2);
+            renderCtx.fill();
+          }
         }
         renderCtx.restore();
-      }
-    } else if (fx.fxType === 'vhs') {
-      const w = renderCanvas.width;
-      const h = renderCanvas.height;
-      renderCtx.save();
-      renderCtx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-      for (let y = 0; y < h; y += 4) {
-        renderCtx.fillRect(0, y, w, 2);
-      }
-      const timeSeed = Date.now();
-      const noiseY = (timeSeed / 8) % h;
-      renderCtx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-      renderCtx.fillRect(0, noiseY, w, Math.random() * 15 + 5);
-      
-      renderCtx.globalCompositeOperation = 'color';
-      renderCtx.fillStyle = 'rgba(0, 120, 255, 0.04)';
-      renderCtx.fillRect(0, 0, w, h);
-      renderCtx.restore();
-    } else if (fx.fxType === 'film') {
-      const w = renderCanvas.width;
-      const h = renderCanvas.height;
-      renderCtx.save();
-      renderCtx.globalCompositeOperation = 'color';
-      renderCtx.fillStyle = 'rgba(150, 100, 50, 0.2)';
-      renderCtx.fillRect(0, 0, w, h);
-      renderCtx.restore();
-      
-      renderCtx.save();
-      renderCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-      renderCtx.lineWidth = 1;
-      for (let i = 0; i < 3; i++) {
-        if (Math.random() < 0.6) {
-          const scratchX = Math.random() * w;
-          renderCtx.beginPath();
-          renderCtx.moveTo(scratchX, 0);
-          renderCtx.lineTo(scratchX + (Math.random() - 0.5) * 10, h);
-          renderCtx.stroke();
+      } else if (fx.fxType === 'pixelate') {
+        if (!window._fxTinyCanvas) {
+          window._fxTinyCanvas = document.createElement('canvas');
+          window._fxTinyCtx = window._fxTinyCanvas.getContext('2d');
         }
-      }
-      renderCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-      for (let i = 0; i < 4; i++) {
-        if (Math.random() < 0.5) {
-          renderCtx.beginPath();
-          renderCtx.arc(Math.random() * w, Math.random() * h, Math.random() * 2 + 1, 0, Math.PI * 2);
-          renderCtx.fill();
+        const pixelSize = 10;
+        const pw = Math.max(16, Math.floor(w / pixelSize));
+        const ph = Math.max(9, Math.floor(h / pixelSize));
+        if (window._fxTinyCanvas.width !== pw || window._fxTinyCanvas.height !== ph) {
+          window._fxTinyCanvas.width = pw;
+          window._fxTinyCanvas.height = ph;
         }
-      }
-      renderCtx.restore();
-    } else if (fx.fxType === 'pixelate') {
-      const w = renderCanvas.width;
-      const h = renderCanvas.height;
-      const pixelSize = 10;
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = w / pixelSize;
-      tempCanvas.height = h / pixelSize;
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.drawImage(renderCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
-      
-      renderCtx.save();
-      renderCtx.imageSmoothingEnabled = false;
-      renderCtx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, w, h);
-      renderCtx.restore();
-    } else if (fx.fxType === 'noise') {
-      if (!window._noisePattern) {
-        const noiseCanvas = document.createElement('canvas');
-        noiseCanvas.width = 64;
-        noiseCanvas.height = 64;
-        const nCtx = noiseCanvas.getContext('2d');
-        const nData = nCtx.createImageData(64, 64);
-        for (let i = 0; i < nData.data.length; i += 4) {
-          const val = Math.floor(Math.random() * 255);
-          nData.data[i] = val;
-          nData.data[i+1] = val;
-          nData.data[i+2] = val;
-          nData.data[i+3] = 18;
+        
+        window._fxTinyCtx.drawImage(renderCanvas, 0, 0, w, h, 0, 0, pw, ph);
+        
+        renderCtx.save();
+        renderCtx.imageSmoothingEnabled = false;
+        renderCtx.drawImage(window._fxTinyCanvas, 0, 0, pw, ph, 0, 0, w, h);
+        renderCtx.restore();
+      } else if (fx.fxType === 'noise') {
+        if (!window._noisePattern) {
+          const noiseCanvas = document.createElement('canvas');
+          noiseCanvas.width = 64;
+          noiseCanvas.height = 64;
+          const nCtx = noiseCanvas.getContext('2d');
+          const nData = nCtx.createImageData(64, 64);
+          for (let i = 0; i < nData.data.length; i += 4) {
+            const val = Math.floor(Math.random() * 255);
+            nData.data[i] = val;
+            nData.data[i+1] = val;
+            nData.data[i+2] = val;
+            nData.data[i+3] = 18;
+          }
+          nCtx.putImageData(nData, 0, 0);
+          window._noisePattern = renderCtx.createPattern(noiseCanvas, 'repeat');
         }
-        nCtx.putImageData(nData, 0, 0);
-        window._noisePattern = renderCtx.createPattern(noiseCanvas, 'repeat');
+        renderCtx.save();
+        renderCtx.translate(Math.random() * 64, Math.random() * 64);
+        renderCtx.fillStyle = window._noisePattern;
+        renderCtx.fillRect(-64, -64, w + 64, h + 64);
+        renderCtx.restore();
       }
-      renderCtx.save();
-      renderCtx.translate(Math.random() * 64, Math.random() * 64);
-      renderCtx.fillStyle = window._noisePattern;
-      renderCtx.fillRect(-64, -64, renderCanvas.width + 64, renderCanvas.height + 64);
-      renderCtx.restore();
-    }
-  });
+    });
+  }
 
   updateSelectionOverlay();
 }
