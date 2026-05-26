@@ -92,8 +92,22 @@ class RenderScheduler {
 
     // Advance timeline head time
     if (stateMachine.is(EditorStates.PLAYING) && this.state) {
+      // Retrieve active speed effects at current playhead from track 'fx1'
+      let speedMult = 1.0;
+      if (this.state.items) {
+        const activeSpeed = this.state.items.find(f => 
+          f.track === 'fx1' && 
+          f.fxType === 'slowmo' && 
+          this.state.globalTime >= f.start && 
+          this.state.globalTime < (f.start + f.duration)
+        );
+        if (activeSpeed) {
+          speedMult = parseFloat(activeSpeed.speed) || 0.5;
+        }
+      }
+
       const dt = elapsed / 1000;
-      this.state.globalTime += dt;
+      this.state.globalTime += dt * speedMult;
 
       // Handle timeline end bounds
       if (this.state.globalTime >= this.state.totalDuration) {

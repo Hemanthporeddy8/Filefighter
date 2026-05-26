@@ -60,8 +60,8 @@ class TimelineVirtualizer {
       inner.style.width = totalPx + 'px';
     }
 
-    // 2. Virtualize each track layer (V1, V2, T1, A1)
-    ['v1', 'v2', 't1', 'a1'].forEach(trackId => {
+    // 2. Virtualize each track layer (fx1, v2, v1, a1, t1)
+    ['fx1', 'v2', 'v1', 'a1', 't1'].forEach(trackId => {
       const track = document.getElementById('track-' + trackId);
       if (!track) return;
 
@@ -84,7 +84,7 @@ class TimelineVirtualizer {
       const visibleIds = new Set(visibleItems.map(i => i.id));
 
       // Remove DOM elements of clips that scrolled out of view
-      track.querySelectorAll('.tl-clip, .tl-audio-block').forEach(el => {
+      track.querySelectorAll('.tl-clip, .tl-audio-block, .tl-fx-block').forEach(el => {
         const clipId = el.dataset.id;
         if (!visibleIds.has(clipId)) {
           el.remove();
@@ -135,8 +135,15 @@ class TimelineVirtualizer {
 
         // Apply HTML template once or if it has modified parameters
         const isAudio = trackId === 'a1';
-        const isOffline = item.type !== 'text' && !item.src;
-        const expectedClass = (isAudio ? 'tl-audio-block' : 'tl-clip') + (isSelected ? ' selected' : '') + (isOffline ? ' offline' : '');
+        const isFx = trackId === 'fx1';
+        const isOffline = item.type !== 'text' && item.type !== 'effect' && !item.src;
+        
+        let expectedClass = 'tl-clip';
+        if (isAudio) expectedClass = 'tl-audio-block';
+        else if (isFx) expectedClass = 'tl-fx-block';
+        
+        if (isSelected) expectedClass += ' selected';
+        if (isOffline) expectedClass += ' offline';
         
         if (el.className !== expectedClass) {
           el.className = expectedClass;
@@ -146,10 +153,14 @@ class TimelineVirtualizer {
           ? `<span class="tl-audio-name">${item.name}</span>
              <div class="tl-trim-left" data-action="trim-start"></div>
              <div class="tl-trim-right" data-action="trim-end"></div>`
-          : `${item.thumbnail ? `<div class="tl-clip-filmstrip"><img class="tl-clip-frame" src="${item.thumbnail}" draggable="false"/></div>` : ''}
-             <div class="tl-clip-name">${item.name}</div>
-             <div class="tl-trim-left" data-action="trim-start"></div>
-             <div class="tl-trim-right" data-action="trim-end"></div>`;
+          : (isFx
+              ? `<span class="tl-fx-name">✨ ${item.name}</span>
+                 <div class="tl-trim-left" data-action="trim-start"></div>
+                 <div class="tl-trim-right" data-action="trim-end"></div>`
+              : `${item.thumbnail ? `<div class="tl-clip-filmstrip"><img class="tl-clip-frame" src="${item.thumbnail}" draggable="false"/></div>` : ''}
+                 <div class="tl-clip-name">${item.name}</div>
+                 <div class="tl-trim-left" data-action="trim-start"></div>
+                 <div class="tl-trim-right" data-action="trim-end"></div>`);
 
         if (el.innerHTML !== expectedHTML) {
           el.innerHTML = expectedHTML;

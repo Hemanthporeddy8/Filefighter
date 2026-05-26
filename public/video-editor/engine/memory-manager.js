@@ -34,19 +34,21 @@ class MemoryManager {
    * Clears all system memory and releases all registered Blob resources
    * when deleting a clip to force native browser garbage collection.
    */
-  freeClipResources(item) {
-    // 1. Revoke the Blob URLs immediately
-    if (item.src && item.src.startsWith('blob:')) {
+  freeClipResources(item, sharedOptions = {}) {
+    const { srcShared = false, proxyShared = false, thumbShared = false } = sharedOptions;
+
+    // 1. Revoke the Blob URLs only if no other timeline item is using them
+    if (item.src && item.src.startsWith('blob:') && !srcShared) {
       URL.revokeObjectURL(item.src);
       this._blobUrls.delete(item.src);
     }
     
-    if (item.proxySrc && item.proxySrc.startsWith('blob:')) {
+    if (item.proxySrc && item.proxySrc.startsWith('blob:') && !proxyShared) {
       URL.revokeObjectURL(item.proxySrc);
       this._blobUrls.delete(item.proxySrc);
     }
 
-    if (item.thumbnail && item.thumbnail.startsWith('blob:')) {
+    if (item.thumbnail && item.thumbnail.startsWith('blob:') && !thumbShared) {
       URL.revokeObjectURL(item.thumbnail);
       this._blobUrls.delete(item.thumbnail);
     }

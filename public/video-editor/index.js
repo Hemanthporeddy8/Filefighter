@@ -385,6 +385,140 @@ function renderFrame(st) {
     }
   });
 
+  // Apply master post-processing visual effects (excluding slowmo)
+  const activeFxList = st.items.filter(f => 
+    f.track === 'fx1' && 
+    f.fxType !== 'slowmo' &&
+    st.globalTime >= f.start && 
+    st.globalTime < (f.start + f.duration)
+  );
+
+  activeFxList.forEach(fx => {
+    if (fx.fxType === 'blur') {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = renderCanvas.width;
+      tempCanvas.height = renderCanvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(renderCanvas, 0, 0);
+      
+      renderCtx.save();
+      renderCtx.filter = 'blur(6px)';
+      renderCtx.drawImage(tempCanvas, 0, 0);
+      renderCtx.restore();
+    } else if (fx.fxType === 'glitch') {
+      const w = renderCanvas.width;
+      const h = renderCanvas.height;
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = w;
+      tempCanvas.height = h;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(renderCanvas, 0, 0);
+      
+      renderCtx.clearRect(0, 0, w, h);
+      
+      const slices = 8;
+      for (let i = 0; i < slices; i++) {
+        const sy = (h / slices) * i;
+        const sh = h / slices;
+        const disp = (Math.random() - 0.5) * 20;
+        
+        renderCtx.save();
+        if (Math.random() < 0.35) {
+          renderCtx.globalAlpha = 0.8;
+          renderCtx.drawImage(tempCanvas, 0, sy, w, sh, disp - 5, sy, w, sh);
+          renderCtx.fillStyle = 'rgba(255, 0, 100, 0.12)';
+          renderCtx.fillRect(0, sy, w, sh);
+        } else {
+          renderCtx.drawImage(tempCanvas, 0, sy, w, sh, disp, sy, w, sh);
+        }
+        renderCtx.restore();
+      }
+    } else if (fx.fxType === 'vhs') {
+      const w = renderCanvas.width;
+      const h = renderCanvas.height;
+      renderCtx.save();
+      renderCtx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+      for (let y = 0; y < h; y += 4) {
+        renderCtx.fillRect(0, y, w, 2);
+      }
+      const timeSeed = Date.now();
+      const noiseY = (timeSeed / 8) % h;
+      renderCtx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      renderCtx.fillRect(0, noiseY, w, Math.random() * 15 + 5);
+      
+      renderCtx.globalCompositeOperation = 'color';
+      renderCtx.fillStyle = 'rgba(0, 120, 255, 0.04)';
+      renderCtx.fillRect(0, 0, w, h);
+      renderCtx.restore();
+    } else if (fx.fxType === 'film') {
+      const w = renderCanvas.width;
+      const h = renderCanvas.height;
+      renderCtx.save();
+      renderCtx.globalCompositeOperation = 'color';
+      renderCtx.fillStyle = 'rgba(150, 100, 50, 0.2)';
+      renderCtx.fillRect(0, 0, w, h);
+      renderCtx.restore();
+      
+      renderCtx.save();
+      renderCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      renderCtx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        if (Math.random() < 0.6) {
+          const scratchX = Math.random() * w;
+          renderCtx.beginPath();
+          renderCtx.moveTo(scratchX, 0);
+          renderCtx.lineTo(scratchX + (Math.random() - 0.5) * 10, h);
+          renderCtx.stroke();
+        }
+      }
+      renderCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      for (let i = 0; i < 4; i++) {
+        if (Math.random() < 0.5) {
+          renderCtx.beginPath();
+          renderCtx.arc(Math.random() * w, Math.random() * h, Math.random() * 2 + 1, 0, Math.PI * 2);
+          renderCtx.fill();
+        }
+      }
+      renderCtx.restore();
+    } else if (fx.fxType === 'pixelate') {
+      const w = renderCanvas.width;
+      const h = renderCanvas.height;
+      const pixelSize = 10;
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = w / pixelSize;
+      tempCanvas.height = h / pixelSize;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(renderCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+      
+      renderCtx.save();
+      renderCtx.imageSmoothingEnabled = false;
+      renderCtx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, w, h);
+      renderCtx.restore();
+    } else if (fx.fxType === 'noise') {
+      if (!window._noisePattern) {
+        const noiseCanvas = document.createElement('canvas');
+        noiseCanvas.width = 64;
+        noiseCanvas.height = 64;
+        const nCtx = noiseCanvas.getContext('2d');
+        const nData = nCtx.createImageData(64, 64);
+        for (let i = 0; i < nData.data.length; i += 4) {
+          const val = Math.floor(Math.random() * 255);
+          nData.data[i] = val;
+          nData.data[i+1] = val;
+          nData.data[i+2] = val;
+          nData.data[i+3] = 18;
+        }
+        nCtx.putImageData(nData, 0, 0);
+        window._noisePattern = renderCtx.createPattern(noiseCanvas, 'repeat');
+      }
+      renderCtx.save();
+      renderCtx.translate(Math.random() * 64, Math.random() * 64);
+      renderCtx.fillStyle = window._noisePattern;
+      renderCtx.fillRect(-64, -64, renderCanvas.width + 64, renderCanvas.height + 64);
+      renderCtx.restore();
+    }
+  });
+
   updateSelectionOverlay();
 }
 
@@ -426,6 +560,22 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
   if (item.type === 'video') {
     const vid = decoderPool.get(item);
     const isPlaying = stateMachine.is(EditorStates.PLAYING);
+    
+    // Retrieve active speed effects at current playhead from track 'fx1'
+    let speedMult = 1.0;
+    const activeSpeed = state.items.find(f => 
+      f.track === 'fx1' && 
+      f.fxType === 'slowmo' && 
+      state.globalTime >= f.start && 
+      state.globalTime < (f.start + f.duration)
+    );
+    if (activeSpeed) {
+      speedMult = parseFloat(activeSpeed.speed) || 0.5;
+    }
+    
+    if (vid && vid.playbackRate !== speedMult) {
+      vid.playbackRate = speedMult;
+    }
     
     // Force seek once on initialization to ensure the decoder starts loading/decoding the correct frame
     if (vid._hasSeekedOnce === undefined) {
@@ -520,6 +670,22 @@ function updateMediaPlayback() {
     const isPlaying = stateMachine.is(EditorStates.PLAYING);
     
     if (isActive) {
+      // Retrieve active speed effects at current playhead from track 'fx1'
+      let speedMult = 1.0;
+      const activeSpeed = state.items.find(f => 
+        f.track === 'fx1' && 
+        f.fxType === 'slowmo' && 
+        state.globalTime >= f.start && 
+        state.globalTime < (f.start + f.duration)
+      );
+      if (activeSpeed) {
+        speedMult = parseFloat(activeSpeed.speed) || 0.5;
+      }
+      
+      if (node.audio.playbackRate !== speedMult) {
+        node.audio.playbackRate = speedMult;
+      }
+
       const targetTime = item.trimStart + (state.globalTime - item.start);
       node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
       
@@ -998,11 +1164,13 @@ function renderInspector() {
   const empty = document.getElementById('rp-empty');
   const videoPane = document.getElementById('rp-video');
   const textPane = document.getElementById('rp-text');
+  const effectsPane = document.getElementById('rp-effects');
   
   if (!state.activeLayer) {
     if(empty) empty.style.display = 'flex';
     if(videoPane) videoPane.style.display = 'none';
     if(textPane) textPane.style.display = 'none';
+    if(effectsPane) effectsPane.style.display = 'none';
     return;
   }
   
@@ -1011,10 +1179,13 @@ function renderInspector() {
     if(empty) empty.style.display = 'flex';
     if(videoPane) videoPane.style.display = 'none';
     if(textPane) textPane.style.display = 'none';
+    if(effectsPane) effectsPane.style.display = 'none';
     return; 
   }
   
   if(empty) empty.style.display = 'none';
+  if(effectsPane) effectsPane.style.display = 'none';
+  
   if (item.type === 'video' || item.type === 'image') {
     if(videoPane) videoPane.style.display = 'flex';
     if(textPane) textPane.style.display = 'none';
@@ -1097,6 +1268,29 @@ function renderInspector() {
     if (durInput) durInput.value = item.duration.toFixed(2);
     if (xInput) xInput.value = item.transform.x || 0;
     if (yInput) yInput.value = item.transform.y || 0;
+  } else if (item.type === 'effect') {
+    if(videoPane) videoPane.style.display = 'none';
+    if(textPane) textPane.style.display = 'none';
+    if(effectsPane) effectsPane.style.display = 'flex';
+    
+    const fxNameInput = document.getElementById('in-fx-name');
+    const fxTypeInput = document.getElementById('in-fx-type');
+    const fxStartInput = document.getElementById('in-fx-start');
+    const fxDurInput = document.getElementById('in-fx-dur');
+    const fxSpeedGroup = document.getElementById('fx-speed-group');
+    const fxSpeedSelect = document.getElementById('sel-fx-speed');
+    
+    if (fxNameInput) fxNameInput.value = item.name || '';
+    if (fxTypeInput) fxTypeInput.value = item.fxType || '';
+    if (fxStartInput) fxStartInput.value = item.start.toFixed(2);
+    if (fxDurInput) fxDurInput.value = item.duration.toFixed(2);
+    
+    if (fxSpeedGroup) {
+      fxSpeedGroup.style.display = item.fxType === 'slowmo' ? 'block' : 'none';
+    }
+    if (fxSpeedSelect) {
+      fxSpeedSelect.value = item.speed || '0.5';
+    }
   }
   
   const textList = document.getElementById('text-layers-list');
@@ -1184,7 +1378,11 @@ function deleteLayer(itemId) {
     const deletedDuration = toDelete.duration;
     const deletedTrack = toDelete.track;
 
-    memoryManager.freeClipResources(toDelete);
+    const isSrcShared = state.items.some(it => it.id !== toDelete.id && it.src === toDelete.src);
+    const isProxyShared = state.items.some(it => it.id !== toDelete.id && it.proxySrc === toDelete.proxySrc);
+    const isThumbShared = state.items.some(it => it.id !== toDelete.id && it.thumbnail === toDelete.thumbnail);
+
+    memoryManager.freeClipResources(toDelete, { srcShared: isSrcShared, proxyShared: isProxyShared, thumbShared: isThumbShared });
     state.items = state.items.filter(c => c.id !== toDelete.id);
     deleteSessionFile(itemId); // Remove from IndexedDB session store
 
@@ -1222,6 +1420,26 @@ function addTextLayer(text, size, weight) {
   syncAudioGraph();
   renderAll();
   showToast('Text added', 'Edit it in the Properties panel');
+}
+
+function addEffectLayer(fxType, fxName) {
+  const item = {
+    id: uid(), type: 'effect', name: fxName || 'Effect',
+    start: state.globalTime, duration: 4, trimStart: 0, trimEnd: 4, track: 'fx1',
+    fxType: fxType,
+    speed: fxType === 'slowmo' ? '0.5' : '1.0',
+    filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
+    transform: { x: 0, y: 0, scaleX:1, scaleY:1, rotation:0 },
+    opacity: 100, volume: 0, blendMode: 'normal',
+    transition: { fadeIn: 0, fadeOut: 0 }
+  };
+  state.items.push(item);
+  state.activeLayer = item.id;
+  pushHistory();
+  computeTotalDuration();
+  syncAudioGraph();
+  renderAll();
+  showToast(`${fxName} added`, 'Effect overlay placed on FX1');
 }
 
 // ── UI EVENT LISTENERS ATTACHMENT ─────────────────────────────
@@ -1751,16 +1969,39 @@ function setupEventListeners() {
         showToast('Coming Soon! ✓', 'AI background remover placeholder loaded.');
         return;
       }
-      const item = state.items.find(c => c.id === state.activeLayer);
-      if (!item || !item.filters) { showToast('Select a video/image first'); return; }
-      item.filters = { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, blur: 0 };
-      if (name === 'Glitch' || name === 'Noise') { item.filters.contrast = 150; item.filters.saturate = 150; }
-      else if (name === 'VHS') { item.filters.contrast = 120; item.filters.saturate = 120; item.filters.blur = 1; }
-      else if (name === 'Old Film') { item.filters.sepia = 80; item.filters.contrast = 110; }
-      else if (name === 'Blur') { item.filters.blur = 5; }
-      else if (name === 'Pixelate') { item.filters.contrast = 130; item.filters.grayscale = 20; }
-      renderInspector(); renderFrame(state); pushHistory(); showToast(`Applied: ${name}`);
+      
+      const fxType = el.dataset.fx;
+      if (fxType) {
+        addEffectLayer(fxType, name);
+      }
     });
+  });
+
+  // ── EFFECTS PROPERTIES BINDINGS ──
+  document.getElementById('in-fx-start')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'effect') {
+      item.start = Math.max(0, parseFloat(e.target.value) || 0);
+      computeTotalDuration(); renderTimeline(); pushHistory();
+    }
+  });
+
+  document.getElementById('in-fx-dur')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'effect') {
+      item.duration = Math.max(0.2, parseFloat(e.target.value) || 1);
+      item.trimEnd = item.duration;
+      computeTotalDuration(); renderTimeline(); pushHistory();
+    }
+  });
+
+  document.getElementById('sel-fx-speed')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.type === 'effect' && item.fxType === 'slowmo') {
+      item.speed = e.target.value;
+      pushHistory();
+      renderAll();
+    }
   });
 
   // ── NEW AI TOOLS INITIALIZER ──

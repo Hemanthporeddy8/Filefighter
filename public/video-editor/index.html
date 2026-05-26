@@ -684,6 +684,21 @@ body.is-trimming,.is-trimming *{cursor:ew-resize !important;user-select:none !im
 .tl-audio-name{font-size:9px;font-weight:500;color:rgba(52,211,153,.8);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
+.tl-fx-block {
+  position:absolute;top:3px;bottom:3px;
+  border-radius:5px;
+  background:rgba(139,92,246,.15);
+  border:1px solid rgba(139,92,246,.4);
+  display:flex;align-items:center;gap:5px;padding:0 7px;
+  overflow:hidden;cursor:pointer;
+  will-change:transform;transform:translateZ(0);contain:layout style;
+}
+.tl-fx-block:hover{border-color:rgba(139,92,246,.7)}
+.tl-fx-block.selected{border-color:var(--violet);box-shadow:0 0 0 1px rgba(139,92,246,.3)}
+.tl-fx-name{font-size:9px;font-weight:600;color:rgba(167,139,250,.9);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.track-label--effects{color:rgba(139,92,246,.85) !important;}
+
 .toast{
   position:fixed;bottom:20px;right:20px;
   background:var(--bg3);border:1px solid var(--border2);
@@ -1178,12 +1193,18 @@ html.light .playhead-head {
       <div class="panel-body">
         <div class="section-label" style="margin-bottom:6px">Visual effects</div>
         <div class="effects-grid">
-          <div class="effect-card"><div class="effect-preview fx-glitch"></div><span>Glitch</span></div>
-          <div class="effect-card"><div class="effect-preview fx-vhs"></div><span>VHS</span></div>
-          <div class="effect-card"><div class="effect-preview fx-film"></div><span>Old Film</span></div>
-          <div class="effect-card"><div class="effect-preview fx-blur"></div><span>Blur</span></div>
-          <div class="effect-card"><div class="effect-preview fx-pixelate"></div><span>Pixelate</span></div>
-          <div class="effect-card"><div class="effect-preview fx-noise"></div><span>Noise</span></div>
+          <div class="effect-card" data-fx="glitch" data-name="Glitch"><div class="effect-preview fx-glitch"></div><span>Glitch</span></div>
+          <div class="effect-card" data-fx="vhs" data-name="VHS"><div class="effect-preview fx-vhs"></div><span>VHS</span></div>
+          <div class="effect-card" data-fx="film" data-name="Old Film"><div class="effect-preview fx-film"></div><span>Old Film</span></div>
+          <div class="effect-card" data-fx="blur" data-name="Blur"><div class="effect-preview fx-blur"></div><span>Blur</span></div>
+          <div class="effect-card" data-fx="pixelate" data-name="Pixelate"><div class="effect-preview fx-pixelate"></div><span>Pixelate</span></div>
+          <div class="effect-card" data-fx="noise" data-name="Noise"><div class="effect-preview fx-noise"></div><span>Noise</span></div>
+          <div class="effect-card" data-fx="slowmo" data-name="Slow Motion" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.04)">
+            <div class="effect-preview" style="background:radial-gradient(circle,#1a3c2e,#0a1a12);display:flex;align-items:center;justify-content:center;color:var(--green)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span>Slow Motion (0.5x)</span>
+          </div>
           <div class="effect-card" style="border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.04)">
             <div class="effect-preview" style="background:radial-gradient(circle,#3a1a5c,#0a0a1a);display:flex;align-items:center;justify-content:center;color:var(--violet)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
@@ -1422,6 +1443,29 @@ html.light .playhead-head {
       </div>
     </div>
 
+    <!-- Effects inspector -->
+    <div class="rp-content" id="rp-effects" style="display:none">
+      <div style="padding:10px;display:flex;flex-direction:column;gap:9px;flex:1;overflow-y:auto;scrollbar-width:thin">
+        <div class="prop-field"><label>Effect Name</label><input type="text" id="in-fx-name" readonly style="background:var(--bg2); color:var(--text2); border-color:var(--border)"/></div>
+        <div class="prop-field"><label>Effect Type</label><input type="text" id="in-fx-type" readonly style="background:var(--bg2); color:var(--text2); border-color:var(--border)"/></div>
+        <div class="prop-grid-2">
+          <div class="prop-field"><label>Start (s)</label><input type="number" id="in-fx-start" value="0" min="0" step="0.1"/></div>
+          <div class="prop-field"><label>Duration (s)</label><input type="number" id="in-fx-dur" value="5" min="0.5" step="0.5"/></div>
+        </div>
+        <div class="prop-field" id="fx-speed-group" style="display:none">
+          <label>Speed Multiplier</label>
+          <select id="sel-fx-speed" style="width:100%">
+            <option value="0.25">0.25x (Super Slow)</option>
+            <option value="0.5">0.50x (Slow Motion)</option>
+            <option value="0.75">0.75x (Slightly Slow)</option>
+            <option value="1.0">1.00x (Normal)</option>
+            <option value="1.5">1.50x (Fast)</option>
+            <option value="2.0">2.00x (Double Speed)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <div class="rp-export">
       <button class="export-full-btn" id="btn-export-main" disabled>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8M5 8l3 3 3-3"/><path d="M2 12v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1"/></svg>
@@ -1470,6 +1514,16 @@ html.light .playhead-head {
           <div class="track-row ruler-row">
             <div class="track-label"></div>
             <div class="ruler" id="ruler"></div>
+          </div>
+          <!-- FX1 -->
+          <div class="track-row sm">
+            <div class="track-label track-label--effects" style="color:rgba(139,92,246,.8)">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>
+              FX1
+            </div>
+            <div class="track-content" id="track-fx1">
+              <div class="track-empty">Effects blocks appear here…</div>
+            </div>
           </div>
           <!-- V2 -->
           <div class="track-row">
