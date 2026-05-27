@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, ChangeEvent } from 'react';
+import { extractImagesFromPdfScratch } from '@/lib/pdf-scratch/extractor';
+import { buildPdfFromCanvasesScratch } from '@/lib/pdf-scratch/builder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -72,6 +74,9 @@ export default function DesignStudioPage() {
   // Replacement layers (synchronized across all batch images)
   const [layers, setLayers] = useState<TextReplacementLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  
+  // Store extracted text items for PDF pages (indexed by BatchImage.id)
+  const [pdfTextContent, setPdfTextContent] = useState<Record<string, { items: any[]; viewport: any }>>({});
   
   // Interaction/Canvas settings
   const [zoom, setZoom] = useState(1); // 1 = fit-to-screen
@@ -334,54 +339,102 @@ export default function DesignStudioPage() {
     });
   };
 
-  // Load PDF pages dynamically using pre-installed PDF.js (compatible with all PDF types)
+  // Load PDF pages dynamically using the pre-installed pdfjs-dist with scratch carver fallback
   const loadPdfFile = async (file: File): Promise<BatchImage[]> => {
-    setLoadingMessage('Loading PDF parsing libraries...');
-    const pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
-
-    const buffer = await file.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
-    const totalPages = doc.numPages;
+    setLoadingMessage('Extracting pages from PDF...');
     const pdfPages: BatchImage[] = [];
 
-    for (let pIndex = 1; pIndex <= totalPages; pIndex++) {
-      setLoadingMessage(`Rasterizing PDF Page ${pIndex} of ${totalPages}...`);
-      const page = await doc.getPage(pIndex);
-      const viewport = page.getViewport({ scale: 2.0 }); // Rasterize at high-res for crisp details!
+    try {
+      // 1. Try modern pre-installed pdfjs-dist to handle both vector and scanned PDFs perfectly
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = viewport.width;
-      tempCanvas.height = viewport.height;
-      const ctx = tempCanvas.getContext('2d');
+      const buffer = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const totalPages = doc.numPages;
 
-      if (ctx) {
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const srcDataUrl = tempCanvas.toDataURL('image/png');
+      for (let pIndex = 1; pIndex <= totalPages; pIndex++) {
+        setLoadingMessage(`Rasterizing PDF Page ${pIndex} of ${totalPages}...`);
+        const page = await doc.getPage(pIndex);
+        const viewport = page.getViewport({ scale: 2.0 }); // Rasterize at high-res for crisp details!
 
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = viewport.width;
+        tempCanvas.height = viewport.height;
+        const ctx = tempCanvas.getContext('2d');
+
+        if (ctx) {
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const srcDataUrl = tempCanvas.toDataURL('image/png');
+
+          const loadedImg = new window.Image();
+          await new Promise<void>((r) => {
+            loadedImg.onload = () => r();
+            loadedImg.src = srcDataUrl;
+          });
+
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = viewport.width;
+          offscreenCanvas.height = viewport.height;
+
+          const pageId = `pdf-${Date.now()}-${pIndex}-${Math.random().toString(36).substr(2, 5)}`;
+          
+          // Extract text content items for precise coordinate text matching
+          try {
+            const textContent = await page.getTextContent();
+            setPdfTextContent(prev => ({
+              ...prev,
+              [pageId]: { items: textContent.items, viewport }
+            }));
+          } catch (textErr) {
+            console.warn("Could not extract PDF text content", textErr);
+          }
+
+          pdfPages.push({
+            id: pageId,
+            name: `${file.name.replace('.pdf', '')}_page_${pIndex}`,
+            width: viewport.width,
+            height: viewport.height,
+            originalSrc: srcDataUrl,
+            imgElement: loadedImg,
+            offscreenCanvas: offscreenCanvas,
+            isPdfPage: true,
+            pageIndex: pIndex,
+          });
+        }
+      }
+    } catch (err) {
+      // 2. Fallback to custom scratch JPEG Stream carver if pdfjs-dist fails
+      console.warn("pdfjs-dist loader failed, falling back to scratch parser", err);
+      const buffer = await file.arrayBuffer();
+      const imageUrls = await extractImagesFromPdfScratch(buffer);
+      
+      for (let pIndex = 0; pIndex < imageUrls.length; pIndex++) {
+        const srcDataUrl = imageUrls[pIndex];
         const loadedImg = new window.Image();
         await new Promise<void>((r) => {
           loadedImg.onload = () => r();
           loadedImg.src = srcDataUrl;
         });
-
+        
         const offscreenCanvas = document.createElement('canvas');
-        offscreenCanvas.width = viewport.width;
-        offscreenCanvas.height = viewport.height;
-
+        offscreenCanvas.width = loadedImg.width;
+        offscreenCanvas.height = loadedImg.height;
+        
         pdfPages.push({
-          id: `pdf-${Date.now()}-${pIndex}-${Math.random().toString(36).substr(2, 5)}`,
-          name: `${file.name.replace('.pdf', '')}_page_${pIndex}`,
-          width: viewport.width,
-          height: viewport.height,
+          id: `pdf-${Date.now()}-${pIndex + 1}-${Math.random().toString(36).substr(2, 5)}`,
+          name: `${file.name.replace('.pdf', '')}_page_${pIndex + 1}`,
+          width: loadedImg.width,
+          height: loadedImg.height,
           originalSrc: srcDataUrl,
           imgElement: loadedImg,
           offscreenCanvas: offscreenCanvas,
           isPdfPage: true,
-          pageIndex: pIndex,
+          pageIndex: pIndex + 1,
         });
       }
     }
+
     return pdfPages;
   };
 
@@ -624,6 +677,7 @@ export default function DesignStudioPage() {
         // Automatically detect background color and text foreground color inside the drawn box
         let detectedBgColor = '#ffffff';
         let detectedTextColor = '#000000';
+        let initialTextContent = '';
         
         if (activeImage.offscreenCanvas) {
           const offCtx = activeImage.offscreenCanvas.getContext('2d');
@@ -684,10 +738,45 @@ export default function DesignStudioPage() {
           }
         }
 
+        // If the active page is a PDF and has extracted text items, find the text under the box!
+        if (activeImage.isPdfPage && pdfTextContent[activeImage.id]) {
+          const { items, viewport } = pdfTextContent[activeImage.id];
+          const matchedStrings: string[] = [];
+          
+          items.forEach((item: any) => {
+            if (!item.str || item.str.trim() === '') return;
+            const tx = item.transform[4];
+            const ty = item.transform[5];
+            
+            // Convert PDF coordinate point (tx, ty) to viewport coordinates
+            const [vx, vy] = viewport.convertToViewportPoint(tx, ty);
+            
+            // Scale points to fit high-resolution original image coordinates
+            const scaleFactorX = activeImage.width / viewport.width;
+            const scaleFactorY = activeImage.height / viewport.height;
+            const originalX = vx * scaleFactorX;
+            const originalY = vy * scaleFactorY;
+
+            // Check if coordinates overlap with the drawn box (x, y, w, h)
+            if (
+              originalX >= x - 20 &&
+              originalX <= x + w + 20 &&
+              originalY >= y - 10 &&
+              originalY <= y + h + 20
+            ) {
+              matchedStrings.push(item.str);
+            }
+          });
+          
+          if (matchedStrings.length > 0) {
+            initialTextContent = matchedStrings.join(' ');
+          }
+        }
+
         const newLayer: TextReplacementLayer = {
           id: `layer-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           x, y, w, h,
-          text: '', // Set initially to empty so the original word is instantly erased, and they type the new word!
+          text: initialTextContent, // Set to the extracted PDF text (or empty for images so they type the replacement)
           fontFamily: 'Inter',
           fontSize: Math.round(h * 0.75), // Auto-fit text height perfectly
           color: detectedTextColor, // Auto-detected original text color!
@@ -856,39 +945,74 @@ export default function DesignStudioPage() {
     }
   };
 
-  // Export batch as single multi-page PDF using pre-installed jsPDF (offline compatible)
+  // Export batch as single multi-page PDF using our custom scratch builder (zero-dependency)
   const handleExportPDF = async () => {
     if (images.length === 0) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...', description: 'Compiling all pages...' });
 
     try {
-      const jspdfModule = await import('jspdf');
-      const jsPDF = jspdfModule.jsPDF || jspdfModule.default || (jspdfModule as any);
-      let pdf: any = null;
+      const compiledCanvases: HTMLCanvasElement[] = [];
 
       for (let i = 0; i < images.length; i++) {
-        setLoadingMessage(`Adding page ${i + 1} to PDF...`);
+        setLoadingMessage(`Rendering page ${i + 1} of ${images.length}...`);
         const img = images[i];
-        const dataUrl = processExportItem(img, layers);
-
-        if (!pdf) {
-          pdf = new jsPDF({
-            orientation: img.width > img.height ? 'l' : 'p',
-            unit: 'px',
-            format: [img.width, img.height]
+        
+        const expCanvas = document.createElement('canvas');
+        expCanvas.width = img.width;
+        expCanvas.height = img.height;
+        const ctx = expCanvas.getContext('2d');
+        if (ctx && img.offscreenCanvas) {
+          ctx.drawImage(img.offscreenCanvas, 0, 0);
+          
+          // Render vector text layers
+          layers.forEach(layer => {
+            ctx.save();
+            ctx.fillStyle = layer.color;
+            ctx.textBaseline = 'middle';
+            ctx.font = `${layer.fontStyle} ${layer.fontWeight} ${layer.fontSize}px "${layer.fontFamily}", sans-serif`;
+            
+            if (layer.shadowBlur > 0) {
+              ctx.shadowColor = layer.shadowColor;
+              ctx.shadowBlur = layer.shadowBlur;
+              ctx.shadowOffsetX = 2;
+              ctx.shadowOffsetY = 2;
+            }
+            
+            const lines = layer.text.split('\n');
+            const totalTextHeight = lines.length * layer.fontSize * layer.lineHeight;
+            const startY = layer.y + (layer.h - totalTextHeight) / 2 + (layer.fontSize * layer.lineHeight) / 2;
+            
+            lines.forEach((line, index) => {
+              const lineY = startY + index * layer.fontSize * layer.lineHeight;
+              const textWidth = ctx.measureText(line).width;
+              let lineX = layer.x;
+              
+              if (layer.align === 'center') {
+                lineX = layer.x + (layer.w - textWidth) / 2;
+              } else if (layer.align === 'right') {
+                lineX = layer.x + layer.w - textWidth;
+              }
+              ctx.fillText(line, lineX, lineY);
+            });
+            ctx.restore();
           });
-        } else {
-          pdf.addPage([img.width, img.height], img.width > img.height ? 'l' : 'p');
+          
+          compiledCanvases.push(expCanvas);
         }
-
-        pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
       }
 
-      if (pdf) {
-        pdf.save(`PhoText_Studio_Document_${Date.now()}.pdf`);
-        toast({ title: 'PDF Export Complete', description: 'Successfully compiled and downloaded PDF document.' });
-      }
+      setLoadingMessage('Compiling standard PDF structure...');
+      const pdfBlob = await buildPdfFromCanvasesScratch(compiledCanvases);
+      
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PhoText_Studio_Document_${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast({ title: 'PDF Export Complete', description: 'Successfully compiled and downloaded PDF document.' });
     } catch (err) {
       console.error(err);
       toast({ title: 'PDF Export Failed', description: 'Error generating PDF file.', variant: 'destructive' });
