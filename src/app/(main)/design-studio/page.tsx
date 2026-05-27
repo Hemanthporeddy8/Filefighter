@@ -2,8 +2,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, ChangeEvent } from 'react';
-import { extractImagesFromPdfScratch } from '@/lib/pdf-scratch/extractor';
-import { buildPdfFromCanvasesScratch } from '@/lib/pdf-scratch/builder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -336,46 +334,53 @@ export default function DesignStudioPage() {
     });
   };
 
-  // Load PDF pages dynamically using our custom scratch parser (zero-dependency)
+  // Load PDF pages dynamically using pre-installed PDF.js (compatible with all PDF types)
   const loadPdfFile = async (file: File): Promise<BatchImage[]> => {
-    setLoadingMessage('Extracting pages from PDF...');
+    setLoadingMessage('Loading PDF parsing libraries...');
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+
     const buffer = await file.arrayBuffer();
-    const imageUrls = await extractImagesFromPdfScratch(buffer);
-    
-    if (imageUrls.length === 0) {
-      toast({ 
-        title: 'Import Warning', 
-        description: 'Could not extract images from PDF. Make sure it is a scanned/image PDF, or upload raw PNG/JPG files.', 
-        variant: 'destructive' 
-      });
-      return [];
-    }
-    
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const totalPages = doc.numPages;
     const pdfPages: BatchImage[] = [];
-    for (let pIndex = 0; pIndex < imageUrls.length; pIndex++) {
-      const srcDataUrl = imageUrls[pIndex];
-      
-      const loadedImg = new window.Image();
-      await new Promise<void>((r) => {
-        loadedImg.onload = () => r();
-        loadedImg.src = srcDataUrl;
-      });
-      
-      const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = loadedImg.width;
-      offscreenCanvas.height = loadedImg.height;
-      
-      pdfPages.push({
-        id: `pdf-${Date.now()}-${pIndex + 1}-${Math.random().toString(36).substr(2, 5)}`,
-        name: `${file.name.replace('.pdf', '')}_page_${pIndex + 1}`,
-        width: loadedImg.width,
-        height: loadedImg.height,
-        originalSrc: srcDataUrl,
-        imgElement: loadedImg,
-        offscreenCanvas: offscreenCanvas,
-        isPdfPage: true,
-        pageIndex: pIndex + 1,
-      });
+
+    for (let pIndex = 1; pIndex <= totalPages; pIndex++) {
+      setLoadingMessage(`Rasterizing PDF Page ${pIndex} of ${totalPages}...`);
+      const page = await doc.getPage(pIndex);
+      const viewport = page.getViewport({ scale: 2.0 }); // Rasterize at high-res for crisp details!
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+      const ctx = tempCanvas.getContext('2d');
+
+      if (ctx) {
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const srcDataUrl = tempCanvas.toDataURL('image/png');
+
+        const loadedImg = new window.Image();
+        await new Promise<void>((r) => {
+          loadedImg.onload = () => r();
+          loadedImg.src = srcDataUrl;
+        });
+
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = viewport.width;
+        offscreenCanvas.height = viewport.height;
+
+        pdfPages.push({
+          id: `pdf-${Date.now()}-${pIndex}-${Math.random().toString(36).substr(2, 5)}`,
+          name: `${file.name.replace('.pdf', '')}_page_${pIndex}`,
+          width: viewport.width,
+          height: viewport.height,
+          originalSrc: srcDataUrl,
+          imgElement: loadedImg,
+          offscreenCanvas: offscreenCanvas,
+          isPdfPage: true,
+          pageIndex: pIndex,
+        });
+      }
     }
     return pdfPages;
   };
@@ -851,74 +856,39 @@ export default function DesignStudioPage() {
     }
   };
 
-  // Export batch as single multi-page PDF using our custom scratch builder (zero-dependency)
+  // Export batch as single multi-page PDF using pre-installed jsPDF (offline compatible)
   const handleExportPDF = async () => {
     if (images.length === 0) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...', description: 'Compiling all pages...' });
 
     try {
-      const compiledCanvases: HTMLCanvasElement[] = [];
+      const jspdfModule = await import('jspdf');
+      const jsPDF = jspdfModule.jsPDF || jspdfModule.default || (jspdfModule as any);
+      let pdf: any = null;
 
       for (let i = 0; i < images.length; i++) {
-        setLoadingMessage(`Rendering page ${i + 1} of ${images.length}...`);
+        setLoadingMessage(`Adding page ${i + 1} to PDF...`);
         const img = images[i];
-        
-        const expCanvas = document.createElement('canvas');
-        expCanvas.width = img.width;
-        expCanvas.height = img.height;
-        const ctx = expCanvas.getContext('2d');
-        if (ctx && img.offscreenCanvas) {
-          ctx.drawImage(img.offscreenCanvas, 0, 0);
-          
-          // Render vector text layers
-          layers.forEach(layer => {
-            ctx.save();
-            ctx.fillStyle = layer.color;
-            ctx.textBaseline = 'middle';
-            ctx.font = `${layer.fontStyle} ${layer.fontWeight} ${layer.fontSize}px "${layer.fontFamily}", sans-serif`;
-            
-            if (layer.shadowBlur > 0) {
-              ctx.shadowColor = layer.shadowColor;
-              ctx.shadowBlur = layer.shadowBlur;
-              ctx.shadowOffsetX = 2;
-              ctx.shadowOffsetY = 2;
-            }
-            
-            const lines = layer.text.split('\n');
-            const totalTextHeight = lines.length * layer.fontSize * layer.lineHeight;
-            const startY = layer.y + (layer.h - totalTextHeight) / 2 + (layer.fontSize * layer.lineHeight) / 2;
-            
-            lines.forEach((line, index) => {
-              const lineY = startY + index * layer.fontSize * layer.lineHeight;
-              const textWidth = ctx.measureText(line).width;
-              let lineX = layer.x;
-              
-              if (layer.align === 'center') {
-                lineX = layer.x + (layer.w - textWidth) / 2;
-              } else if (layer.align === 'right') {
-                lineX = layer.x + layer.w - textWidth;
-              }
-              ctx.fillText(line, lineX, lineY);
-            });
-            ctx.restore();
+        const dataUrl = processExportItem(img, layers);
+
+        if (!pdf) {
+          pdf = new jsPDF({
+            orientation: img.width > img.height ? 'l' : 'p',
+            unit: 'px',
+            format: [img.width, img.height]
           });
-          
-          compiledCanvases.push(expCanvas);
+        } else {
+          pdf.addPage([img.width, img.height], img.width > img.height ? 'l' : 'p');
         }
+
+        pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
       }
 
-      setLoadingMessage('Compiling standard PDF structure...');
-      const pdfBlob = await buildPdfFromCanvasesScratch(compiledCanvases);
-      
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `PhoText_Studio_Document_${Date.now()}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      toast({ title: 'PDF Export Complete', description: 'Successfully compiled and downloaded PDF document.' });
+      if (pdf) {
+        pdf.save(`PhoText_Studio_Document_${Date.now()}.pdf`);
+        toast({ title: 'PDF Export Complete', description: 'Successfully compiled and downloaded PDF document.' });
+      }
     } catch (err) {
       console.error(err);
       toast({ title: 'PDF Export Failed', description: 'Error generating PDF file.', variant: 'destructive' });
@@ -1194,7 +1164,7 @@ export default function DesignStudioPage() {
                           }
                         }}
                         readOnly={activeTool !== 'select'}
-                        placeholder="Double-click to type..."
+                        placeholder=""
                         className="w-full h-full bg-transparent border-none resize-none focus:outline-none p-1 text-center font-semibold overflow-hidden leading-normal focus:ring-0 whitespace-pre-wrap select-text cursor-text"
                         style={{
                           fontFamily: `"${layer.fontFamily}", sans-serif`,
