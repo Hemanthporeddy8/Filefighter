@@ -616,14 +616,77 @@ export default function DesignStudioPage() {
 
       // Only add layer if selection satisfies a minimal pixel size
       if (w > 8 && h > 8) {
+        // Automatically detect background color and text foreground color inside the drawn box
+        let detectedBgColor = '#ffffff';
+        let detectedTextColor = '#000000';
+        
+        if (activeImage.offscreenCanvas) {
+          const offCtx = activeImage.offscreenCanvas.getContext('2d');
+          if (offCtx) {
+            const bx = Math.max(0, Math.floor(x));
+            const by = Math.max(0, Math.floor(y));
+            const bw = Math.min(activeImage.width - bx, Math.floor(w));
+            const bh = Math.min(activeImage.height - by, Math.floor(h));
+            
+            if (bw > 0 && bh > 0) {
+              const pad = 2;
+              const borderPixels = offCtx.getImageData(bx, by, bw, bh).data;
+              let rSum = 0, gSum = 0, bSum = 0, count = 0;
+              
+              // 1. Detect background color (average of outermost border pixels)
+              for (let py = 0; py < bh; py++) {
+                for (let px = 0; px < bw; px++) {
+                  if (py < pad || py >= bh - pad || px < pad || px >= bw - pad) {
+                    const idx = (py * bw + px) * 4;
+                    rSum += borderPixels[idx];
+                    gSum += borderPixels[idx+1];
+                    bSum += borderPixels[idx+2];
+                    count++;
+                  }
+                }
+              }
+              
+              const bgR = count > 0 ? Math.round(rSum / count) : 255;
+              const bgG = count > 0 ? Math.round(gSum / count) : 255;
+              const bgB = count > 0 ? Math.round(bSum / count) : 255;
+              detectedBgColor = '#' + ('000000' + ((bgR << 16) | (bgG << 8) | bgB).toString(16)).slice(-6);
+              
+              // 2. Detect text foreground color (highest contrast pixel inside the box)
+              let maxDistance = -1;
+              let textR = 0, textG = 0, textB = 0;
+              
+              for (let idx = 0; idx < borderPixels.length; idx += 4) {
+                const r = borderPixels[idx];
+                const g = borderPixels[idx+1];
+                const b = borderPixels[idx+2];
+                
+                const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+                if (dist > maxDistance) {
+                  maxDistance = dist;
+                  textR = r;
+                  textG = g;
+                  textB = b;
+                }
+              }
+              
+              if (maxDistance > 30) {
+                detectedTextColor = '#' + ('000000' + ((textR << 16) | (textG << 8) | textB).toString(16)).slice(-6);
+              } else {
+                const luminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB) / 255;
+                detectedTextColor = luminance > 0.5 ? '#000000' : '#ffffff';
+              }
+            }
+          }
+        }
+
         const newLayer: TextReplacementLayer = {
           id: `layer-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           x, y, w, h,
-          text: 'New Styled Text',
+          text: '', // Set initially to empty so the original word is instantly erased, and they type the new word!
           fontFamily: 'Inter',
-          fontSize: Math.round(h * 0.7), // Auto-fit text height roughly
-          color: '#ffffff',
-          fontWeight: 'normal',
+          fontSize: Math.round(h * 0.75), // Auto-fit text height perfectly
+          color: detectedTextColor, // Auto-detected original text color!
+          fontWeight: 'bold', // Match standard bold fonts on memes/flyers by default
           fontStyle: 'normal',
           letterSpacing: 0,
           lineHeight: 1.1,
@@ -631,14 +694,22 @@ export default function DesignStudioPage() {
           shadowBlur: 0,
           shadowColor: '#000000',
           inpaintMode: 'bilinear',
-          inpaintColor: '#ffffff',
-          cloneOffsetX: -w - 10, // Default clone from the left
+          inpaintColor: detectedBgColor, // Auto-detected background color!
+          cloneOffsetX: -w - 10,
           cloneOffsetY: 0,
         };
 
         setLayers(prev => [...prev, newLayer]);
         setSelectedLayerId(newLayer.id);
         setActiveTool('select');
+        
+        // Auto-focus the replacement text input for seamless UX
+        setTimeout(() => {
+          const inputEl = document.querySelector('input[value=""]') as HTMLInputElement;
+          if (inputEl) {
+            inputEl.focus();
+          }
+        }, 80);
       } else {
         drawMainCanvas();
       }
