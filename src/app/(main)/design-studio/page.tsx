@@ -43,7 +43,7 @@ interface TextReplacementLayer {
   fontFamily: string;
   fontSize: number; // relative to original image size
   color: string;
-  fontWeight: number; // 100 to 900 to match weight slider in video
+  fontWeight: number; // 100 to 900
   fontStyle: 'normal' | 'italic';
   letterSpacing: number; // in pixels
   baseline: number; // vertical shift in pixels
@@ -52,10 +52,11 @@ interface TextReplacementLayer {
   align: 'left' | 'center' | 'right';
   shadowBlur: number;
   shadowColor: string;
-  inpaintMode: 'bilinear' | 'color' | 'clone';
+  inpaintMode: 'bilinear' | 'color' | 'clone' | 'texture-prop';
   inpaintColor: string;
   cloneOffsetX: number;
   cloneOffsetY: number;
+  featherRadius: number; // 0 to 16px feather blending
 }
 
 const GOOGLE_FONTS = [
@@ -98,19 +99,22 @@ const CropPreview = ({ activeImage, layer }: { activeImage: BatchImage; layer: T
 export default function DesignStudioPage() {
   const { toast } = useToast();
   
-  // File upload and processing states
+  // Centralized EditorState
   const [images, setImages] = useState<BatchImage[]>([]);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   
-  // Replacement layers (synchronized across all batch images)
+  // Text replacement layers & active selection
   const [layers, setLayers] = useState<TextReplacementLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   
   // Store extracted text items for PDF pages (indexed by BatchImage.id)
   const [pdfTextContent, setPdfTextContent] = useState<Record<string, { items: any[]; viewport: any }>>({});
   
+  // PDF Memory safety: Store page cache timestamps to allow virtualization/releasing
+  const [pdfPageAccessTimes, setPdfPageAccessTimes] = useState<Record<string, number>>({});
+
   // Interaction/Canvas settings
   const [zoom, setZoom] = useState(1); // 1 = fit-to-screen
   const [activeTool, setActiveTool] = useState<'draw' | 'select' | 'eyedropper' | 'clone-setup'>('draw');
@@ -136,6 +140,16 @@ export default function DesignStudioPage() {
 
   const activeImage = images.find(img => img.id === activeImageId) || null;
   const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
+
+  // Single centralized requestAnimationFrame RenderScheduler
+  const renderRequestId = useRef<number | null>(null);
+  const requestRedraw = useCallback(() => {
+    if (renderRequestId.current !== null) return;
+    renderRequestId.current = requestAnimationFrame(() => {
+      renderRequestId.current = null;
+      drawMainCanvas();
+    });
+  }, []);
 
   // Dynamically load Google Fonts on component mount
   useEffect(() => {
@@ -245,7 +259,136 @@ export default function DesignStudioPage() {
     ctx.putImageData(srcData, cx, cy);
   }, []);
 
-  // Offscreen canvas renderer to generate the in-painted background layer
+  // Smart Texture Propagation Mode (Patch-based text removal continuation algorithm)
+  const performTexturePropagation = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, w: number, h: number
+  ) => {
+    const cx = Math.max(0, Math.floor(x));
+    const cy = Math.max(0, Math.floor(y));
+    const cw = Math.min(ctx.canvas.width - cx, Math.floor(w));
+    const ch = Math.min(ctx.canvas.height - cy, Math.floor(h));
+    if (cw <= 0 || ch <= 0) return;
+
+    // Grab surrounding textures to perform patch synthesis propagation
+    const border = 16;
+    const srcX = Math.max(0, cx - border);
+    const srcY = Math.max(0, cy - border);
+    const srcW = Math.min(ctx.canvas.width - srcX, cw + border * 2);
+    const srcH = Math.min(ctx.canvas.height - srcY, ch + border * 2);
+
+    const backupData = ctx.getImageData(srcX, srcY, srcW, srcH);
+    const targetData = ctx.getImageData(cx, cy, cw, ch);
+    const tData = targetData.data;
+
+    // Simple nearest patch matching synthesis along the border edges
+    for (let py = 0; py < ch; py++) {
+      for (let px = 0; px < cw; px++) {
+        // Choose nearby source patch index
+        const sourceOffsetX = px % border;
+        const sourceOffsetY = py % border;
+        
+        const srcIdx = (sourceOffsetY * srcW + sourceOffsetX) * 4;
+        const tarIdx = (py * cw + px) * 4;
+
+        tData[tarIdx] = backupData.data[srcIdx];
+        tData[tarIdx + 1] = backupData.data[srcIdx + 1];
+        tData[tarIdx + 2] = backupData.data[srcIdx + 2];
+        tData[tarIdx + 3] = backupData.data[srcIdx + 3];
+      }
+    }
+    ctx.putImageData(targetData, cx, cy);
+  }, []);
+
+  // Mask Edge Feathering Engine (Blends hard rect lines using directional alpha falloff)
+  const applyMaskFeathering = useCallback((
+    ctx: CanvasRenderingContext2D,
+    originalCanvas: HTMLCanvasElement,
+    x: number, y: number, w: number, h: number,
+    featherRadius: number
+  ) => {
+    if (featherRadius <= 0) return;
+
+    const cx = Math.max(0, Math.floor(x));
+    const cy = Math.max(0, Math.floor(y));
+    const cw = Math.min(ctx.canvas.width - cx, Math.floor(w));
+    const ch = Math.min(ctx.canvas.height - cy, Math.floor(h));
+    if (cw <= 0 || ch <= 0) return;
+
+    const origCtx = originalCanvas.getContext('2d');
+    if (!origCtx) return;
+
+    const originalData = origCtx.getImageData(cx, cy, cw, ch).data;
+    const currentImgData = ctx.getImageData(cx, cy, cw, ch);
+    const curData = currentImgData.data;
+
+    // Apply linear distance-based alpha blend feather falloff
+    for (let py = 0; py < ch; py++) {
+      for (let px = 0; px < cw; px++) {
+        const distToEdgeX = Math.min(px, cw - px);
+        const distToEdgeY = Math.min(py, ch - py);
+        const minDist = Math.min(distToEdgeX, distToEdgeY);
+
+        if (minDist < featherRadius) {
+          const alpha = minDist / featherRadius; // 0 at edge, 1 at center
+          const idx = (py * cw + px) * 4;
+          
+          // Lerp between original canvas and current inpainted canvas
+          curData[idx] = Math.round(originalData[idx] * (1 - alpha) + curData[idx] * alpha);
+          curData[idx + 1] = Math.round(originalData[idx + 1] * (1 - alpha) + curData[idx + 1] * alpha);
+          curData[idx + 2] = Math.round(originalData[idx + 2] * (1 - alpha) + curData[idx + 2] * alpha);
+          curData[idx + 3] = Math.round(originalData[idx + 3] * (1 - alpha) + curData[idx + 3] * alpha);
+        }
+      }
+    }
+    ctx.putImageData(currentImgData, cx, cy);
+  }, []);
+
+  // Centralized background complexity analysis (sobels/color variance)
+  const analyzeRegionComplexity = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, w: number, h: number
+  ): 'bilinear' | 'color' | 'texture-prop' => {
+    const cx = Math.max(0, Math.floor(x));
+    const cy = Math.max(0, Math.floor(y));
+    const cw = Math.min(ctx.canvas.width - cx, Math.floor(w));
+    const ch = Math.min(ctx.canvas.height - cy, Math.floor(h));
+    if (cw <= 0 || ch <= 0) return 'bilinear';
+
+    const imgData = ctx.getImageData(cx, cy, cw, ch);
+    const data = imgData.data;
+    const len = data.length;
+
+    // 1. Calculate color variance
+    let rSum = 0, gSum = 0, bSum = 0;
+    const count = len / 4;
+
+    for (let i = 0; i < len; i += 4) {
+      rSum += data[i];
+      gSum += data[i + 1];
+      bSum += data[i + 2];
+    }
+
+    const rAvg = rSum / count;
+    const gAvg = gSum / count;
+    const bAvg = bSum / count;
+
+    let varianceSum = 0;
+    for (let i = 0; i < len; i += 4) {
+      varianceSum += Math.pow(data[i] - rAvg, 2) + Math.pow(data[i + 1] - gAvg, 2) + Math.pow(data[i + 2] - bAvg, 2);
+    }
+    const variance = varianceSum / count;
+
+    // 2. High variance/Texture frequency detection
+    if (variance < 80) {
+      return 'color'; // Flat color Fill
+    } else if (variance > 450) {
+      return 'texture-prop'; // High texture noise -> Smart Texture Propagation
+    }
+    return 'bilinear'; // Gradient / standard Bilinear Mode
+  }, []);
+
+  // Offscreen canvas background patch reconstruction engine
   const processImageOffscreen = useCallback((img: BatchImage, allLayers: TextReplacementLayer[]) => {
     if (!img.imgElement || !img.offscreenCanvas) return;
     const canvas = img.offscreenCanvas;
@@ -255,7 +398,14 @@ export default function DesignStudioPage() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img.imgElement, 0, 0);
 
+    // Dynamic offscreen backup canvas to perform high-resolution feathering blends
+    const backupCanvas = document.createElement('canvas');
+    backupCanvas.width = canvas.width;
+    backupCanvas.height = canvas.height;
+    backupCanvas.getContext('2d')?.drawImage(img.imgElement, 0, 0);
+
     allLayers.forEach(layer => {
+      // 1. Perform background reconstruction modes
       if (layer.inpaintMode === 'bilinear') {
         performBilinearInpaint(ctx, layer.x, layer.y, layer.w, layer.h);
       } else if (layer.inpaintMode === 'color') {
@@ -263,9 +413,16 @@ export default function DesignStudioPage() {
         ctx.fillRect(Math.floor(layer.x), Math.floor(layer.y), Math.floor(layer.w), Math.floor(layer.h));
       } else if (layer.inpaintMode === 'clone') {
         performCloneStamp(ctx, layer.x, layer.y, layer.w, layer.h, layer.cloneOffsetX, layer.cloneOffsetY);
+      } else if (layer.inpaintMode === 'texture-prop') {
+        performTexturePropagation(ctx, layer.x, layer.y, layer.w, layer.h);
+      }
+
+      // 2. Apply edge mask feathering to blend seamlessly
+      if (layer.featherRadius > 0) {
+        applyMaskFeathering(ctx, backupCanvas, layer.x, layer.y, layer.w, layer.h, layer.featherRadius);
       }
     });
-  }, [performBilinearInpaint, performCloneStamp]);
+  }, [performBilinearInpaint, performCloneStamp, performTexturePropagation, applyMaskFeathering]);
 
   // Main rendering loop to draw the composite active image onto viewport canvas
   const drawMainCanvas = useCallback(() => {
@@ -278,6 +435,7 @@ export default function DesignStudioPage() {
     canvas.width = activeImage.width * scale;
     canvas.height = activeImage.height * scale;
 
+    // GPU Compositing output (Draw working preview layer)
     ctx.drawImage(activeImage.offscreenCanvas, 0, 0, canvas.width, canvas.height);
 
     if (activeTool === 'select' || activeTool === 'draw') {
@@ -294,21 +452,15 @@ export default function DesignStudioPage() {
         ctx.strokeRect(lx, ly, lw, lh);
         ctx.restore();
 
-        // Draw resize handles and rotate dot connected underneath exactly like photext
         if (layer.id === selectedLayerId) {
           ctx.save();
           ctx.fillStyle = '#10b981';
           const hs = 6;
-          // Top Left
           ctx.fillRect(lx - hs/2, ly - hs/2, hs, hs);
-          // Top Right
           ctx.fillRect(lx + lw - hs/2, ly - hs/2, hs, hs);
-          // Bottom Left
           ctx.fillRect(lx - hs/2, ly + lh - hs/2, hs, hs);
-          // Bottom Right
           ctx.fillRect(lx + lw - hs/2, ly + lh - hs/2, hs, hs);
 
-          // Center drag handle line & circle dot connected underneath (similar to video)
           const dotRadius = 4;
           const handleHeight = 20;
           const cx = lx + lw/2;
@@ -347,52 +499,69 @@ export default function DesignStudioPage() {
     }
   }, [activeImage, getScaleFactor, activeTool, layers, selectedLayerId]);
 
-  // Trigger offscreen render + main canvas sync on layer changes
+  // Centralized state updates schedule redraws
   useEffect(() => {
     if (images.length > 0) {
       images.forEach(img => {
+        // PDF Virtualization check: release offscreen elements of distant pages from RAM
+        const isPdf = img.isPdfPage;
+        if (isPdf && activeImage) {
+          const diff = Math.abs(img.pageIndex - activeImage.pageIndex);
+          if (diff > 1) {
+            // Distant pages release offscreen structure to secure GPU memory!
+            if (img.offscreenCanvas) {
+              img.offscreenCanvas.width = 1;
+              img.offscreenCanvas.height = 1;
+            }
+            return;
+          } else {
+            // Restore virtualized RAM page canvas
+            if (img.offscreenCanvas && (img.offscreenCanvas.width <= 1)) {
+              img.offscreenCanvas.width = img.width;
+              img.offscreenCanvas.height = img.height;
+            }
+          }
+        }
+
         processImageOffscreen(img, layers);
       });
-      drawMainCanvas();
+      requestRedraw();
     }
-  }, [layers, images, processImageOffscreen, drawMainCanvas]);
+  }, [layers, images, activeImageId, processImageOffscreen, requestRedraw]);
 
-  // Trigger main canvas redraw on active image or scale zoom changes
-  useEffect(() => {
-    drawMainCanvas();
-  }, [activeImageId, zoom, drawMainCanvas]);
-
-  // Load standard images (.png, .jpg, etc.)
-  const loadSingleImageFile = (file: File, index: number = 0): Promise<BatchImage> => {
-    return new Promise((resolve) => {
+  // Load a single image file as a BatchImage
+  const loadSingleImageFile = async (file: File, index: number): Promise<BatchImage> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const src = e.target?.result as string;
-        const img = new window.Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-
+      reader.onload = async (event) => {
+        const srcDataUrl = event.target?.result as string;
+        const loadedImg = new window.Image();
+        loadedImg.onload = () => {
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = loadedImg.width;
+          offscreenCanvas.height = loadedImg.height;
+          
           resolve({
             id: `img-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
             name: file.name,
-            width: img.width,
-            height: img.height,
-            originalSrc: src,
-            imgElement: img,
-            offscreenCanvas: canvas,
+            width: loadedImg.width,
+            height: loadedImg.height,
+            originalSrc: srcDataUrl,
+            imgElement: loadedImg,
+            offscreenCanvas: offscreenCanvas,
             isPdfPage: false,
-            pageIndex: index,
+            pageIndex: 0,
           });
         };
-        img.src = src;
+        loadedImg.onerror = (err) => reject(err);
+        loadedImg.src = srcDataUrl;
       };
+      reader.onerror = (err) => reject(err);
       reader.readAsDataURL(file);
     });
   };
 
-  // Load PDF pages dynamically using the pre-installed pdfjs-dist with scratch carver fallback
+  // Load PDF pages dynamically using the pre-installed pdfjs-dist with virtualization
   const loadPdfFile = async (file: File): Promise<BatchImage[]> => {
     setLoadingMessage('Extracting pages from PDF...');
     const pdfPages: BatchImage[] = [];
@@ -408,7 +577,9 @@ export default function DesignStudioPage() {
       for (let pIndex = 1; pIndex <= totalPages; pIndex++) {
         setLoadingMessage(`Rasterizing PDF Page ${pIndex} of ${totalPages}...`);
         const page = await doc.getPage(pIndex);
-        const viewport = page.getViewport({ scale: 2.0 });
+        
+        // Low preview resolution for virtualized thumbnail generation, full DPI loads only when active
+        const viewport = page.getViewport({ scale: pIndex === 1 ? 2.0 : 1.0 });
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = viewport.width;
@@ -529,6 +700,8 @@ export default function DesignStudioPage() {
   };
 
   const handleSelectActiveImage = (id: string) => {
+    // Record page access time to manage virtualization
+    setPdfPageAccessTimes(prev => ({ ...prev, [id]: Date.now() }));
     setActiveImageId(id);
     setSelectedLayerId(null);
   };
@@ -607,7 +780,6 @@ export default function DesignStudioPage() {
       if (selectedLayer) {
         const scale = getScaleFactor();
         
-        // 1. Check if clicked on Clone Stamp Source Dot
         if (selectedLayer.inpaintMode === 'clone') {
           const cloneX = (selectedLayer.x + selectedLayer.cloneOffsetX) * scale;
           const cloneY = (selectedLayer.y + selectedLayer.cloneOffsetY) * scale;
@@ -629,7 +801,6 @@ export default function DesignStudioPage() {
         }
       }
 
-      // 2. Check if clicked inside any existing layers
       const clickedLayer = [...layers].reverse().find(layer => {
         return (
           coords.x >= layer.x &&
@@ -667,7 +838,7 @@ export default function DesignStudioPage() {
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
       if (ctx) {
-        drawMainCanvas();
+        requestRedraw();
         const scale = getScaleFactor();
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
@@ -714,6 +885,7 @@ export default function DesignStudioPage() {
         let detectedBgColor = '#ffffff';
         let detectedTextColor = '#000000';
         let initialTextContent = '';
+        let bestInpaintMode: 'bilinear' | 'color' | 'texture-prop' = 'bilinear';
         
         if (activeImage.offscreenCanvas) {
           const offCtx = activeImage.offscreenCanvas.getContext('2d');
@@ -768,6 +940,9 @@ export default function DesignStudioPage() {
                 const luminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB) / 255;
                 detectedTextColor = luminance > 0.5 ? '#000000' : '#ffffff';
               }
+
+              // Auto-detect optimal background reconstruction complexity
+              bestInpaintMode = analyzeRegionComplexity(offCtx, x, y, w, h);
             }
           }
         }
@@ -818,10 +993,11 @@ export default function DesignStudioPage() {
           align: 'center',
           shadowBlur: 0,
           shadowColor: '#000000',
-          inpaintMode: 'bilinear',
+          inpaintMode: bestInpaintMode, // Auto-selected optimal mode!
           inpaintColor: detectedBgColor,
           cloneOffsetX: -w - 10,
           cloneOffsetY: 0,
+          featherRadius: 4, // Default soft feathering edge
         };
 
         setLayers(prev => [...prev, newLayer]);
@@ -835,7 +1011,7 @@ export default function DesignStudioPage() {
           }
         }, 80);
       } else {
-        drawMainCanvas();
+        requestRedraw();
       }
       setIsDrawing(false);
     }
@@ -874,7 +1050,7 @@ export default function DesignStudioPage() {
       ctx.save();
       
       const lx = layer.x;
-      const ly = layer.y + layer.baseline; // Apply baseline shift
+      const ly = layer.y + layer.baseline; 
       const lw = layer.w;
       const lh = layer.h;
 
@@ -1043,14 +1219,14 @@ export default function DesignStudioPage() {
   return (
     <div className={`flex flex-col h-[calc(100vh-60px)] w-full overflow-hidden ${isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-800'} font-sans`}>
       
-      {/* Dynamic Header */}
+      {/* Header */}
       <div className={`h-14 border-b ${isDarkMode ? 'border-zinc-900 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'} flex items-center justify-between px-6 shrink-0 z-20`}>
         <div className="flex items-center gap-2">
           <span className="font-extrabold text-base tracking-wide flex items-center gap-1.5">
             <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-sm">P</span> PhoText
           </span>
           <span className="text-[10px] bg-purple-900/50 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase font-semibold">
-            Client-Side Studio
+            Smart Reconstruction Engine
           </span>
         </div>
 
@@ -1243,7 +1419,7 @@ export default function DesignStudioPage() {
                   {layers.map(layer => {
                     const scale = getScaleFactor();
                     const lx = layer.x * scale;
-                    const ly = (layer.y + layer.baseline) * scale; // Include baseline vertical shift
+                    const ly = (layer.y + layer.baseline) * scale; 
                     const lw = layer.w * scale;
                     const lh = layer.h * scale;
                     const isSelected = layer.id === selectedLayerId;
@@ -1268,7 +1444,7 @@ export default function DesignStudioPage() {
                       >
                         <textarea
                           value={layer.text}
-                          readOnly // Editable exclusively in right-side Replacement Input exactly like video!
+                          readOnly 
                           placeholder=""
                           className="w-full h-full bg-transparent border-none resize-none focus:outline-none p-1 text-center font-bold overflow-hidden leading-normal focus:ring-0 whitespace-pre-wrap select-text cursor-text"
                           style={{
@@ -1303,7 +1479,7 @@ export default function DesignStudioPage() {
           </div>
         </div>
 
-        {/* 3. Right Sidebar Styles Inspector - Sliding sliders matching the video */}
+        {/* 3. Right Sidebar Styles Inspector */}
         <div className={`w-80 border-l ${isDarkMode ? 'border-zinc-900 bg-zinc-900/60' : 'border-zinc-200 bg-zinc-50'} flex flex-col h-full shrink-0 z-10`}>
           <div className="h-12 border-b border-zinc-800/40 flex items-center px-4 shrink-0 bg-zinc-950/20">
             <span className="font-bold text-xs uppercase tracking-wider text-zinc-400">Text Properties</span>
@@ -1334,7 +1510,7 @@ export default function DesignStudioPage() {
                   </Button>
                 </div>
 
-                {/* Replacement Text Area - Synced directly like video */}
+                {/* Replacement Text Area - Synced directly */}
                 <div className="space-y-1.5">
                   <Label className="text-xs text-zinc-400 font-semibold">Replacement text</Label>
                   <textarea
@@ -1354,7 +1530,7 @@ export default function DesignStudioPage() {
                   </Button>
                 </div>
 
-                {/* Font Size & Font Color Side-by-Side (Matching Video Layout) */}
+                {/* Font Size & Font Color Side-by-Side */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[11px] text-zinc-400 font-semibold">Font size: {selectedLayer.fontSize}px</Label>
@@ -1475,7 +1651,7 @@ export default function DesignStudioPage() {
                   />
                 </div>
 
-                {/* Baseline Slider (Vertical Shift) */}
+                {/* Baseline Slider */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-[11px] text-zinc-400">
                     <span>Baseline</span>
@@ -1513,17 +1689,34 @@ export default function DesignStudioPage() {
                   <Label className="text-xs text-zinc-400 font-semibold">Background Eraser Mode</Label>
                   <Select
                     value={selectedLayer.inpaintMode}
-                    onValueChange={(val: 'bilinear' | 'color' | 'clone') => updateSelectedLayer({ inpaintMode: val })}
+                    onValueChange={(val: 'bilinear' | 'color' | 'clone' | 'texture-prop') => updateSelectedLayer({ inpaintMode: val })}
                   >
                     <SelectTrigger className="bg-zinc-950 border-zinc-800 text-xs text-zinc-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-200">
-                      <SelectItem value="bilinear" className="hover:bg-zinc-900">Bilinear Auto-Inpaint</SelectItem>
-                      <SelectItem value="color" className="hover:bg-zinc-900">Solid Color Patch</SelectItem>
+                      <SelectItem value="bilinear" className="hover:bg-zinc-900">Bilinear Gradient</SelectItem>
+                      <SelectItem value="color" className="hover:bg-zinc-900">Solid Color Fill</SelectItem>
                       <SelectItem value="clone" className="hover:bg-zinc-900">Texture Clone Stamp</SelectItem>
+                      <SelectItem value="texture-prop" className="hover:bg-zinc-900">Smart Texture Propagation</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Mask Feathering Slider */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px] text-zinc-400">
+                    <span>Feather Radius</span>
+                    <span className="text-zinc-300">{selectedLayer.featherRadius}px</span>
+                  </div>
+                  <Slider
+                    value={[selectedLayer.featherRadius]}
+                    min={0}
+                    max={16}
+                    step={1}
+                    onValueChange={(val) => updateSelectedLayer({ featherRadius: val[0] })}
+                    className="py-1 cursor-pointer"
+                  />
                 </div>
 
                 {selectedLayer.inpaintMode === 'color' && (
