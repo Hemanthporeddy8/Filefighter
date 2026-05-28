@@ -26,7 +26,6 @@ import {
   FilePenLine,
   UserSquare,
   Eraser,
-  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +34,6 @@ const navItems = [
   { href: '/id-copier', label: 'ID & Photo Studio', icon: UserSquare },
   { href: '/print-setup', label: 'Print Setup', icon: Printer },
   { href: '/image-editor', label: 'Image Editor', icon: Image },
-  { href: '/design-studio', label: 'Design Studio', icon: Layers },
   { href: '/video-editor', label: 'Video Editor', icon: Video },
   { href: '/content-editor', label: 'Content Editor', icon: FilePenLine },
   { href: '/document-utilities', label: 'Document Utilities', icon: Files },
