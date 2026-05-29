@@ -19,8 +19,14 @@
 
   <!-- ══ HEADER ══ -->
   <header class="header">
-    <div class="header-left">
-      <div class="logo">
+    <div class="header-left" style="display:flex; align-items:center; gap:12px">
+      <a href="/dashboard" class="home-btn" title="Back to Dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </a>
+      <div class="logo" style="cursor:pointer" onclick="window.location.href='/dashboard'">
         <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
           <rect width="32" height="32" rx="8" fill="url(#lg)"/>
           <path d="M8 16L14 22L24 10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -31,7 +37,7 @@
             </linearGradient>
           </defs>
         </svg>
-        <span class="logo-name">EDIT<span class="logo-cut">ROY</span> Background Remover</span>
+        <span class="logo-name">EDIT<span class="logo-cut">ROY</span> AI Tools</span>
       </div>
     </div>
     <nav class="header-nav">
@@ -130,6 +136,11 @@
             <div style="display:flex; justify-content:space-between; align-items:center">
               <span class="plabel">RESULT</span>
               <div class="bg-row" id="bgRow" style="visibility:hidden">
+                <span class="bg-label">MODE:</span>
+                <select id="edgeMode" style="background:var(--surface); border:1px solid var(--border2); color:var(--text); padding:2px 6px; border-radius:5px; font-family:var(--font); font-size:0.75rem; cursor:none; outline:none; margin-right:10px">
+                  <option value="photo" selected>📸 Photo</option>
+                  <option value="illustration">🎨 Illustration</option>
+                </select>
                 <span class="bg-label">BG:</span>
                 <button class="swatch active" data-bg="transparent" style="background:repeating-conic-gradient(#3a3a3a 0% 25%,#222 0% 50%) 0/10px 10px" title="Transparent"></button>
                 <button class="swatch" data-bg="#ffffff" style="background:#fff" title="White"></button>

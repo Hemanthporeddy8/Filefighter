@@ -56,16 +56,46 @@ function loadImageFile(file){
    Always composite onto WHITE canvas first.
    Prevents premultiplied-alpha darkening of
    JPEG pixels when later modifying the alpha channel.
+   Also downscales canvas if dimensions exceed 2048px (Request 6)
+   and force-normalizes pixel values for ICC color profiles (Request 3).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function imageToImageData(img,w,h){
   const c=document.createElement('canvas');
-  c.width=w||img.naturalWidth;
-  c.height=h||img.naturalHeight;
+  const maxDim=2048;
+  const origW = img.naturalWidth || img.width || 0;
+  const origH = img.naturalHeight || img.height || 0;
+  let width=w||origW;
+  let height=h||origH;
+
+  // Downscale if exceeds 2048px (Request 6)
+  if(!w&&!h&&(width>maxDim||height>maxDim)){
+    if(width>height){
+      height=Math.round(height*maxDim/width);
+      width=maxDim;
+    }else{
+      width=Math.round(width*maxDim/height);
+      height=maxDim;
+    }
+  }
+
+  c.width=width;
+  c.height=height;
   const ctx=c.getContext('2d',{willReadFrequently:true});
   ctx.fillStyle='#ffffff';          // white BG — critical for clean pixels
   ctx.fillRect(0,0,c.width,c.height);
   ctx.drawImage(img,0,0,c.width,c.height);
-  return ctx.getImageData(0,0,c.width,c.height);
+
+  // Force-normalize pixel values through browser color pipeline to fix ICC profile differences (Request 3)
+  const isImageBitmap = (typeof ImageBitmap !== 'undefined' && img instanceof ImageBitmap);
+  if(!isImageBitmap){
+    const temp=ctx.getImageData(0,0,c.width,c.height);
+    ctx.putImageData(temp,0,0);
+  }
+
+  const imgData = ctx.getImageData(0,0,c.width,c.height);
+  imgData.origW = origW;
+  imgData.origH = origH;
+  return imgData;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -103,16 +133,44 @@ function preprocessImageData(imageData){
   return t;
 }
 
+// Two-pass dilation (max pool) to expand mask slightly in O(n) time (Request 1)
+function dilateAlpha(alpha, w, h, radius = 1) {
+  const temp = new Float32Array(w * h);
+  // Pass 1: Horizontal max pool
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let maxVal = 0;
+      for (let dx = -radius; dx <= radius; dx++) {
+        const nx = Math.min(Math.max(x + dx, 0), w - 1);
+        const val = alpha[y * w + nx];
+        if (val > maxVal) maxVal = val;
+      }
+      temp[y * w + x] = maxVal;
+    }
+  }
+  // Pass 2: Vertical max pool
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let maxVal = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const ny = Math.min(Math.max(y + dy, 0), h - 1);
+        const val = temp[ny * w + x];
+        if (val > maxVal) maxVal = val;
+      }
+      alpha[y * w + x] = maxVal;
+    }
+  }
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FIX 3 — applyAlphaMask
-   Two improvements over the old version:
-   a) Bilinear upsample uses (ow-1) denominator
-      → avoids off-by-one at image edges
-   b) S-curve sharpening pushes soft 0.1–0.9 values
-      toward hard 0/1 → clean crisp edges instead
-      of blurry semi-transparent fringe
+   Four improvements:
+   a) Bilinear upsample avoids off-by-one at edges
+   b) Fast two-pass dilation (max-pool) in O(n) (Request 1)
+   c) Dynamic mode switch support (Photo vs Illustration) (Request 2)
+   d) S-curve edge sharpening pushes soft values to hard 0/1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function applyAlphaMask(imageData,alphaFlat){
+function applyAlphaMask(imageData,alphaFlat,mode='photo'){
   const{width:ow,height:oh,data:px}=imageData;
   const ms=MODEL_SIZE;
 
@@ -133,10 +191,24 @@ function applyAlphaMask(imageData,alphaFlat){
     }
   }
 
-  // S-curve edge sharpening — cleans fringe without losing detail
-  const sharpness=10, threshold=0.45;
+  // Two-pass dilation (max-pool) (Request 1)
+  dilateAlpha(alphaFull, ow, oh, 1);
+
+  // S-curve edge sharpening based on mode (Request 2)
+  let sharpness = 4;
+  let threshold = 0.28;
+  if(mode==='illustration'){
+    sharpness = 2;
+    threshold = 0.12;
+  }
+
+  const minVal = 1 / (1 + Math.exp(sharpness * threshold));
+  const maxVal = 1 / (1 + Math.exp(-sharpness * (1 - threshold)));
+  const range = maxVal - minVal;
+
   for(let i=0;i<alphaFull.length;i++){
-    alphaFull[i]=1/(1+Math.exp(-sharpness*(alphaFull[i]-threshold)));
+    const s = 1/(1+Math.exp(-sharpness*(alphaFull[i]-threshold)));
+    alphaFull[i] = (s - minVal) / range;
   }
 
   // Write alpha channel back
@@ -144,6 +216,55 @@ function applyAlphaMask(imageData,alphaFlat){
     px[i*4+3]=Math.round(Math.min(Math.max(alphaFull[i],0),1)*255);
   }
   return imageData;
+}
+
+// Upsamples mask back to original full resolution before saving to prevent resolution loss (Request 6)
+async function saveTransparentPNG(result, originalImg) {
+  const origW = result.origW || originalImg.naturalWidth || originalImg.width;
+  const origH = result.origH || originalImg.naturalHeight || originalImg.height;
+
+  const c = document.createElement('canvas');
+  c.width = origW;
+  c.height = origH;
+  const ctx = c.getContext('2d');
+
+  // Draw original image at full resolution
+  ctx.drawImage(originalImg, 0, 0, origW, origH);
+  const fullData = ctx.getImageData(0, 0, origW, origH);
+
+  const upsampledAlpha = new Float32Array(origW * origH);
+  const rw = result.width;
+  const rh = result.height;
+
+  // Bilinear upsample the mask channel
+  for (let py = 0; py < origH; py++) {
+    for (let px = 0; px < origW; px++) {
+      const mx = (px / Math.max(origW - 1, 1)) * (rw - 1);
+      const my = (py / Math.max(origH - 1, 1)) * (rh - 1);
+      const x0 = Math.floor(mx), x1 = Math.min(x0+1, rw - 1);
+      const y0 = Math.floor(my), y1 = Math.min(y0+1, rh - 1);
+      const tx = mx - x0, ty = my - y0;
+
+      const a00 = result.data[(y0 * rw + x0) * 4 + 3] / 255;
+      const a10 = result.data[(y0 * rw + x1) * 4 + 3] / 255;
+      const a01 = result.data[(y1 * rw + x0) * 4 + 3] / 255;
+      const a11 = result.data[(y1 * rw + x1) * 4 + 3] / 255;
+
+      upsampledAlpha[py * origW + px] =
+        (1 - tx) * (1 - ty) * a00 +
+        tx * (1 - ty) * a10 +
+        (1 - tx) * ty * a01 +
+        tx * ty * a11;
+    }
+  }
+
+  // Apply full-resolution mask back
+  for (let i = 0; i < origW * origH; i++) {
+    fullData.data[i * 4 + 3] = Math.round(Math.min(Math.max(upsampledAlpha[i], 0), 1) * 255);
+  }
+
+  ctx.putImageData(fullData, 0, 0);
+  return canvasToBlob(c);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

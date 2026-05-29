@@ -13,6 +13,7 @@ const ImageTab = (() => {
       if(f) _load(f);
     });
     $('dropZone').addEventListener('click',e=>{
+      if(e.target.closest('.btn-upload')) return;
       if(!$('inputPreview').style.display||$('inputPreview').style.display==='none')
         $('imgInput').click();
     });
@@ -20,6 +21,11 @@ const ImageTab = (() => {
     $('btnDownload').addEventListener('click',_download);
     $('btnCopy').addEventListener('click',_copy);
     $('clearBtn').addEventListener('click',_clear);
+
+    // Mode switch toggle with guard (Request 4)
+    $('edgeMode').addEventListener('change', ()=>{
+      if(_result !== null && _img !== null) _process();
+    });
 
     // BG swatches — transparent active by default
     document.querySelectorAll('.swatch[data-bg]').forEach(s=>{
@@ -173,6 +179,49 @@ const ImageTab = (() => {
       $('editRow').style.display='none';
       _updateBtns();
       showToast(_img.naturalWidth+'×'+_img.naturalHeight+' loaded');
+
+      // Auto-suggest mode (Request 5)
+      let autoSuggested = false;
+      const filename = file.name.toLowerCase();
+      if (filename.endsWith('.svg')) {
+        autoSuggested = true;
+      } else if (filename.endsWith('.png')) {
+        const isSquare = _img.naturalWidth === _img.naturalHeight;
+        if (isSquare) {
+          autoSuggested = true;
+        } else {
+          const edgeData = imageToImageData(_img);
+          if (edgeData) {
+            const w = edgeData.width;
+            const h = edgeData.height;
+            const px = edgeData.data;
+            const edgePixels = [];
+            for (let x = 0; x < w; x++) {
+              let idx1 = x * 4;
+              edgePixels.push((px[idx1] << 24) | (px[idx1+1] << 16) | (px[idx1+2] << 8) | px[idx1+3]);
+              let idx2 = ((h - 1) * w + x) * 4;
+              edgePixels.push((px[idx2] << 24) | (px[idx2+1] << 16) | (px[idx2+2] << 8) | px[idx2+3]);
+            }
+            for (let y = 1; y < h - 1; y++) {
+              let idx1 = (y * w) * 4;
+              edgePixels.push((px[idx1] << 24) | (px[idx1+1] << 16) | (px[idx1+2] << 8) | px[idx1+3]);
+              let idx2 = (y * w + (w - 1)) * 4;
+              edgePixels.push((px[idx2] << 24) | (px[idx2+1] << 16) | (px[idx2+2] << 8) | px[idx2+3]);
+            }
+            const counts = {};
+            let maxCount = 0;
+            for (let i = 0; i < edgePixels.length; i++) {
+              const val = edgePixels[i];
+              counts[val] = (counts[val] || 0) + 1;
+              if (counts[val] > maxCount) maxCount = counts[val];
+            }
+            if (maxCount / edgePixels.length > 0.40) {
+              autoSuggested = true;
+            }
+          }
+        }
+      }
+      $('edgeMode').value = autoSuggested ? 'illustration' : 'photo';
       
       // Lazy load model in background
       if(window.ensureModelLoaded) window.ensureModelLoaded().catch(()=>{});
@@ -207,7 +256,8 @@ const ImageTab = (() => {
 
       // Re-read fresh pixels for clean output
       const fresh=imageToImageData(_img);
-      _result=applyAlphaMask(fresh,alpha);
+      const mode=$('edgeMode').value;
+      _result=applyAlphaMask(fresh,alpha,mode);
 
       // Create offscreen mask canvas
       _maskCanvas = document.createElement('canvas');
@@ -256,14 +306,16 @@ const ImageTab = (() => {
 
   async function _download(){
     if(!_result) return;
-    // Always download transparent PNG
-    const c=document.createElement('canvas');
-    c.width=_result.width; c.height=_result.height;
-    c.getContext('2d').putImageData(_result,0,0);
-    const blob=await canvasToBlob(c);
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download='editroy_nobg.png'; a.click();
-    showToast('Downloaded!','success');
+    try {
+      showToast('Upsampling to full resolution…');
+      const blob = await saveTransparentPNG(_result, _img);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'editroy_nobg.png'; a.click();
+      showToast('Downloaded!','success');
+    } catch(e) {
+      console.error(e);
+      showToast('Download failed','error');
+    }
   }
 
   async function _copy(){

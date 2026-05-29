@@ -108,6 +108,20 @@ const VideoTab = (() => {
       return;
     }
 
+    // Extract audio track from original video (Request 3)
+    let audioBuffer = null;
+    if (typeof AudioContext !== 'undefined' && typeof AudioEncoder !== 'undefined') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const response = await fetch(URL.createObjectURL(_file));
+        const arrayBuffer = await response.arrayBuffer();
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        audioCtx.close();
+      } catch (e) {
+        console.warn('[VideoTab] Could not extract audio from video:', e);
+      }
+    }
+
     // Capture canvas (reads video frames)
     const cap=document.createElement('canvas');
     cap.width=W; cap.height=H;
@@ -124,21 +138,31 @@ const VideoTab = (() => {
     const liveCtx=liveC.getContext('2d');
 
     // ── Setup WebCodecs VideoEncoder + webm-muxer if supported ──
-    let encoder = null, muxer = null;
+    let encoder = null, muxer = null, audioEncoder = null;
     const outputFps = Math.max(1, Math.round(fps/(1+skip)));
 
     if(WEBM_SUPPORTED){
       try {
         const { Muxer, ArrayBufferTarget } = await import('https://cdn.jsdelivr.net/npm/webm-muxer/+esm');
         
-        muxer = new Muxer({
+        const muxerConfig = {
           target: new ArrayBufferTarget(),
           video: {
             codec: 'V_VP9',
             width: W,
             height: H
           }
-        });
+        };
+
+        if (audioBuffer) {
+          muxerConfig.audio = {
+            codec: 'A_OPUS',
+            numberOfChannels: audioBuffer.numberOfChannels,
+            sampleRate: audioBuffer.sampleRate
+          };
+        }
+
+        muxer = new Muxer(muxerConfig);
 
         encoder = new VideoEncoder({
           output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
@@ -152,6 +176,19 @@ const VideoTab = (() => {
           bitrate: 8_000_000, // 8 Mbps — pristine professional quality
           latencyMode: 'quality'
         });
+
+        if (audioBuffer && typeof AudioEncoder !== 'undefined') {
+          audioEncoder = new AudioEncoder({
+            output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+            error: (e) => console.error('[AudioEncoder] Error:', e)
+          });
+          audioEncoder.configure({
+            codec: 'opus',
+            numberOfChannels: audioBuffer.numberOfChannels,
+            sampleRate: audioBuffer.sampleRate,
+            bitrate: 128000
+          });
+        }
       } catch (err) {
         console.error('[VideoTab] WebCodecs initialization failed:', err);
       }
@@ -233,6 +270,45 @@ const VideoTab = (() => {
     if (encoder) {
       await encoder.flush();
       encoder.close();
+
+      // Encode and mux audio track (Request 3)
+      if (audioEncoder && audioBuffer) {
+        try {
+          const sampleRate = audioBuffer.sampleRate;
+          const numberOfChannels = audioBuffer.numberOfChannels;
+          const totalSamples = audioBuffer.length;
+          const chunkSize = 4096;
+          let offset = 0;
+
+          while (offset < totalSamples) {
+            const currentChunkSize = Math.min(chunkSize, totalSamples - offset);
+            const planarData = new Float32Array(numberOfChannels * currentChunkSize);
+            for (let ch = 0; ch < numberOfChannels; ch++) {
+              const channelData = audioBuffer.getChannelData(ch);
+              const sub = channelData.subarray(offset, offset + currentChunkSize);
+              planarData.set(sub, ch * currentChunkSize);
+            }
+
+            const audioData = new AudioData({
+              format: 'f32-planar',
+              sampleRate: sampleRate,
+              numberOfFrames: currentChunkSize,
+              numberOfChannels: numberOfChannels,
+              timestamp: Math.round((offset / sampleRate) * 1_000_000),
+              data: planarData
+            });
+
+            audioEncoder.encode(audioData);
+            audioData.close();
+            offset += currentChunkSize;
+          }
+
+          await audioEncoder.flush();
+          audioEncoder.close();
+        } catch (audioErr) {
+          console.error('[VideoTab] Audio encoding failed:', audioErr);
+        }
+      }
       
       muxer.finalize();
       const buffer = muxer.target.buffer;
@@ -273,7 +349,11 @@ const VideoTab = (() => {
   function _seekTo(vid,ts){
     return new Promise(res=>{
       if(Math.abs(vid.currentTime-ts)<0.015){res();return;}
-      vid.onseeked=()=>{vid.onseeked=null;res();};
+      vid.onseeked=()=>{
+        vid.onseeked=null;
+        // A short 40ms delay gives the GPU/decoder time to fully paint the seeked frame.
+        setTimeout(res, 40);
+      };
       vid.currentTime=ts;
     });
   }

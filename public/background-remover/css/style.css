@@ -79,6 +79,18 @@ body {
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-name { font-family: var(--display); font-size: 1.45rem; letter-spacing: .04em; }
 .logo-cut { color: var(--accent); }
+.home-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--text2); cursor: pointer; text-decoration: none;
+  transition: all 0.2s;
+}
+.home-btn:hover {
+  background: var(--border) !important;
+  color: var(--accent) !important;
+  transform: scale(1.05);
+}
 
 .header-nav { display: flex; gap: 6px; }
 .nav-link {
