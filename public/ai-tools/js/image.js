@@ -252,7 +252,7 @@ const ImageTab = (() => {
     c.getContext('2d').putImageData(_result,0,0);
     const blob=await canvasToBlob(c);
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download='nexuscut_nobg.png'; a.click();
+    a.href=URL.createObjectURL(blob); a.download='editroy_nobg.png'; a.click();
     showToast('Downloaded!','success');
   }
 

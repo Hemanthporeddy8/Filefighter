@@ -113,7 +113,7 @@ const BatchTab = (() => {
     if(!ready.length)return;
     showToast('Packing ZIP…');
     const zip=new JSZip();
-    const folder=zip.folder('nexuscut_batch');
+    const folder=zip.folder('editroy_batch');
     for(let i=0;i<_results.length;i++){
       if(!_results[i])continue;
       const c=document.createElement('canvas');
@@ -124,7 +124,7 @@ const BatchTab = (() => {
     }
     const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(zb); a.download='nexuscut_batch.zip'; a.click();
+    a.href=URL.createObjectURL(zb); a.download='editroy_batch.zip'; a.click();
     showToast('ZIP downloaded!','success');
   }
 

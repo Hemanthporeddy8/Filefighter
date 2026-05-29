@@ -270,7 +270,7 @@ const VideoTab = (() => {
     if(!_videoBlob) return;
     const a=document.createElement('a');
     a.href=URL.createObjectURL(_videoBlob);
-    a.download='nexuscut_nobg.webm';
+    a.download='editroy_nobg.webm';
     a.click();
     showToast('WebM video downloaded!','success');
   }
@@ -280,7 +280,7 @@ const VideoTab = (() => {
     if(!_frames.length) return;
     showToast('Building ZIP…');
     const zip=new JSZip();
-    const folder=zip.folder('nexuscut_frames');
+    const folder=zip.folder('editroy_frames');
     for(let i=0;i<_frames.length;i++){
       const c=document.createElement('canvas');
       c.width=_frames[i].width; c.height=_frames[i].height;
@@ -294,7 +294,7 @@ const VideoTab = (() => {
     }
     const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(zb); a.download='nexuscut_frames.zip'; a.click();
+    a.href=URL.createObjectURL(zb); a.download='editroy_frames.zip'; a.click();
     $('vidDoneMsg').textContent='✅ ZIP Downloaded!';
     showToast('ZIP downloaded!','success');
   }
