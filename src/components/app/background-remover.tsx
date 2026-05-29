@@ -53,9 +53,10 @@ export const BackgroundRemover = ({ imageSrc, onComplete, onCancel }: { imageSrc
 
                 // 1. Try loading hardware-accelerated model via WebGPU if supported
                 const checkWebGPUSupport = async () => {
-                    if (!navigator.gpu) return false;
+                    const nav = navigator as any;
+                    if (!nav.gpu) return false;
                     try {
-                        const adapter = await navigator.gpu.requestAdapter();
+                        const adapter = await nav.gpu.requestAdapter();
                         return !!adapter;
                     } catch {
                         return false;
