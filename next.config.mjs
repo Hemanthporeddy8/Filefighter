@@ -8,6 +8,10 @@ const nextConfig = {
         source: '/video-editor',
         destination: '/video-editor/index.html',
       },
+      {
+        source: '/background-remover',
+        destination: '/background-remover/index.html',
+      },
     ];
   },
   experimental: {
