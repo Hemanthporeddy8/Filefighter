@@ -43,53 +43,76 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ══════════════════════════════════════════
-  // AUTO-LOAD MODEL FROM SERVER
-  // No user interaction needed — model downloads
-  // automatically when page loads.
+  // LAZY LOAD MODEL FROM SERVER
+  // Model downloads only when user clicks load,
+  // or when they choose their first file.
   // ══════════════════════════════════════════
+  let _loadingPromise = null;
+
+  async function ensureModelLoaded() {
+    if (NexusModel.ready()) return true;
+    if (_loadingPromise) return _loadingPromise;
+
+    _loadingPromise = (async () => {
+      const dot      = document.getElementById('msDot');
+      const msText   = document.getElementById('msText');
+      const bar      = document.getElementById('topProgress');
+      const barFill  = document.getElementById('topProgressFill');
+      const aiMsg    = document.getElementById('aiLoadingMsg');
+      const aiText   = document.getElementById('aiLoadingText');
+
+      dot.className      = 'ms-dot loading';
+      msText.textContent = 'Loading AI…';
+      bar.style.display  = 'block';
+      if (aiMsg) aiMsg.style.display = 'flex';
+
+      try {
+        await NexusModel.autoLoad((pct, msg) => {
+          barFill.style.width = Math.round(pct * 100) + '%';
+          if (aiText) aiText.textContent = msg;
+          msText.textContent = msg;
+        });
+
+        dot.className      = 'ms-dot ready';
+        msText.textContent = 'AI Ready';
+        if (aiMsg) aiMsg.style.display = 'none';
+        setTimeout(() => { bar.style.display = 'none'; }, 1000);
+
+        // Notify all tabs
+        ImageTab.onModelLoad();
+        VideoTab.onModelLoad();
+        BatchTab.onModelLoad();
+
+        showToast('✅ AI model ready!', 'success');
+        return true;
+      } catch (err) {
+        dot.className      = 'ms-dot error';
+        msText.textContent = 'Model error';
+        if (aiText) aiText.textContent = '❌ ' + err.message;
+        barFill.style.background = '#ff3e3e';
+        barFill.style.width = '100%';
+        _loadingPromise = null; // allow retrying
+        console.error('[App] Model load failed:', err);
+        showToast('⚠️ Model error: ' + err.message, 'error');
+        throw err;
+      }
+    })();
+
+    return _loadingPromise;
+  }
+
+  window.ensureModelLoaded = ensureModelLoaded;
+
   const dot      = document.getElementById('msDot');
   const msText   = document.getElementById('msText');
-  const bar      = document.getElementById('topProgress');
-  const barFill  = document.getElementById('topProgressFill');
-  const aiMsg    = document.getElementById('aiLoadingMsg');
-  const aiText   = document.getElementById('aiLoadingText');
+  const pill     = document.getElementById('modelStatusPill');
 
-  // Show loading UI
-  dot.className      = 'ms-dot loading';
-  msText.textContent = 'Loading AI…';
-  bar.style.display  = 'block';
-  aiMsg.style.display= 'flex';
-
-  try {
-    await NexusModel.autoLoad((pct, msg) => {
-      barFill.style.width = Math.round(pct * 100) + '%';
-      aiText.textContent  = msg;
-      msText.textContent  = msg;
-    });
-
-    // ── Model ready ──
-    dot.className      = 'ms-dot ready';
-    msText.textContent = 'AI Ready';
-    aiMsg.style.display= 'none';
-
-    setTimeout(()=>{ bar.style.display='none'; }, 1000);
-
-    // Notify all tabs
-    ImageTab.onModelLoad();
-    VideoTab.onModelLoad();
-    BatchTab.onModelLoad();
-
-    showToast('✅ AI model ready!', 'success');
-
-  } catch(err) {
-    // ── Model failed ──
-    dot.className      = 'ms-dot error';
-    msText.textContent = 'Model error';
-    aiText.textContent = '❌ ' + err.message;
-    barFill.style.background = '#ff3e3e';
-    barFill.style.width = '100%';
-    console.error('[App] Model load failed:', err);
-    showToast('⚠️ Model error — make sure the models folder contains the required model files', 'error');
+  // Set standby state initially
+  dot.className      = 'ms-dot';
+  msText.textContent = 'AI Standby (Click to Load)';
+  if (pill) {
+    pill.style.cursor = 'pointer';
+    pill.addEventListener('click', () => ensureModelLoaded());
   }
 
 });

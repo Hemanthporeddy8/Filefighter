@@ -173,10 +173,20 @@ const ImageTab = (() => {
       $('editRow').style.display='none';
       _updateBtns();
       showToast(_img.naturalWidth+'×'+_img.naturalHeight+' loaded');
+      
+      // Lazy load model in background
+      if(window.ensureModelLoaded) window.ensureModelLoaded().catch(()=>{});
     }catch(e){ showToast('Failed to load image','error'); }
   }
 
   async function _process(){
+    if(window.ensureModelLoaded) {
+      try {
+        await window.ensureModelLoaded();
+      } catch(e) {
+        return;
+      }
+    }
     if(!NexusModel.ready()||!_img) return;
     $('procOverlay').style.display='flex';
     $('procMsg').textContent='Preprocessing…';
@@ -281,7 +291,7 @@ const ImageTab = (() => {
   }
 
   function _updateBtns(){
-    $('btnProcess').disabled=!(NexusModel.ready()&&_img);
+    $('btnProcess').disabled=!_img;
     $('btnDownload').disabled=!_result;
     $('btnCopy').disabled=!_result;
   }

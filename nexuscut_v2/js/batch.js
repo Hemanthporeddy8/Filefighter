@@ -64,8 +64,11 @@ const BatchTab = (() => {
     _renderGrid();
     $('batchCount').textContent=_files.length+' images';
     $('batchToolbar').style.display='flex';
-    $('btnBatchProcess').disabled=!NexusModel.ready();
+    $('btnBatchProcess').disabled=false;
     $('btnBatchDl').disabled=true;
+
+    // Lazy load model in background
+    if(window.ensureModelLoaded) window.ensureModelLoaded().catch(()=>{});
   }
 
   function _renderGrid(){
@@ -81,6 +84,13 @@ const BatchTab = (() => {
   }
 
   async function _processAll(){
+    if(window.ensureModelLoaded) {
+      try {
+        await window.ensureModelLoaded();
+      } catch(e) {
+        return;
+      }
+    }
     if(!NexusModel.ready()||!_files.length) return;
     $('btnBatchProcess').disabled=true;
     let done=0,errors=0;

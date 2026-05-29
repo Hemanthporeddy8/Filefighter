@@ -60,16 +60,26 @@ const VideoTab = (() => {
       $('vidFilemeta').textContent=
         `${vid.videoWidth}×${vid.videoHeight} · ${vid.duration.toFixed(1)}s · ${fmtBytes(file.size)}`;
       $('vidLoadedInfo').style.display='block';
-      $('btnProcessVid').disabled=!NexusModel.ready();
+      $('btnProcessVid').disabled=false;
       // Show which output format is available
       $('vidOutputNote').textContent = WEBM_SUPPORTED
         ? '✅ Will export as WebM video (Chrome/Edge)'
         : '⚠️ WebM not supported — will export PNG frames ZIP';
       showToast('Video loaded: '+file.name);
+
+      // Lazy load model in background
+      if(window.ensureModelLoaded) window.ensureModelLoaded().catch(()=>{});
     };
   }
 
   async function _process(){
+    if(window.ensureModelLoaded) {
+      try {
+        await window.ensureModelLoaded();
+      } catch(e) {
+        return;
+      }
+    }
     if(!NexusModel.ready()||!_file) return;
     _stopped=false; _frames=[]; _videoBlob=null;
     $('vidOutputEl').src='';
@@ -213,7 +223,10 @@ const VideoTab = (() => {
       $('vpFps').textContent=fpsCur.toFixed(1)+' fps';
       $('vpEta').textContent='ETA '+fmtTime(eta);
 
-      await new Promise(r=>setTimeout(r,0)); // yield to UI
+      // Smart throttle pacing: if smooth mode is active, sleep 45ms to let CPU cool down & prevent interface lag
+      const throttleCheckbox = $('vThrottle');
+      const delayMs = (throttleCheckbox && throttleCheckbox.checked) ? 45 : 1;
+      await new Promise(r=>setTimeout(r, delayMs)); // yield to UI
     }
 
     // ── Finalize WebCodecs encoder & Muxer ──
