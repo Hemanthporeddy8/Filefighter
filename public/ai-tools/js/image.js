@@ -163,14 +163,15 @@ const ImageTab = (() => {
   }
 
   async function _load(file){
+    // Set preview display immediately to block async double-click event races
+    $('inputPreview').style.display='block';
+    $('dropIdle').style.display='none';
     try{
       _img=await loadImageFile(file);
       _result=null;
       _maskCanvas=null;
       _originalImageData=null;
       $('inputPreview').src=_img.src;
-      $('inputPreview').style.display='block';
-      $('dropIdle').style.display='none';
       $('clearBtn').style.display='';
       $('outputCanvas').style.display='none';
       $('outputIdle').style.display='';
@@ -225,7 +226,11 @@ const ImageTab = (() => {
       
       // Lazy load model in background
       if(window.ensureModelLoaded) window.ensureModelLoaded().catch(()=>{});
-    }catch(e){ showToast('Failed to load image','error'); }
+    }catch(e){ 
+      $('inputPreview').style.display='none';
+      $('dropIdle').style.display='';
+      showToast('Failed to load image','error'); 
+    }
   }
 
   async function _process(){
