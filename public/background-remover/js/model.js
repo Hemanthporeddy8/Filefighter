@@ -15,8 +15,8 @@ const NexusModel = (() => {
   let _session = null;
 
   // ── Paths to your models in the models directory ──
-  const MODEL_URL_INT8 = './models/manthnet_nexus_v2_int8.onnx';
-  const MODEL_URL_FP32 = './models/manthnet_nexus_v2.onnx';
+  const MODEL_URL_INT8 = '/background-remover/models/manthnet_nexus_v2_int8.onnx';
+  const MODEL_URL_FP32 = '/background-remover/models/manthnet_nexus_v2.onnx';
 
   function ready(){ return !!_session; }
 
@@ -46,7 +46,7 @@ const NexusModel = (() => {
             externalData: [
               {
                 path: 'manthnet_nexus_v2.onnx.data',
-                data: './models/manthnet_nexus_v2.onnx.data'
+                data: '/background-remover/models/manthnet_nexus_v2.onnx.data'
               }
             ]
           });
@@ -111,7 +111,7 @@ const NexusModel = (() => {
           externalData: [
             {
               path: 'manthnet_nexus_v2.onnx.data',
-              data: './models/manthnet_nexus_v2.onnx.data'
+              data: '/background-remover/models/manthnet_nexus_v2.onnx.data'
             }
           ]
         });
