@@ -12,6 +12,10 @@ const nextConfig = {
         source: '/background-remover',
         destination: '/background-remover/index.html',
       },
+      {
+        source: '/ai-tools',
+        destination: '/ai-tools/index.html',
+      },
     ];
   },
   experimental: {

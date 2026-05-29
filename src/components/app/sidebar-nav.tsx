@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/ai-tools', label: 'AI Tools', icon: Wand2 },
   { href: '/id-copier', label: 'ID & Photo Studio', icon: UserSquare },
   { href: '/print-setup', label: 'Print Setup', icon: Printer },
   { href: '/image-editor', label: 'Image Editor', icon: Image },

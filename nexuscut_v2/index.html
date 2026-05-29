@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexusCut — Free AI Background Remover</title>
+  <meta name="description" content="Remove backgrounds instantly with AI. Free, private, no signup needed."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<div class="noise"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="url(#lg)"/>
+          <path d="M8 16L14 22L24 10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#c8f135"/>
+              <stop offset="100%" stop-color="#7fff6e"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-name">NEXUS<span class="logo-cut">CUT</span></span>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <a href="#" class="nav-link active">Tool</a>
+      <a href="#how" class="nav-link">How it works</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+    </nav>
+    <div class="header-right">
+      <!-- Model status (subtle, for internal use) -->
+      <div class="model-status-pill" id="modelStatusPill">
+        <span class="ms-dot" id="msDot"></span>
+        <span class="ms-text" id="msText">Loading AI…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ MODEL LOADING PROGRESS BAR (top) ══ -->
+  <div class="top-progress" id="topProgress">
+    <div class="top-progress-fill" id="topProgressFill"></div>
+  </div>
+
+  <!-- ══ HERO ══ -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1 class="hero-h1">Remove backgrounds<br/><span class="hero-accent">in one click.</span></h1>
+      <p class="hero-sub">AI-powered. Runs in your browser. Free forever. No signup.</p>
+    </div>
+  </section>
+
+  <!-- ══ MAIN TOOL ══ -->
+  <section class="tool-section" id="tool">
+
+    <!-- TAB NAV -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="image">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image
+      </button>
+      <button class="tab-btn" data-tab="video">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Video
+        <span class="new-badge">NEW</span>
+      </button>
+      <button class="tab-btn" data-tab="batch">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+        Batch
+      </button>
+      <button class="tab-btn" data-tab="generate">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Generate
+        <span class="new-badge" style="background:#c8f135; color:#0c0c0c">BETA</span>
+      </button>
+    </div>
+
+    <!-- ════ IMAGE TAB ════ -->
+    <div class="tab-panel active" id="tab-image">
+      <div class="workspace">
+
+        <!-- INPUT PANEL -->
+        <div class="panel" id="inputPanel">
+          <div class="panel-head">
+            <span class="plabel">ORIGINAL</span>
+            <button class="icon-btn" id="clearBtn" title="Clear" style="display:none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="panel-body" id="dropZone">
+            <!-- Idle state -->
+            <div class="drop-idle" id="dropIdle">
+              <div class="upload-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p class="drop-title">Drop your image here</p>
+              <p class="drop-hint">or click to browse — JPG, PNG, WebP</p>
+              <button class="btn-upload" onclick="document.getElementById('imgInput').click()">
+                Choose File
+              </button>
+              <p class="paste-hint">💡 You can also <strong>Ctrl+V</strong> to paste</p>
+            </div>
+            <img id="inputPreview" style="display:none" alt="input"/>
+          </div>
+          <div class="panel-foot">
+            <div class="ai-loading-msg" id="aiLoadingMsg" style="display:none">
+              <div class="mini-spin"></div>
+              <span id="aiLoadingText">Loading AI model…</span>
+            </div>
+            <button class="btn-primary btn-full" id="btnProcess" disabled>
+              ✂ Remove Background
+            </button>
+          </div>
+          <input type="file" id="imgInput" accept="image/*" hidden/>
+        </div>
+
+        <!-- OUTPUT PANEL -->
+        <div class="panel" id="outputPanel">
+          <div class="panel-head" style="display:flex; flex-direction:column; gap:8px; align-items:stretch">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span class="plabel">RESULT</span>
+              <div class="bg-row" id="bgRow" style="visibility:hidden">
+                <span class="bg-label">BG:</span>
+                <button class="swatch active" data-bg="transparent" style="background:repeating-conic-gradient(#3a3a3a 0% 25%,#222 0% 50%) 0/10px 10px" title="Transparent"></button>
+                <button class="swatch" data-bg="#ffffff" style="background:#fff" title="White"></button>
+                <button class="swatch" data-bg="#000000" style="background:#000" title="Black"></button>
+                <button class="swatch" data-bg="#c8f135" style="background:#c8f135" title="Lime"></button>
+                <button class="swatch" data-bg="#00b140" style="background:#00b140" title="Green screen"></button>
+                <button class="swatch" data-bg="#1a6bff" style="background:#1a6bff" title="Blue"></button>
+                <label class="swatch swatch-color" title="Custom">
+                  +
+                  <input type="color" id="customBg" value="#ff0000"/>
+                </label>
+              </div>
+            </div>
+            <div class="edit-row" id="editRow" style="display:none; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:8px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span class="bg-label">MANUAL REPAIR:</span>
+                <button class="btn-ghost btn-sm" id="btnBrush" title="Restore pixels">
+                  🖌 Brush
+                </button>
+                <button class="btn-ghost btn-sm" id="btnEraser" title="Erase pixels">
+                  🧽 Eraser
+                </button>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px">
+                <span class="bg-label">SIZE:</span>
+                <input type="range" id="brushSize" min="5" max="100" value="20" style="width:70px; accent-color:var(--accent); cursor:none"/>
+                <span class="bg-label" id="brushSizeVal" style="min-width:30px">20px</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body checker" id="outputBody">
+            <div class="output-idle" id="outputIdle">Result will appear here</div>
+            <canvas id="outputCanvas" style="display:none"></canvas>
+            <!-- Processing overlay -->
+            <div class="proc-overlay" id="procOverlay" style="display:none">
+              <div class="proc-ring"></div>
+              <p class="proc-msg" id="procMsg">Running AI…</p>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <div class="stat-chips" id="statChips" style="display:none">
+              <span class="chip" id="chipTime"></span>
+              <span class="chip" id="chipSize"></span>
+            </div>
+            <div class="dl-row">
+              <button class="btn-ghost" id="btnCopy" disabled>Copy</button>
+              <button class="btn-primary" id="btnDownload" disabled>
+                ⬇ Download PNG
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ VIDEO TAB ════ -->
+    <div class="tab-panel" id="tab-video">
+      <div class="vid-layout">
+        <div class="vid-left">
+
+          <div class="card">
+            <h3 class="card-title">VIDEO FILE</h3>
+            <div class="vid-drop" id="vidDrop">
+              <input type="file" id="vidInput" accept="video/*" hidden/>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              <p>Drop video or click to browse</p>
+              <span>MP4 · WebM · MOV</span>
+            </div>
+            <div id="vidLoadedInfo" style="display:none">
+              <p class="vid-filename" id="vidFilename"></p>
+              <p class="vid-filemeta" id="vidFilemeta"></p>
+              <p class="vid-output-note" id="vidOutputNote" style="margin-top:8px;font-size:0.85rem;color:#aaa"></p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">BACKGROUND</h3>
+            <div class="radio-group">
+              <label class="radio-row"><input type="radio" name="vbg" value="transparent" checked/> Remove Background</label>
+              <label class="radio-row">
+                <input type="radio" name="vbg" value="color"/> Chroma Key
+                <input type="color" id="vbgColor" value="#00ff00" style="margin-left:6px;width:24px;height:18px;border:none;border-radius:4px;cursor:pointer"/>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="vbg" value="image"/> Replace Background with Image
+                <button class="btn-ghost btn-sm" style="margin-left:6px" onclick="document.getElementById('vbgImgInput').click()">Browse</button>
+                <input type="file" id="vbgImgInput" accept="image/*" hidden/>
+                <span id="vbgImgName" style="margin-left:8px;font-size:0.75rem;color:var(--text3)"></span>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="vbg" value="transparent_png"/> Transparent (PNG frames)
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">SPEED / QUALITY</h3>
+            <div class="slider-row">
+              <span class="slabel">Resolution</span>
+              <select id="vResolution" class="sel">
+                <option value="1.0">Full quality</option>
+                <option value="0.75" selected>75% — balanced</option>
+                <option value="0.5">50% — fast</option>
+                <option value="0.25">25% — fastest</option>
+              </select>
+            </div>
+            <div class="slider-row">
+              <span class="slabel">Frame skip</span>
+              <input type="range" id="vFrameSkip" min="0" max="5" value="1" class="range"/>
+              <span class="sval" id="vFrameSkipVal">1</span>
+            </div>
+            <p class="card-note">⚡ Higher skip = faster processing, fewer frames per second in output.</p>
+          </div>
+
+          <button class="btn-primary btn-full" id="btnProcessVid" disabled>▶ Process Video</button>
+          <button class="btn-danger btn-full" id="btnStopVid" style="display:none">■ Stop</button>
+        </div>
+
+        <div class="vid-right">
+          <div class="vid-preview-box" id="vidPreviewBox">
+            <div class="vid-idle" id="vidIdle">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              <p>Video preview</p>
+            </div>
+            <video id="vidEl" controls style="display:none;max-width:100%;border-radius:8px"></video>
+          </div>
+
+          <div class="vid-progress" id="vidProgress" style="display:none">
+            <div class="vp-head">
+              <span id="vpTitle">Processing…</span>
+              <span class="vp-pct" id="vpPct">0%</span>
+            </div>
+            <div class="vp-track"><div class="vp-fill" id="vpFill"></div></div>
+            <div class="vp-stats">
+              <span id="vpFrames">0/0</span>
+              <span id="vpFps">— fps</span>
+              <span id="vpEta">ETA —</span>
+            </div>
+            <canvas id="vpLive" width="180" height="100" style="border-radius:6px;margin-top:10px;border:1px solid #2a2a2a"></canvas>
+          </div>
+
+          <div class="vid-done" id="vidDone" style="display:none">
+            <p class="done-msg" id="vidDoneMsg">✅ Done!</p>
+            <video id="vidOutputEl" controls style="max-width:100%; border-radius:8px; display:none; margin-bottom:15px; border:1px solid var(--border2)"></video>
+            <div class="dl-row" style="margin-bottom:15px">
+              <button class="btn-primary" id="btnDlVid" style="display:none">⬇ Download WebM Video</button>
+              <button class="btn-ghost" id="btnDlZip" style="display:none">⬇ Download PNG ZIP</button>
+            </div>
+            <p class="done-note">Import the PNG sequence into Premiere, DaVinci Resolve, or After Effects for full-res transparent video.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ BATCH TAB ════ -->
+    <div class="tab-panel" id="tab-batch">
+      <div class="batch-wrap">
+        <div class="batch-drop" id="batchDrop">
+          <input type="file" id="batchInput" accept="image/*" multiple hidden/>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+          <p>Drop multiple images or click to browse</p>
+          <span>Up to 100 images at once</span>
+        </div>
+        <div class="batch-toolbar" id="batchToolbar" style="display:none">
+          <span class="batch-count" id="batchCount">0 images</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-primary" id="btnBatchProcess" disabled>Process All</button>
+            <button class="btn-ghost" id="btnBatchDl" disabled>⬇ Download ZIP</button>
+            <button class="btn-ghost" id="btnBatchClear">Clear</button>
+          </div>
+        </div>
+        <div class="batch-grid" id="batchGrid"></div>
+      </div>
+    </div>
+
+    <!-- ════ GENERATE TAB ════ -->
+    <div class="tab-panel" id="tab-generate">
+      <div class="workspace">
+        <!-- INPUT PANEL -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="plabel">PROMPT INPUT</span>
+          </div>
+          <div class="panel-body" style="flex-direction:column; padding:24px; gap:16px; justify-content:flex-start; min-height:var(--ph)">
+            <p class="drop-title" style="align-self:flex-start; font-size:0.85rem; color:var(--text2)">Describe what you want to generate:</p>
+            <textarea id="genPrompt" placeholder="e.g. A fresh red apple on a clean white table..." style="width:100%; height:120px; background:var(--surface); border:1px solid var(--border2); color:var(--text); padding:12px; border-radius:8px; font-family:var(--font); font-size:0.85rem; resize:none; outline:none; cursor:none"></textarea>
+            
+            <div style="display:flex; flex-direction:column; gap:6px; width:100%">
+              <span class="bg-label" style="font-size:0.75rem; color:var(--accent); font-weight:600">GENERATION SPEED:</span>
+              <select id="genSpeed" style="width:100%; background:var(--surface); border:1px solid var(--border2); color:var(--text); padding:8px 12px; border-radius:6px; font-family:var(--font); font-size:0.8rem; cursor:none; outline:none">
+                <option value="256" selected>⚡ Fast Layout Preview (256 steps — ~40s)</option>
+                <option value="64">🚀 Ultra Fast Preview (64 steps — ~10s)</option>
+                <option value="1024">✨ Full Details Synthesis (1024 steps — ~3m)</option>
+              </select>
+            </div>
+
+            <button class="btn-primary btn-full" id="btnGenerate" style="margin-top:auto" disabled>
+              ✨ Generate Image
+            </button>
+          </div>
+        </div>
+
+        <!-- OUTPUT PANEL -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="plabel">GENERATED RESULT</span>
+          </div>
+          <div class="panel-body checker" id="genOutputBody">
+            <div class="output-idle" id="genIdle">Your generated image will appear here</div>
+            <canvas id="genCanvas" style="display:none"></canvas>
+            <div class="proc-overlay" id="genOverlay" style="display:none">
+              <div class="proc-ring"></div>
+              <p class="proc-msg" id="genMsg">Generating image…</p>
+            </div>
+          </div>
+          <div class="panel-foot" style="justify-content:flex-end">
+            <button class="btn-primary" id="btnDownloadGen" disabled>
+              ⬇ Download PNG
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══ HOW IT WORKS ══ -->
+  <section class="how-section" id="how">
+    <h2 class="section-h2">How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Upload your image</h3>
+        <p>Drag & drop, browse, or paste from clipboard. Supports JPG, PNG, WebP up to 50MB.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>AI runs in your browser</h3>
+        <p>Our ManthNet Nexus AI model runs entirely on your device using WebAssembly. Your images never leave your computer.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Download your result</h3>
+        <p>Get a clean transparent PNG in seconds. Change the background color or download as-is.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ PRICING ══ -->
+  <section class="pricing-section" id="pricing">
+    <h2 class="section-h2">Simple pricing</h2>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tag">Free</div>
+        <div class="price-amount">$0<span>/mo</span></div>
+        <ul class="price-features">
+          <li>✓ Unlimited images</li>
+          <li>✓ Video processing</li>
+          <li>✓ Batch up to 10</li>
+          <li>✓ 100% private</li>
+          <li>✓ No signup</li>
+        </ul>
+        <button class="btn-primary btn-full" onclick="document.getElementById('tool').scrollIntoView({behavior:'smooth'})">Get Started Free</button>
+      </div>
+      <div class="price-card price-card-pro">
+        <div class="price-badge">COMING SOON</div>
+        <div class="price-tag">Pro</div>
+        <div class="price-amount">$9<span>/mo</span></div>
+        <ul class="price-features">
+          <li>✓ Everything in Free</li>
+          <li>✓ Batch up to 1000</li>
+          <li>✓ API access</li>
+          <li>✓ Higher quality model</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button class="btn-secondary btn-full">Join Waitlist</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ══ -->
+  <footer class="footer">
+    <div class="footer-logo">
+      <span class="logo-name" style="font-size:1.1rem">NEXUS<span class="logo-cut">CUT</span></span>
+    </div>
+    <p class="footer-tagline">Your images never leave your device. Built with ❤️ using ManthNet Nexus AI.</p>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+    <p class="footer-copy">© 2026 NexusCut. All rights reserved.</p>
+  </footer>
+
+</div><!-- /app -->
+
+<!-- BATCH EDIT MODAL -->
+<div class="modal-overlay" id="batchModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 class="modal-title" id="batchModalTitle">Edit Image</h3>
+      <button class="icon-btn" id="btnCloseBatchModal" title="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body checker">
+      <canvas id="batchModalCanvas"></canvas>
+    </div>
+    <div class="modal-foot">
+      <div style="display:flex; align-items:center; gap:8px">
+        <button class="btn-ghost btn-sm active" id="mBtnBrush" title="Restore pixels">
+          🖌 Brush
+        </button>
+        <button class="btn-ghost btn-sm" id="mBtnEraser" title="Erase pixels">
+          🧽 Eraser
+        </button>
+        <span class="bg-label" style="margin-left:4px">SIZE:</span>
+        <input type="range" id="mBrushSize" min="5" max="100" value="20" style="width:70px; accent-color:var(--accent); cursor:none"/>
+        <span class="bg-label" id="mBrushSizeVal" style="min-width:30px">20px</span>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:8px">
+        <button class="btn-ghost" id="mBtnCancel">Cancel</button>
+        <button class="btn-primary" id="mBtnSave">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── CDN scripts ── -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- ── App scripts ── -->
+<script src="js/utils.js"></script>
+<script src="js/model.js"></script>
+<script src="js/image.js"></script>
+<script src="js/video.js"></script>
+<script src="js/batch.js"></script>
+<script src="js/generate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
