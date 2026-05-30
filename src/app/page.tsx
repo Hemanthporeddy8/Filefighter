@@ -11,14 +11,8 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
-    }
-  }, [isAuthenticated, isLoading, router]);
+    router.replace('/dashboard');
+  }, [router]);
 
   // Render a loading state while checking auth status
   return (

@@ -77,25 +77,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { logout } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Skeleton className="h-12 w-12 rounded-full bg-primary/20 mb-4" />
-        <Skeleton className="h-8 w-48 bg-primary/20 mb-2" />
-        <Skeleton className="h-6 w-32 bg-primary/20" />
-        <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <>
