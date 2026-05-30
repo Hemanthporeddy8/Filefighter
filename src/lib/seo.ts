@@ -340,7 +340,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'merge-pdf-online': {
     title: 'Merge PDF Online Free — Combine PDFs | Editroy',
     description: 'Combine multiple PDF files into one online for free. Fast, private, browser-based PDF merger. No signup, no watermark.',
-    canonical: `${BASE}/merge-pdf-online`,
+    canonical: `${BASE}/document-utilities/merge-pdf-online`,
     h1: 'Merge PDF Online — Free & Instant',
     tagline: 'Drag, drop and combine multiple PDFs into one file in seconds.',
     features: [
@@ -375,7 +375,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'split-pdf-online': {
     title: 'Split PDF Online Free — Extract Pages | Editroy',
     description: 'Split a PDF into multiple files or extract specific pages online for free. No signup, browser-based, instant download.',
-    canonical: `${BASE}/split-pdf-online`,
+    canonical: `${BASE}/document-utilities/split-pdf-online`,
     h1: 'Split PDF Online — Extract Any Pages Free',
     tagline: 'Separate pages, extract ranges, or split every page into its own PDF.',
     features: [
@@ -410,7 +410,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'pdf-to-word-online': {
     title: 'PDF to Word Converter Online Free | Editroy',
     description: 'Convert PDF to editable Word DOCX online for free. Accurate layout, instant download. No signup, no email required.',
-    canonical: `${BASE}/pdf-to-word-online`,
+    canonical: `${BASE}/document-utilities/pdf-to-word-online`,
     h1: 'PDF to Word Converter — Free Online',
     tagline: 'Convert any PDF to editable DOCX in seconds. Layout preserved.',
     features: [
@@ -445,7 +445,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'pdf-to-excel-online': {
     title: 'PDF to Excel Converter Online Free | Editroy',
     description: 'Convert PDF tables to editable Excel XLSX online for free. Extract data accurately. No signup required.',
-    canonical: `${BASE}/pdf-to-excel-online`,
+    canonical: `${BASE}/document-utilities/pdf-to-excel-online`,
     h1: 'PDF to Excel Converter — Free Online',
     tagline: 'Extract tables from any PDF into an editable Excel spreadsheet.',
     features: [
@@ -480,7 +480,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'pdf-to-jpg-online': {
     title: 'PDF to JPG Converter Online Free | Editroy',
     description: 'Convert PDF pages to high-quality JPG or PNG images online for free. No signup, instant download, browser-based.',
-    canonical: `${BASE}/pdf-to-jpg-online`,
+    canonical: `${BASE}/document-utilities/pdf-to-jpg-online`,
     h1: 'PDF to JPG — Convert PDF Pages to Images Free',
     tagline: 'Turn any PDF page into a high-quality JPG or PNG image instantly.',
     features: [
@@ -515,7 +515,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'word-to-pdf-online': {
     title: 'Word to PDF Converter Online Free | Editroy',
     description: 'Convert Word DOCX to PDF online for free. Perfect layout, instant download. No signup, no email, browser-based.',
-    canonical: `${BASE}/word-to-pdf-online`,
+    canonical: `${BASE}/document-utilities/word-to-pdf-online`,
     h1: 'Word to PDF Converter — Free Online',
     tagline: 'Convert any Word document to a perfectly formatted PDF in seconds.',
     features: [
@@ -550,7 +550,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'excel-to-pdf-online': {
     title: 'Excel to PDF Converter Online Free | Editroy',
     description: 'Convert Excel spreadsheets to PDF online for free. All sheets, charts and formatting preserved. No signup required.',
-    canonical: `${BASE}/excel-to-pdf-online`,
+    canonical: `${BASE}/document-utilities/excel-to-pdf-online`,
     h1: 'Excel to PDF Converter — Free Online',
     tagline: 'Convert any Excel spreadsheet to a perfectly formatted PDF.',
     features: [
@@ -585,7 +585,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'compress-pdf-online': {
     title: 'Compress PDF Online Free — Reduce File Size | Editroy',
     description: 'Compress PDF files online for free. Reduce PDF size without losing quality. No signup, instant download, browser-based.',
-    canonical: `${BASE}/compress-pdf-online`,
+    canonical: `${BASE}/document-utilities/compress-pdf-online`,
     h1: 'Compress PDF Online — Reduce Size Free',
     tagline: 'Make any PDF smaller without losing quality — instantly, in your browser.',
     features: [
@@ -620,7 +620,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'sign-pdf-online': {
     title: 'Sign PDF Online Free — Add Signature | Editroy',
     description: 'Sign a PDF online for free. Draw, type or upload your signature. No signup, no printing, no scanning needed.',
-    canonical: `${BASE}/sign-pdf-online`,
+    canonical: `${BASE}/document-utilities/sign-pdf-online`,
     h1: 'Sign PDF Online — Add Your Signature Free',
     tagline: 'Draw, type or upload your signature and place it on any PDF — no printing needed.',
     features: [
@@ -655,7 +655,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'protect-pdf-online': {
     title: 'Protect PDF with Password Online Free | Editroy',
     description: 'Add password protection to any PDF online for free. Secure your documents with encryption. No signup required.',
-    canonical: `${BASE}/protect-pdf-online`,
+    canonical: `${BASE}/document-utilities/protect-pdf-online`,
     h1: 'Protect PDF with Password — Free Online',
     tagline: 'Encrypt any PDF with a password to keep your documents private.',
     features: [
@@ -690,7 +690,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'ocr-pdf-online': {
     title: 'OCR PDF Online Free — Make Scanned PDF Searchable | Editroy',
     description: 'Make scanned PDFs searchable and selectable with OCR online for free. Extract text from image-based PDFs. No signup.',
-    canonical: `${BASE}/ocr-pdf-online`,
+    canonical: `${BASE}/document-utilities/ocr-pdf-online`,
     h1: 'OCR PDF — Make Scanned PDFs Searchable Free',
     tagline: 'Extract and search text from any scanned or image PDF using OCR.',
     features: [
@@ -725,7 +725,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'watermark-pdf-online': {
     title: 'Add Watermark to PDF Online Free | Editroy',
     description: 'Add a text or image watermark to any PDF online for free. Customise position, opacity and font. No signup required.',
-    canonical: `${BASE}/watermark-pdf-online`,
+    canonical: `${BASE}/document-utilities/watermark-pdf-online`,
     h1: 'Watermark PDF Online — Free & Instant',
     tagline: 'Stamp any PDF with a text or image watermark. Fully customisable.',
     features: [
@@ -760,7 +760,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
   'image-to-pdf-online': {
     title: 'Image to PDF Converter Online Free | Editroy',
     description: 'Convert JPG, PNG and WebP images to PDF online for free. Combine multiple images into one PDF. No signup required.',
-    canonical: `${BASE}/image-to-pdf-online`,
+    canonical: `${BASE}/document-utilities/image-to-pdf-online`,
     h1: 'Image to PDF Converter — Free Online',
     tagline: 'Convert one or multiple images into a single PDF document instantly.',
     features: [

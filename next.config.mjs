@@ -32,6 +32,20 @@ const nextConfig = {
         destination: '/bg-remover-online',
         permanent: false,
       },
+      // Document Utilities permanent SEO sub-route redirects
+      { source: '/merge-pdf-online', destination: '/document-utilities/merge-pdf-online', permanent: true },
+      { source: '/split-pdf-online', destination: '/document-utilities/split-pdf-online', permanent: true },
+      { source: '/pdf-to-word-online', destination: '/document-utilities/pdf-to-word-online', permanent: true },
+      { source: '/pdf-to-excel-online', destination: '/document-utilities/pdf-to-excel-online', permanent: true },
+      { source: '/pdf-to-jpg-online', destination: '/document-utilities/pdf-to-jpg-online', permanent: true },
+      { source: '/word-to-pdf-online', destination: '/document-utilities/word-to-pdf-online', permanent: true },
+      { source: '/excel-to-pdf-online', destination: '/document-utilities/excel-to-pdf-online', permanent: true },
+      { source: '/compress-pdf-online', destination: '/document-utilities/compress-pdf-online', permanent: true },
+      { source: '/sign-pdf-online', destination: '/document-utilities/sign-pdf-online', permanent: true },
+      { source: '/protect-pdf-online', destination: '/document-utilities/protect-pdf-online', permanent: true },
+      { source: '/ocr-pdf-online', destination: '/document-utilities/ocr-pdf-online', permanent: true },
+      { source: '/watermark-pdf-online', destination: '/document-utilities/watermark-pdf-online', permanent: true },
+      { source: '/image-to-pdf-online', destination: '/document-utilities/image-to-pdf-online', permanent: true },
     ];
   },
   experimental: {

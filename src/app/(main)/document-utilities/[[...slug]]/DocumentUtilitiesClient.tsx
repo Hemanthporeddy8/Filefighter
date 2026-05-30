@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Search, 
@@ -162,8 +163,63 @@ const SignaturePad = ({ onSave }: { onSave: (dataUrl: string) => void }) => {
   );
 };
 
-export default function DocumentUtilitiesPage() {
-  const [activeToolId, setActiveToolId] = useState<string | null>(null);
+const slugToToolMap: Record<string, string> = {
+  'merge-pdf-online': 'merge-pdf',
+  'split-pdf-online': 'split-pdf',
+  'delete-pages-online': 'delete-pages',
+  'extract-pages-online': 'extract-pages',
+  'rotate-pdf-online': 'rotate-pdf',
+  'reorder-pdf-online': 'reorder-pdf',
+  'resize-pdf-online': 'resize-pdf',
+  'compress-pdf-online': 'compress-pdf',
+  'flatten-pdf-online': 'flatten-pdf',
+  'page-numbers-online': 'page-numbers',
+  'watermark-pdf-online': 'watermark',
+  'header-footer-online': 'header-footer',
+  'grayscale-pdf-online': 'grayscale-pdf',
+  'repair-pdf-online': 'repair-pdf',
+  'protect-pdf-online': 'protect-pdf',
+  'unlock-pdf-online': 'unlock-pdf',
+  'sign-pdf-online': 'sign-pdf',
+  'redact-pdf-online': 'redact-pdf',
+  'compare-pdf-online': 'compare-pdf',
+  'ocr-pdf-online': 'ocr-pdf',
+  'metadata-online': 'metadata',
+  'word-merge-online': 'word-merge',
+  'word-split-online': 'word-split',
+  'word-watermark-online': 'word-watermark',
+  'excel-csv-online': 'excel-csv',
+  'excel-merge-online': 'excel-merge',
+  'excel-split-online': 'excel-split',
+  'excel-pivot-online': 'excel-pivot',
+  'excel-clean-online': 'excel-clean',
+  'excel-formula-online': 'excel-formula',
+  'pdf-to-word-online': 'pdf-to-word',
+  'pdf-to-excel-online': 'pdf-to-excel',
+  'pdf-to-jpg-online': 'pdf-to-image',
+  'word-to-pdf-online': 'word-to-pdf',
+  'excel-to-pdf-online': 'excel-to-pdf',
+  'image-to-pdf-online': 'image-to-pdf',
+  'ppt-to-pdf-online': 'ppt-to-pdf',
+  'text-to-pdf-online': 'text-to-pdf',
+  'html-to-pdf-online': 'html-to-pdf',
+  'md-to-pdf-online': 'md-to-pdf',
+  'pdf-to-ppt-online': 'pdf-to-ppt',
+  'pdf-to-text-online': 'pdf-to-text',
+  'pdf-to-html-online': 'pdf-to-html',
+  'pdf-to-json-online': 'pdf-to-json',
+};
+
+export function DocumentUtilitiesClient({ slug }: { slug?: string }) {
+  const router = useRouter();
+  
+  const [activeToolId, setActiveToolId] = useState<string | null>(() => {
+    if (slug) {
+      return slugToToolMap[slug] || slug;
+    }
+    return null;
+  });
+  
   const [searchQuery, setSearchQuery] = useState('');
   
   // Custom states for the fully implemented tools
@@ -224,16 +280,25 @@ export default function DocumentUtilitiesPage() {
     'Office Tools'
   ];
 
-  // URL query parameter routing for SEO landing pages
+  // Sync activeToolId when slug parameter changes (browser history)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (slug) {
+      setActiveToolId(slugToToolMap[slug] || slug);
+    } else {
+      setActiveToolId(null);
+    }
+  }, [slug]);
+
+  // URL query parameter routing for backwards compatibility
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !slug) {
       const params = new URLSearchParams(window.location.search);
       const toolParam = params.get('tool') || params.get('activeToolId');
       if (toolParam) {
         setActiveToolId(toolParam);
       }
     }
-  }, []);
+  }, [slug]);
 
   const filteredTools = useMemo(() => {
     return DOCUMENT_TOOLS.filter(tool => 
@@ -248,7 +313,12 @@ export default function DocumentUtilitiesPage() {
   );
 
   const handleToolSelect = (id: string) => {
-    setActiveToolId(id);
+    const matchedSlug = Object.keys(slugToToolMap).find(key => slugToToolMap[key] === id);
+    if (matchedSlug) {
+      router.push(`/document-utilities/${matchedSlug}`);
+    } else {
+      setActiveToolId(id);
+    }
     setSingleFile(null);
     setMultipleFiles([]);
     setCompareFileA(null);
@@ -259,6 +329,11 @@ export default function DocumentUtilitiesPage() {
     setExcelFormulas(null);
     setSignatureDataUrl(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => {
+    router.push('/document-utilities');
+    setActiveToolId(null);
   };
 
   const { 
@@ -330,7 +405,7 @@ export default function DocumentUtilitiesPage() {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => setActiveToolId(null)} className="rounded-full">
+          <Button variant="outline" size="sm" onClick={handleBack} className="rounded-full">
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
           <h2 className="text-2xl font-bold flex items-center gap-2 uppercase">
@@ -1314,7 +1389,7 @@ export default function DocumentUtilitiesPage() {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => setActiveToolId(null)} className="rounded-full shadow-sm">
+          <Button variant="outline" size="sm" onClick={handleBack} className="rounded-full shadow-sm">
             <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
           </Button>
           <div className="flex items-center gap-2">
@@ -1361,7 +1436,7 @@ export default function DocumentUtilitiesPage() {
       return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => setActiveToolId(null)} className="rounded-full shadow-sm">
+            <Button variant="outline" size="sm" onClick={handleBack} className="rounded-full shadow-sm">
               <ArrowLeft className="h-4 w-4 mr-2" /> Back
             </Button>
             <div className="flex items-center gap-2">
