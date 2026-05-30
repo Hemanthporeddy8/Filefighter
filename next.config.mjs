@@ -4,6 +4,7 @@ const nextConfig = {
   swcMinify: false,
   async rewrites() {
     return [
+      // Static HTML tool embeds
       {
         source: '/video-editor',
         destination: '/video-editor/index.html',
@@ -15,6 +16,21 @@ const nextConfig = {
       {
         source: '/ai-tools',
         destination: '/ai-tools/index.html',
+      },
+      // PDF editor nested path
+      {
+        source: '/pdf-editor',
+        destination: '/my-pdf-editor-main/my-pdf-editor-main/index.html',
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      // Legacy /ai-tools redirect to proper SEO landing page
+      {
+        source: '/tools',
+        destination: '/bg-remover-online',
+        permanent: false,
       },
     ];
   },

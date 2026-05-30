@@ -42,7 +42,12 @@ export const metadata: Metadata = {
     site: '@editroy',
     images: ['/icons/icon-512.png'],
   },
-  keywords: ['video editor', 'online video editor', 'free video editor', 'document editor', 'editroy', 'canva alternative', 'pwa'],
+  keywords: [
+    'video editor', 'online video editor', 'free video editor', 'document editor',
+    'background remover', 'audio separator', 'vocal remover', 'pdf editor',
+    'image editor', 'batch image editor', 'editroy', 'canva alternative', 'pwa',
+    'free online tools', 'browser based tools', 'no signup tools',
+  ],
 };
 
 export default function RootLayout({
@@ -68,6 +73,20 @@ export default function RootLayout({
         `}</Script>
       </head>
       <body className="font-body antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'Editroy',
+              url: 'https://www.editroy.com',
+              logo: 'https://www.editroy.com/icons/icon-512.png',
+              description: 'Free browser-based creator tools — video editor, background remover, audio separator, PDF editor and more. No signup required.',
+              sameAs: ['https://twitter.com/editroy'],
+            }),
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>
