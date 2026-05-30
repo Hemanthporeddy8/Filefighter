@@ -6,6 +6,7 @@ const now = new Date();
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolPages = [
+    // AI tools
     '/bg-remover-online',
     '/audio-separator',
     '/video-background-remover',
@@ -13,6 +14,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/same-edit',
     '/edit-image-online',
     '/video-editor-online',
+    // PDF tools
+    '/merge-pdf-online',
+    '/split-pdf-online',
+    '/pdf-to-word-online',
+    '/pdf-to-excel-online',
+    '/pdf-to-jpg-online',
+    '/word-to-pdf-online',
+    '/excel-to-pdf-online',
+    '/compress-pdf-online',
+    '/sign-pdf-online',
+    '/protect-pdf-online',
+    '/ocr-pdf-online',
+    '/watermark-pdf-online',
+    '/image-to-pdf-online',
   ];
 
   const appPages = [

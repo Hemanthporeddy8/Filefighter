@@ -13,15 +13,13 @@ export interface DocumentTool {
 }
 
 export const DOCUMENT_TOOLS: DocumentTool[] = [
-  // 1. Organize
+  // 1. Organize (removed: crop-pdf, resize-pdf — redundant placeholders)
   { id: 'merge-pdf', name: 'Merge PDF', description: 'Combine multiple PDFs into one.', icon: '📑', category: 'Organize', isPlaceholder: false, color: '#4f46e5' },
   { id: 'split-pdf', name: 'Split PDF', description: 'Separate pages into new files.', icon: '✂️', category: 'Organize', isPlaceholder: false, color: '#ef4444' },
   { id: 'delete-pages', name: 'Delete Pages', description: 'Remove unwanted pages.', icon: '🗑️', category: 'Organize', isPlaceholder: false, color: '#6366f1' },
   { id: 'extract-pages', name: 'Extract Pages', description: 'Extract specific pages.', icon: '📤', category: 'Organize', isPlaceholder: false, color: '#8b5cf6' },
   { id: 'rotate-pdf', name: 'Rotate PDF', description: 'Rotate PDF pages.', icon: '🔄', category: 'Organize', isPlaceholder: false, color: '#f59e0b' },
   { id: 'reorder-pdf', name: 'Reorder PDF', description: 'Change page order.', icon: '⇄', category: 'Organize', isPlaceholder: false, color: '#ec4899' },
-  { id: 'crop-pdf', name: 'Crop PDF', description: 'Trim PDF margins.', icon: '📐', category: 'Organize', isPlaceholder: true },
-  { id: 'resize-pdf', name: 'Resize PDF', description: 'Change page dimensions.', icon: '📏', category: 'Organize', isPlaceholder: true },
 
   // 2. Convert to PDF
   { id: 'word-to-pdf', name: 'Word to PDF', description: 'Convert DOCX to PDF.', icon: '📄', category: 'Convert to PDF', isPlaceholder: false, color: '#2563eb' },
@@ -32,14 +30,11 @@ export const DOCUMENT_TOOLS: DocumentTool[] = [
   { id: 'html-to-pdf', name: 'HTML to PDF', description: 'Convert Web to PDF.', icon: '🌐', category: 'Convert to PDF', isPlaceholder: false, color: '#06b6d4' },
   { id: 'md-to-pdf', name: 'Markdown to PDF', description: 'Convert MD to PDF.', icon: '⬇️', category: 'Convert to PDF', isPlaceholder: false, color: '#6366f1' },
 
-  // 3. Convert from PDF
+  // 3. Convert from PDF (removed: pdf-to-ppt, pdf-to-html, pdf-to-json — all placeholders with no unique value)
   { id: 'pdf-to-word', name: 'PDF to Word', description: 'Convert PDF to DOCX.', icon: '📄', category: 'Convert from PDF', isPlaceholder: false, color: '#2563eb' },
   { id: 'pdf-to-excel', name: 'PDF to Excel', description: 'Convert PDF to XLSX.', icon: '📊', category: 'Convert from PDF', isPlaceholder: false, color: '#059669' },
-  { id: 'pdf-to-ppt', name: 'PDF to PPT', description: 'Convert PDF to PPTX.', icon: '📽️', category: 'Convert from PDF', isPlaceholder: true },
   { id: 'pdf-to-image', name: 'PDF to Image', description: 'PDF to JPG/PNG.', icon: '🖼️', category: 'Convert from PDF', isPlaceholder: false, color: '#db2777' },
   { id: 'pdf-to-text', name: 'PDF to Text', description: 'Extract plain text.', icon: '📃', category: 'Convert from PDF', isPlaceholder: false, color: '#4b5563' },
-  { id: 'pdf-to-html', name: 'PDF to HTML', description: 'Convert PDF to Web.', icon: '🌐', category: 'Convert from PDF', isPlaceholder: true },
-  { id: 'pdf-to-json', name: 'PDF to JSON', description: 'Convert PDF to Data.', icon: '📦', category: 'Convert from PDF', isPlaceholder: true },
 
   // 4. Edit & Optimize
   { id: 'compress-pdf', name: 'Compress PDF', description: 'Reduce file size.', icon: '📉', category: 'Edit & Optimize', isPlaceholder: false, color: '#ef4444' },

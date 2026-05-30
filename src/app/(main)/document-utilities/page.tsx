@@ -313,7 +313,7 @@ export default function DocumentUtilitiesPage() {
         <div className="relative w-full max-w-md mt-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
           <Input 
-            placeholder="Search 47 tools..." 
+            placeholder="Search 42 tools..." 
             className="pl-12 h-14 bg-card/40 backdrop-blur-xl border-primary/20 shadow-xl rounded-2xl text-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
