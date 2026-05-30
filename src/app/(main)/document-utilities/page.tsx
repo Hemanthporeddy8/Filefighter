@@ -446,15 +446,22 @@ export default function DocumentUtilitiesPage() {
     }
 
     if (activeToolId === 'split-pdf') {
+      const selectedIndices = rangeToIndices(pagesRange);
       return (
         <div className="space-y-6 animate-in fade-in duration-500">
           <FileUpload label="Upload PDF to split" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview 
+                  file={singleFile} 
+                  mode="pages" 
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={(indices) => setPagesRange(indicesToRange(indices))}
+               />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-black uppercase tracking-wider text-primary">Page extraction settings</label>
                   <Input value={pagesRange} onChange={(e) => setPagesRange(e.target.value)} placeholder="e.g. 1-3, 5 (comma separated or ranges)" className="h-12 text-lg font-bold" />
-                  <p className="text-xs text-muted-foreground italic">Specify which pages to split out (e.g. "1-2, 5") or click pages in the preview.</p>
+                  <p className="text-xs text-muted-foreground italic">Specify which pages to split out by clicking them above or typing the range manually.</p>
                </div>
                {renderActionSection("Split & Download PDF", () => splitPdf(singleFile, pagesRange))}
             </div>
@@ -464,16 +471,24 @@ export default function DocumentUtilitiesPage() {
     }
 
     if (activeToolId === 'delete-pages') {
+      const selectedIndices = rangeToIndices(pagesRange);
       return (
         <div className="space-y-6 animate-in fade-in duration-500">
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview 
+                  file={singleFile} 
+                  mode="pages" 
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={(indices) => setPagesRange(indicesToRange(indices))}
+               />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-black uppercase tracking-wider text-primary font-bold">Pages to delete</label>
                   <Input value={pagesRange} onChange={(e) => setPagesRange(e.target.value)} placeholder="e.g. 1, 3-5" className="h-12 text-lg font-bold" />
+                  <p className="text-xs text-muted-foreground">Select pages by clicking them above or typing ranges manually.</p>
                </div>
-               {renderActionSection("Delete Pages & Download", () => deletePdfPages(singleFile, rangeToIndices(pagesRange)))}
+               {renderActionSection("Delete Pages & Download", () => deletePdfPages(singleFile, selectedIndices))}
             </div>
           )}
         </div>
@@ -481,16 +496,24 @@ export default function DocumentUtilitiesPage() {
     }
 
     if (activeToolId === 'extract-pages') {
+      const selectedIndices = rangeToIndices(pagesRange);
       return (
         <div className="space-y-6 animate-in fade-in duration-500">
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview 
+                  file={singleFile} 
+                  mode="pages" 
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={(indices) => setPagesRange(indicesToRange(indices))}
+               />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-black uppercase tracking-wider text-primary font-bold">Pages to extract</label>
                   <Input value={pagesRange} onChange={(e) => setPagesRange(e.target.value)} placeholder="e.g. 2, 4-6" className="h-12 text-lg font-bold" />
+                  <p className="text-xs text-muted-foreground">Select pages by clicking them above or typing ranges manually.</p>
                </div>
-               {renderActionSection("Extract Pages & Download", () => extractPdfPages(singleFile, rangeToIndices(pagesRange)))}
+               {renderActionSection("Extract Pages & Download", () => extractPdfPages(singleFile, selectedIndices))}
             </div>
           )}
         </div>
@@ -498,11 +521,18 @@ export default function DocumentUtilitiesPage() {
     }
 
     if (activeToolId === 'rotate-pdf') {
+      const selectedIndices = rangeToIndices(pagesRange);
       return (
         <div className="space-y-6 animate-in fade-in duration-500">
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview 
+                  file={singleFile} 
+                  mode="pages" 
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={(indices) => setPagesRange(indicesToRange(indices))}
+               />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2">
                      <label className="text-sm font-bold text-primary">Rotation Angle</label>
@@ -537,6 +567,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="pages" />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-black uppercase tracking-wider text-primary font-bold">New page sequence</label>
                   <Input value={pagesRange} onChange={(e) => setPagesRange(e.target.value)} placeholder="e.g. 3, 2, 1, 4" className="h-12 text-lg font-bold" />
@@ -555,6 +586,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2">
                      <label className="text-sm font-bold text-primary">Page Size Preset</label>
@@ -601,6 +633,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to compress" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Optimized Hyper-Compression Engine</p>
                   <p className="text-sm text-muted-foreground">Strips redundant streams, flattens unused content objects, and speeds up loading performance.</p>
@@ -618,6 +651,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to flatten" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Flatten Form Fields</p>
                   <p className="text-sm text-muted-foreground">Locks interactive AcroForm text fields into standard visual page objects to prevent modification.</p>
@@ -635,6 +669,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2">
                      <label className="text-sm font-bold text-primary">Position</label>
@@ -671,6 +706,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2 md:col-span-2">
                      <label className="text-sm font-bold text-primary">Watermark Text</label>
@@ -718,6 +754,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2">
                      <label className="text-sm font-bold text-primary">Header Text (Left aligned, top)</label>
@@ -745,6 +782,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Monochrome Vectorization Engine</p>
                   <p className="text-sm text-muted-foreground">Converts all colored images inside each PDF page into grayscale. Ideal for saving printing toner.</p>
@@ -762,6 +800,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Corrupt PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Automated PDF Structure Repair</p>
                   <p className="text-sm text-muted-foreground">Attempts to rebuild damaged cross-reference tables, fix corrupted stream headers, and extract pages safely.</p>
@@ -780,6 +819,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to Protect" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-2">
                      <label className="text-sm font-bold text-primary">User Password (To open PDF)</label>
@@ -803,6 +843,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Locked PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-bold text-primary">Enter PDF Decryption Password</label>
                   <Input type="password" value={unlockPassword} onChange={(e) => setUnlockPassword(e.target.value)} placeholder="Password" className="h-12 font-mono text-lg" />
@@ -820,6 +861,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to Sign" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                   <Card className="border p-6 bg-card/60 space-y-4">
                      <h3 className="font-bold text-lg text-primary flex items-center gap-2"><PenTool className="h-5 w-5"/> Create Signature</h3>
@@ -871,6 +913,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to Redact" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <h3 className="font-bold text-lg text-primary flex items-center gap-2"><Eraser className="h-5 w-5"/> Redaction Blackout Area</h3>
                   <div className="grid grid-cols-5 gap-4">
@@ -909,8 +952,14 @@ export default function DocumentUtilitiesPage() {
       return (
         <div className="space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <FileUpload label="Select Original PDF (A)" onFileSelect={(fs) => setCompareFileA(fs[0])} acceptedFileTypes="application/pdf" />
-             <FileUpload label="Select Modified PDF (B)" onFileSelect={(fs) => setCompareFileB(fs[0])} acceptedFileTypes="application/pdf" />
+             <div className="space-y-2">
+                <FileUpload label="Select Original PDF (A)" onFileSelect={(fs) => setCompareFileA(fs[0])} acceptedFileTypes="application/pdf" />
+                {compareFileA && <DocumentPreview file={compareFileA} mode="single" className="max-w-xs mx-auto" />}
+             </div>
+             <div className="space-y-2">
+                <FileUpload label="Select Modified PDF (B)" onFileSelect={(fs) => setCompareFileB(fs[0])} acceptedFileTypes="application/pdf" />
+                {compareFileB && <DocumentPreview file={compareFileB} mode="single" className="max-w-xs mx-auto" />}
+             </div>
           </div>
           {compareFileA && compareFileB && (
             <div className="space-y-6">
@@ -965,6 +1014,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Scanned PDF" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                {renderActionSection("Run OCR Scan Engine", async () => {
                  const text = await ocrPdf(singleFile);
                  if (text) setOcrText(text);
@@ -997,6 +1047,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload PDF to Edit Metadata" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes="application/pdf" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-2xl border">
                   <div className="space-y-1">
                      <label className="text-sm font-bold text-primary">Document Title</label>
@@ -1054,6 +1105,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Word Document (.docx)" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".docx" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Heading-based Document Splitter</p>
                   <p className="text-sm text-muted-foreground">Scans your document structure and extracts every main section/chapter as a standalone PDF.</p>
@@ -1071,6 +1123,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Word Document (.docx)" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".docx" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-muted/30 p-6 rounded-2xl border space-y-4">
                   <label className="text-sm font-bold text-primary">Watermark Text</label>
                   <Input value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} placeholder="CONFIDENTIAL" className="h-12 text-lg font-bold" />
@@ -1088,6 +1141,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload XLSX or CSV File" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".xlsx,.xls,.csv" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <Button className="h-16 text-lg font-bold bg-primary hover:bg-primary/95" onClick={() => excelToCsv(singleFile)}>
                     Excel ➔ CSV Extract
@@ -1129,6 +1183,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Excel Document" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".xlsx,.xls" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Workbook Sheet Splitter</p>
                   <p className="text-sm text-muted-foreground">Splits every individual sheet tab from your workbook into a standalone Excel XLSX file.</p>
@@ -1146,6 +1201,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Workbook (.xlsx/.xls)" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".xlsx,.xls" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                {renderActionSection("Generate Pivot Data View", async () => {
                  const res = await getPivotData(singleFile);
                  if (res) setPivotResult(res);
@@ -1187,6 +1243,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Excel Sheet to Clean" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".xlsx,.xls" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                <div className="bg-primary/5 p-6 rounded-2xl border text-center">
                   <p className="font-bold text-lg mb-2">Automated Dataset Cleaning</p>
                   <p className="text-sm text-muted-foreground">Scans sheets and strips out completely blank rows, columns, null cells, or stray styling wrappers.</p>
@@ -1204,6 +1261,7 @@ export default function DocumentUtilitiesPage() {
           <FileUpload label="Upload Workbook" onFileSelect={(fs) => setSingleFile(fs[0])} acceptedFileTypes=".xlsx,.xls" />
           {singleFile && (
             <div className="space-y-6">
+               <DocumentPreview file={singleFile} mode="single" className="max-w-md mx-auto" />
                {renderActionSection("Extract Worksheet Formulas", async () => {
                  const res = await getExcelFormulas(singleFile);
                  if (res) setExcelFormulas(res);
