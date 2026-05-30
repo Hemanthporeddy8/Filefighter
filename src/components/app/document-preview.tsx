@@ -32,11 +32,14 @@ interface DocumentPreviewProps {
   className?: string;
 }
 
+const EMPTY_FILES: File[] = [];
+const EMPTY_INDICES: number[] = [];
+
 export function DocumentPreview({
   file,
-  files = [],
+  files = EMPTY_FILES,
   mode,
-  selectedIndices = [],
+  selectedIndices = EMPTY_INDICES,
   onSelectionChange,
   onReorder,
   className
