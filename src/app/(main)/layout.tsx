@@ -23,8 +23,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { ErrorBoundary } from '@/components/app/error-boundary';
 
-const EditroyIcon = ({ className = "h-8 w-8" }: { className?: string }) => (
-  <img src="/icons/icon-192.png" alt="Editroy Logo" className={`logo-img object-contain flex-shrink-0 ${className}`} />
+const EditroyIcon = ({ className = "h-8 w-8", style }: { className?: string; style?: React.CSSProperties }) => (
+  <img src="/icons/icon-192.png" alt="Editroy Logo" className={`logo-img object-contain flex-shrink-0 ${className}`} style={style} />
 );
 
 // PWA Install Banner
@@ -81,8 +81,8 @@ export default function DashboardLayout({
       <SidebarProvider defaultOpen>
         <Sidebar Rail={<SidebarRail />} collapsible="icon" className="peer">
           <SidebarHeader className="p-3 flex items-center justify-center border-b border-sidebar-border">
-            <div className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden py-1">
-              <EditroyIcon className="h-10 w-auto" />
+            <div className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden py-3">
+              <EditroyIcon className="w-auto" style={{ height: '64px' }} />
             </div>
             <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full">
               <EditroyIcon className="h-8 w-8" />

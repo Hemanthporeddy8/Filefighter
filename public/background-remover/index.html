@@ -26,18 +26,9 @@
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       </a>
-      <div class="logo" style="cursor:pointer" onclick="window.location.href='/dashboard'">
-        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="url(#lg)"/>
-          <path d="M8 16L14 22L24 10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <defs>
-            <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
-              <stop offset="0%" stop-color="#c8f135"/>
-              <stop offset="100%" stop-color="#7fff6e"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span class="logo-name">EDIT<span class="logo-cut">ROY</span> AI Tools</span>
+      <div class="logo" style="cursor:pointer; display:flex; align-items:center; gap:8px" onclick="window.location.href='/dashboard'">
+        <img src="/icons/icon-192.png" alt="Editroy Logo" class="logo-img" style="height:32px; width:auto; object-fit:contain; filter: brightness(0) invert(1)"/>
+        <span class="logo-name" style="font-family: var(--display); font-size:1.45rem; letter-spacing:.04em; color:#fff">Background Remover</span>
       </div>
     </div>
     <nav class="header-nav">
@@ -430,8 +421,9 @@
 
   <!-- ══ FOOTER ══ -->
   <footer class="footer">
-    <div class="footer-logo">
-      <span class="logo-name" style="font-size:1.1rem">EDIT<span class="logo-cut">ROY</span> Background Remover</span>
+    <div class="footer-logo" style="display:flex; align-items:center; justify-content:center; gap:6px">
+      <img src="/icons/icon-192.png" alt="Editroy Logo" class="logo-img" style="height:24px; width:auto; object-fit:contain; filter: brightness(0) invert(1)"/>
+      <span class="logo-name" style="font-family: var(--display); font-size:1.1rem; letter-spacing:.04em; color:#fff">Background Remover</span>
     </div>
     <p class="footer-tagline">Your images never leave your device. Built with ❤️ using Editroy AI.</p>
     <div class="footer-links">
