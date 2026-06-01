@@ -1851,24 +1851,16 @@ export default function ImageEditorPage() {
         {/* Main Preview Area (Left/Center) */}
         <div className="flex-1 w-full space-y-4">
           <Card className="shadow-lg border-none bg-background/50 backdrop-blur-sm">
-            <CardHeader className="flex flex-row justify-between items-center py-3 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <ImageIcon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-headline">Editor</CardTitle>
-                  <CardDescription className="text-xs">
-                    {activeToolName ? `Editing with ${activeToolName}` : imgSrc ? 'Previewing image' : 'Upload an image'}
-                  </CardDescription>
-                </div>
-              </div>
-              {imgSrc && (
-                <Button variant="ghost" size="sm" onClick={() => { setImgSrc(''); setImageFile(null); resetAllToolStates(); }} className="text-muted-foreground hover:text-destructive">
-                  <Replace className="mr-2 h-4 w-4" /> Replace
+            {imgSrc && (
+              <CardHeader className="flex flex-row justify-between items-center py-2 px-4 border-b bg-background/30">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {activeToolName ? `Editing with ${activeToolName}` : 'Previewing image'}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => { setImgSrc(''); setImageFile(null); resetAllToolStates(); }} className="text-muted-foreground hover:text-destructive h-8">
+                  <Replace className="mr-1.5 h-3.5 w-3.5" /> Replace
                 </Button>
-              )}
-            </CardHeader>
+              </CardHeader>
+            )}
             <CardContent className="p-0 overflow-hidden bg-muted/20">
               <div
                 ref={previewContainerRef}

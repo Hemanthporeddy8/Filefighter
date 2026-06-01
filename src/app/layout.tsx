@@ -23,9 +23,9 @@ export const metadata: Metadata = {
     title: 'Editroy',
   },
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: '/favicon.svg',
     apple: '/icons/apple-touch-icon.png',
-    shortcut: '/icons/icon-192.png',
+    shortcut: '/favicon.svg',
   },
   openGraph: {
     title: 'Editroy — AI-Powered Video & Document Editor',
