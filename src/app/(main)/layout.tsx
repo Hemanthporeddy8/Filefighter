@@ -23,8 +23,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { ErrorBoundary } from '@/components/app/error-boundary';
 
-const EditroyIcon = () => (
-  <img src="/icons/icon-192.png" alt="Editroy Logo" className="h-8 w-8 object-contain flex-shrink-0" />
+const EditroyIcon = ({ className = "h-8 w-8" }: { className?: string }) => (
+  <img src="/icons/icon-192.png" alt="Editroy Logo" className={`logo-img object-contain flex-shrink-0 ${className}`} />
 );
 
 // PWA Install Banner
@@ -80,10 +80,12 @@ export default function DashboardLayout({
     <>
       <SidebarProvider defaultOpen>
         <Sidebar Rail={<SidebarRail />} collapsible="icon" className="peer">
-          <SidebarHeader className="p-3 flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <EditroyIcon />
-              <h1 className="text-xl font-semibold text-primary group-data-[collapsible=icon]:hidden truncate">Editroy</h1>
+          <SidebarHeader className="p-3 flex items-center justify-center border-b border-sidebar-border">
+            <div className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden py-1">
+              <EditroyIcon className="h-10 w-auto" />
+            </div>
+            <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full">
+              <EditroyIcon className="h-8 w-8" />
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -117,7 +119,6 @@ export default function DashboardLayout({
           <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-3 sm:px-4 bg-background/90 backdrop-blur-sm border-b gap-2">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <span className="font-semibold text-sm sm:text-base hidden sm:block">Editroy</span>
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />

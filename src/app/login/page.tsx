@@ -52,7 +52,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 p-2 rounded-full bg-primary/10 w-fit">
-            <img src="/icons/icon-192.png" alt="Editroy Logo" className="h-12 w-12 object-contain" />
+            <img src="/icons/icon-192.png" alt="Editroy Logo" className="logo-img h-12 w-12 object-contain" />
           </div>
           <CardTitle className="text-3xl font-headline text-primary">Editroy</CardTitle>
           <CardDescription className="text-muted-foreground">
