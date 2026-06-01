@@ -1,7 +1,10 @@
 /* src/components/seo/ToolSeoPage.tsx
    Reusable SEO landing page shell for every Editroy tool.
-   Used by server components so metadata is rendered properly.
 */
+"use client";
+
+import { useEffect, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import type { ToolSeoMeta } from '@/lib/seo';
 
 interface Props {
@@ -9,6 +12,52 @@ interface Props {
 }
 
 export function ToolSeoPage({ tool }: Props) {
+  const { resolvedTheme } = useTheme();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Sync theme changes to the iframe
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+    
+    const sendTheme = () => {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: 'theme-change', theme: resolvedTheme },
+          '*'
+        );
+      }
+    };
+
+    // Send initially once loaded
+    iframe.addEventListener('load', sendTheme);
+    sendTheme(); // Trigger immediately if already loaded
+
+    return () => {
+      iframe.removeEventListener('load', sendTheme);
+    };
+  }, [resolvedTheme]);
+
+  // Listen to requests for the theme from the iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'get-initial-theme') {
+        const iframe = iframeRef.current;
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage(
+            { type: 'theme-change', theme: resolvedTheme },
+            '*'
+          );
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [resolvedTheme]);
+
   /* ── JSON-LD structured data ── */
   const softwareJsonLd = {
     '@context': 'https://schema.org',
@@ -61,6 +110,7 @@ export function ToolSeoPage({ tool }: Props) {
         {/* ── Tool Iframe ── */}
         <section className="tseo-tool-wrapper" aria-label={`${tool.appName} — interactive tool`}>
           <iframe
+            ref={iframeRef}
             src={tool.iframeSrc}
             title={tool.appName}
             className="tseo-iframe"

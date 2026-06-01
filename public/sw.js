@@ -1,8 +1,8 @@
-// Editroy Service Worker v1.0
+// Editroy Service Worker v1.1
 // Handles offline caching, faster loads, and PWA install support
 
-const CACHE_NAME = 'editroy-v1';
-const STATIC_CACHE = 'editroy-static-v1';
+const CACHE_NAME = 'editroy-v2';
+const STATIC_CACHE = 'editroy-static-v2';
 
 // Assets to cache on install (app shell)
 const PRECACHE_ASSETS = [

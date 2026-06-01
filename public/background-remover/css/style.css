@@ -637,3 +637,60 @@ body {
   font-size: .75rem;
   font-weight: 500;
 }
+
+/* ═══════════════════════════════════════════
+   LIGHT THEME SUPPORT & LOGO INTEGRATION
+   ═══════════════════════════════════════════ */
+html.light {
+  --bg:       #fcfcfc;
+  --surface:  #f4f4f5;
+  --card:     #ffffff;
+  --border:   #e4e4e7;
+  --border2:  #d4d4d8;
+  --text:     #09090b;
+  --text2:    #71717a;
+  --text3:    #a1a1aa;
+  --accent:   #6366f1;
+  --accent2:  #4f46e5;
+}
+
+html.light body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+html.light .header {
+  background: rgba(252,252,252,.9);
+}
+
+html.light .nav-link {
+  color: var(--text2);
+}
+
+html.light .nav-link:hover, html.light .nav-link.active {
+  color: var(--text);
+  background: var(--border);
+}
+
+html.light .new-badge {
+  color: #ffffff;
+}
+
+html.light .logo-name {
+  color: var(--text) !important;
+}
+
+html.light .footer-copy, html.light .footer-tagline, html.light .footer-links a {
+  color: var(--text2) !important;
+}
+
+/* Dynamic Brand Logo Color Inversion (crisp white in dark mode, dark navy in light mode) */
+.logo-img {
+  filter: none;
+  transition: filter 0.2s ease;
+}
+
+html.dark .logo-img,
+:root:not(.light) .logo-img {
+  filter: invert(1) grayscale(1) brightness(10);
+}
