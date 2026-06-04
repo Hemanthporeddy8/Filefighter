@@ -23,7 +23,10 @@ export const metadata: Metadata = {
     title: 'Editroy',
   },
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' }
+    ],
     apple: '/icons/apple-touch-icon.png',
     shortcut: '/favicon.svg',
   },

@@ -694,3 +694,13 @@ html.dark .logo-img,
 :root:not(.light) .logo-img {
   filter: invert(1) grayscale(1) brightness(10);
 }
+
+/* Disable custom cursor on mobile / touch screen devices */
+@media (pointer: coarse) {
+  .cursor, .cursor-dot {
+    display: none !important;
+  }
+  body, button, a, [role="button"], .home-btn, .tab-btn {
+    cursor: auto !important;
+  }
+}

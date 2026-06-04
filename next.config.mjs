@@ -46,6 +46,12 @@ const nextConfig = {
       { source: '/ocr-pdf-online', destination: '/document-utilities/ocr-pdf-online', permanent: true },
       { source: '/watermark-pdf-online', destination: '/document-utilities/watermark-pdf-online', permanent: true },
       { source: '/image-to-pdf-online', destination: '/document-utilities/image-to-pdf-online', permanent: true },
+      // AI Tools search redirect queries
+      { source: '/bgremover', destination: '/ai-tools', permanent: true },
+      { source: '/image-background', destination: '/ai-tools', permanent: true },
+      { source: '/image-background-removal', destination: '/ai-tools', permanent: true },
+      { source: '/video-background', destination: '/ai-tools', permanent: true },
+      { source: '/video-background-remover', destination: '/ai-tools', permanent: true },
     ];
   },
   experimental: {
