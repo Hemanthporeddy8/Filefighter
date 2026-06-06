@@ -311,15 +311,31 @@ const ImageTab = (() => {
 
   async function _download(){
     if(!_result) return;
-    try {
-      showToast('Upsampling to full resolution…');
-      const blob = await saveTransparentPNG(_result, _img);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'editroy_nobg.png'; a.click();
-      showToast('Downloaded!','success');
-    } catch(e) {
-      console.error(e);
-      showToast('Download failed','error');
+
+    const executeDownload = async () => {
+      try {
+        showToast('Upsampling to full resolution…');
+        const blob = await saveTransparentPNG(_result, _img);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'editroy_nobg.png'; a.click();
+        showToast('Downloaded!','success');
+      } catch(e) {
+        console.error(e);
+        showToast('Download failed','error');
+      }
+    };
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'start-export-ad', fileName: 'editroy_nobg.png' }, '*');
+      const onAdComplete = (e) => {
+        if (e.data && e.data.type === 'ad-completed') {
+          window.removeEventListener('message', onAdComplete);
+          executeDownload();
+        }
+      };
+      window.addEventListener('message', onAdComplete);
+    } else {
+      executeDownload();
     }
   }
 

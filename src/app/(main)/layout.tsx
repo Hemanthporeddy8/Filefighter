@@ -22,6 +22,8 @@ import { LogOut, Download, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { ErrorBoundary } from '@/components/app/error-boundary';
+import { AdExportOverlay } from '@/components/app/AdExportOverlay';
+
 
 const EditroyIcon = ({ className = "h-8 w-8", style }: { className?: string; style?: React.CSSProperties }) => (
   <img src="/icons/icon-192.png" alt="Editroy Logo" className={`logo-img object-contain flex-shrink-0 ${className}`} style={style} />
@@ -185,6 +187,35 @@ export default function DashboardLayout({
   const [showBanner, setShowBanner] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Ad Overlay states for handling iframe exports
+  const [adOverlayOpen, setAdOverlayOpen] = useState(false);
+  const [exportFileName, setExportFileName] = useState('');
+  const [iframeSourceWindow, setIframeSourceWindow] = useState<any>(null);
+
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'start-export-ad') {
+        setExportFileName(e.data.fileName || 'file');
+        setIframeSourceWindow(e.source);
+        setAdOverlayOpen(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handleAdComplete = () => {
+    if (iframeSourceWindow) {
+      iframeSourceWindow.postMessage({ type: 'ad-completed' }, '*');
+    }
+  };
+
+  const handleAdClose = () => {
+    setAdOverlayOpen(false);
+    setIframeSourceWindow(null);
+  };
+
+
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
@@ -312,6 +343,13 @@ export default function DashboardLayout({
         onClose={() => setIsModalOpen(false)} 
         onInstall={handleInstall} 
         deferredPrompt={deferredPrompt} 
+      />
+
+      <AdExportOverlay
+        isOpen={adOverlayOpen}
+        onClose={handleAdClose}
+        onComplete={handleAdComplete}
+        fileName={exportFileName}
       />
     </>
   );

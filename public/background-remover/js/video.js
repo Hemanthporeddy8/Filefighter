@@ -361,35 +361,67 @@ const VideoTab = (() => {
   // ── Download WebM video ──
   function _downloadVideo(){
     if(!_videoBlob) return;
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(_videoBlob);
-    a.download='editroy_nobg.webm';
-    a.click();
-    showToast('WebM video downloaded!','success');
+
+    const executeDownload = () => {
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(_videoBlob);
+      a.download='editroy_nobg.webm';
+      a.click();
+      showToast('WebM video downloaded!','success');
+    };
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'start-export-ad', fileName: 'editroy_nobg.webm' }, '*');
+      const onAdComplete = (e) => {
+        if (e.data && e.data.type === 'ad-completed') {
+          window.removeEventListener('message', onAdComplete);
+          executeDownload();
+        }
+      };
+      window.addEventListener('message', onAdComplete);
+    } else {
+      executeDownload();
+    }
   }
 
   // ── Download ZIP of PNG frames (fallback / for NLEs) ──
   async function _downloadZip(){
     if(!_frames.length) return;
-    showToast('Building ZIP…');
-    const zip=new JSZip();
-    const folder=zip.folder('editroy_frames');
-    for(let i=0;i<_frames.length;i++){
-      const c=document.createElement('canvas');
-      c.width=_frames[i].width; c.height=_frames[i].height;
-      c.getContext('2d').putImageData(_frames[i],0,0);
-      const blob=await canvasToBlob(c);
-      folder.file('frame_'+String(i).padStart(5,'0')+'.png',await blob.arrayBuffer());
-      if(i%15===0){
-        $('vidDoneMsg').textContent=`Packing ${i}/${_frames.length}…`;
-        await new Promise(r=>setTimeout(r,0));
+
+    const executeDownload = async () => {
+      showToast('Building ZIP…');
+      const zip=new JSZip();
+      const folder=zip.folder('editroy_frames');
+      for(let i=0;i<_frames.length;i++){
+        const c=document.createElement('canvas');
+        c.width=_frames[i].width; c.height=_frames[i].height;
+        c.getContext('2d').putImageData(_frames[i],0,0);
+        const blob=await canvasToBlob(c);
+        folder.file('frame_'+String(i).padStart(5,'0')+'.png',await blob.arrayBuffer());
+        if(i%15===0){
+          $('vidDoneMsg').textContent=`Packing ${i}/${_frames.length}…`;
+          await new Promise(r=>setTimeout(r,0));
+        }
       }
+      const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(zb); a.download='editroy_frames.zip'; a.click();
+      $('vidDoneMsg').textContent='✅ ZIP Downloaded!';
+      showToast('ZIP downloaded!','success');
+    };
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'start-export-ad', fileName: 'editroy_frames.zip' }, '*');
+      const onAdComplete = (e) => {
+        if (e.data && e.data.type === 'ad-completed') {
+          window.removeEventListener('message', onAdComplete);
+          executeDownload();
+        }
+      };
+      window.addEventListener('message', onAdComplete);
+    } else {
+      executeDownload();
     }
-    const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(zb); a.download='editroy_frames.zip'; a.click();
-    $('vidDoneMsg').textContent='✅ ZIP Downloaded!';
-    showToast('ZIP downloaded!','success');
   }
 
   function onModelLoad(){ if(_file) $('btnProcessVid').disabled=false; }

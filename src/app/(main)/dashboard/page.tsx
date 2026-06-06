@@ -56,6 +56,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { loadJsPDF, idlePreload } from '@/lib/lazy-loader';
 import { LazyTableRow } from '@/components/app/lazy-table-row';
+import { AdBanner } from '@/components/app/AdBanner';
+
 
 // ── LAZY-LOADED heavy components ─────────────────────────────
 // These are NOT included in the initial dashboard bundle.
@@ -517,6 +519,9 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Responsive Dashboard Advertisement Banner */}
+      <AdBanner slotId="dashboard-top-leaderboard" className="my-2" />
 
       <Card className="shadow-lg">
         <CardHeader>
