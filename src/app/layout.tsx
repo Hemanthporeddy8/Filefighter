@@ -65,19 +65,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,700;1,400&family=Oswald:wght@400;700&family=Roboto:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
         
-        {/* 
-          ==============================================================
-          AD MONETIZATION GLOBAL SCRIPT PLACEHOLDER
-          ==============================================================
-          Uncomment and replace ca-pub-XXXXXXXXXXXXXXXX with your actual 
-          Google AdSense ID after approval to load ads globally:
-
-          <script 
-            async 
-            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" 
-            crossorigin="anonymous"
-          />
-        */}
+        {/* Google AdSense Global Script */}
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9884406674999428" 
+          crossOrigin="anonymous"
+        />
         
         {/* PWA: register service worker */}
         <Script id="sw-register" strategy="afterInteractive">{`
