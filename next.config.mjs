@@ -47,11 +47,10 @@ const nextConfig = {
       { source: '/watermark-pdf-online', destination: '/document-utilities/watermark-pdf-online', permanent: true },
       { source: '/image-to-pdf-online', destination: '/document-utilities/image-to-pdf-online', permanent: true },
       // AI Tools search redirect queries
-      { source: '/bgremover', destination: '/ai-tools', permanent: true },
-      { source: '/image-background', destination: '/ai-tools', permanent: true },
-      { source: '/image-background-removal', destination: '/ai-tools', permanent: true },
-      { source: '/video-background', destination: '/ai-tools', permanent: true },
-      { source: '/video-background-remover', destination: '/ai-tools', permanent: true },
+      { source: '/bgremover', destination: '/bg-remover-online', permanent: true },
+      { source: '/image-background', destination: '/bg-remover-online', permanent: true },
+      { source: '/image-background-removal', destination: '/bg-remover-online', permanent: true },
+      { source: '/video-background', destination: '/video-background-remover', permanent: true },
     ];
   },
   experimental: {
