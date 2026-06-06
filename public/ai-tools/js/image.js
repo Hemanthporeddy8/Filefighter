@@ -309,17 +309,157 @@ const ImageTab = (() => {
     if(_result) renderToCanvas($('outputCanvas'),_result,bg==='transparent'?null:bg);
   }
 
+  function showLocalAdOverlay(fileName, downloadCallback) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: #f0f0f0;
+      font-family: 'Inter', system-ui, sans-serif;
+    `;
+    
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+    `;
+    
+    const spinnerContainer = document.createElement('div');
+    spinnerContainer.style.cssText = `
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 24px;
+      border: 4px solid rgba(200, 241, 53, 0.15);
+      border-top-color: #c8f135;
+      border-radius: 50%;
+      animation: ad-spin-local 1s linear infinite;
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ad-spin-local { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes ad-counter-spin-local { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+    `;
+    document.head.appendChild(style);
+    
+    const countLabel = document.createElement('span');
+    countLabel.style.cssText = `
+      position: absolute;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #c8f135;
+      animation: ad-counter-spin-local 1s linear infinite;
+    `;
+    
+    let countdown = 5;
+    countLabel.textContent = countdown;
+    spinnerContainer.appendChild(countLabel);
+    card.appendChild(spinnerContainer);
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Generating Your File...';
+    title.style.cssText = 'font-size: 1.25rem; font-weight: 700; margin: 0 0 8px; color: #fff;';
+    card.appendChild(title);
+    
+    const sub = document.createElement('p');
+    sub.textContent = `We are preparing "${fileName}" for you. This free service is supported by ads.`;
+    sub.style.cssText = 'font-size: 0.875rem; color: rgba(240, 240, 240, 0.55); margin: 0 0 24px; line-height: 1.5;';
+    card.appendChild(sub);
+
+    const adInfo = document.createElement('div');
+    adInfo.style.cssText = 'font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); padding: 12px; border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 8px; margin-bottom: 24px;';
+    adInfo.textContent = 'Sponsored Advertisement';
+    card.appendChild(adInfo);
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Please wait...';
+    btn.disabled = true;
+    btn.style.cssText = 'width: 100%; padding: 10px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: none; border-radius: 8px; font-weight: 600; cursor: not-allowed;';
+    card.appendChild(btn);
+    
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    
+    // Load Monetag Vignette script dynamically
+    const script = document.createElement('script');
+    script.dataset.zone = '11108858';
+    script.src = 'https://n6wxm.com/vignette.min.js';
+    const target = [document.documentElement, document.body].filter(Boolean).pop();
+    if (target) target.appendChild(script);
+
+    const interval = setInterval(() => {
+      countdown--;
+      countLabel.textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        spinnerContainer.innerHTML = '✓';
+        spinnerContainer.style.borderColor = '#c8f135';
+        spinnerContainer.style.animation = 'none';
+        spinnerContainer.style.color = '#c8f135';
+        spinnerContainer.style.fontSize = '2rem';
+        spinnerContainer.style.fontWeight = 'bold';
+        
+        title.textContent = 'Download Ready!';
+        sub.textContent = 'Your file download has started automatically.';
+        
+        btn.textContent = 'Done / Close';
+        btn.disabled = false;
+        btn.style.cssText = 'width: 100%; padding: 10px; background: #c8f135; color: #0a0a0a; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;';
+        btn.onclick = () => {
+          if (document.body.contains(overlay)) document.body.removeChild(overlay);
+          if (target && target.contains(script)) target.removeChild(script);
+        };
+        
+        downloadCallback();
+      }
+    }, 1000);
+  }
+
   async function _download(){
     if(!_result) return;
-    try {
-      showToast('Upsampling to full resolution…');
-      const blob = await saveTransparentPNG(_result, _img);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'editroy_nobg.png'; a.click();
-      showToast('Downloaded!','success');
-    } catch(e) {
-      console.error(e);
-      showToast('Download failed','error');
+
+    const executeDownload = async () => {
+      try {
+        showToast('Upsampling to full resolution…');
+        const blob = await saveTransparentPNG(_result, _img);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'editroy_nobg.png'; a.click();
+        showToast('Downloaded!','success');
+      } catch(e) {
+        console.error(e);
+        showToast('Download failed','error');
+      }
+    };
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'start-export-ad', fileName: 'editroy_nobg.png' }, '*');
+      const onAdComplete = (e) => {
+        if (e.data && e.data.type === 'ad-completed') {
+          window.removeEventListener('message', onAdComplete);
+          executeDownload();
+        }
+      };
+      window.addEventListener('message', onAdComplete);
+    } else {
+      showLocalAdOverlay('editroy_nobg.png', executeDownload);
     }
   }
 

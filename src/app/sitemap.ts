@@ -7,9 +7,8 @@ const now = new Date();
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolPages = [
     // AI tools
-    '/bg-remover-online',
+    '/ai-tools',
     '/audio-separator',
-    '/video-background-remover',
     '/pdf-text-editor',
     '/same-edit',
     '/edit-image-online',
