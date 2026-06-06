@@ -359,6 +359,8 @@ const VideoTab = (() => {
   }
 
   function showLocalAdOverlay(fileName, downloadCallback) {
+    const existingBodyChildren = Array.from(document.body.children);
+
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -447,10 +449,10 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load Monetag Vignette script dynamically
+    // Load Monetag In-Page Push script dynamically
     const script = document.createElement('script');
-    script.dataset.zone = '11108858';
-    script.src = 'https://n6wxm.com/vignette.min.js';
+    script.dataset.zone = '11109524';
+    script.src = 'https://nap5k.com/tag.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
 
@@ -475,6 +477,14 @@ const VideoTab = (() => {
         btn.onclick = () => {
           if (document.body.contains(overlay)) document.body.removeChild(overlay);
           if (target && target.contains(script)) target.removeChild(script);
+          
+          // Clean up any push notification banners injected by the Monetag script
+          const currentBodyChildren = Array.from(document.body.children);
+          currentBodyChildren.forEach(child => {
+            if (!existingBodyChildren.includes(child) && child !== overlay && child !== script) {
+              child.remove();
+            }
+          });
         };
         
         downloadCallback();
