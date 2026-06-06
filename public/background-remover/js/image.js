@@ -429,12 +429,34 @@ const ImageTab = (() => {
           if (document.body.contains(overlay)) document.body.removeChild(overlay);
           if (target && target.contains(script)) target.removeChild(script);
           
-          // Clean up any push notification banners injected by the Monetag script
+          // 1. Clean up any push notification banners injected by the Monetag script
           const currentBodyChildren = Array.from(document.body.children);
           currentBodyChildren.forEach(child => {
             if (!existingBodyChildren.includes(child) && child !== overlay && child !== script) {
               child.remove();
             }
+          });
+
+          // 2. Remove any iframe, div, or element that is fixed/absolute and has high z-index
+          const preserve = ['cursor', 'cursorDot', 'toast', 'procOverlay', 'batchModal'];
+          document.querySelectorAll('div, iframe, [style*="position: fixed"], [style*="z-index"]').forEach(el => {
+            const style = window.getComputedStyle(el);
+            const pos = style.position;
+            const z = parseInt(style.zIndex);
+            if ((pos === 'fixed' || pos === 'absolute') && z && z > 1000) {
+              if (!preserve.includes(el.id) && el !== overlay && !el.closest('#batchModal') && !el.closest('#procOverlay')) {
+                el.remove();
+              }
+            }
+          });
+
+          // 3. Clear any dynamically created bodies/iframes containing the ad tag domain
+          document.querySelectorAll('iframe').forEach(ifr => {
+            try {
+              if (ifr.src.includes('nap5k.com') || ifr.src.includes('n6wxm.com') || ifr.src.includes('vignette') || ifr.src.includes('tag.min.js')) {
+                ifr.remove();
+              }
+            } catch(e) {}
           });
         };
         
