@@ -109,6 +109,7 @@ export const state = {
   tlZoom: 1.0,    // Timeline zoom multiplier (0.25 – 8×)
   exportWidth: 1920,
   exportHeight: 1080,
+  pickingChromaColor: false,
   showToast: (title, desc = '', isError = false) => showToast(title, desc, isError)
 };
 
@@ -2651,6 +2652,106 @@ function setupEventListeners() {
     const val = document.getElementById('val-chroma-spill');
     if (val) val.textContent = e.target.value + '%';
   });
+
+  // Eyedropper / Color Picker for Chroma Key
+  function resetChromaPickerState() {
+    state.pickingChromaColor = false;
+    const pickerBtn = document.getElementById('btn-chroma-picker');
+    if (pickerBtn) {
+      pickerBtn.style.background = 'transparent';
+      pickerBtn.style.borderColor = 'var(--border2)';
+      pickerBtn.style.color = 'var(--text)';
+      pickerBtn.classList.remove('active');
+    }
+    const previewCanvasEl = document.getElementById('preview-img-canvas');
+    if (previewCanvasEl) {
+      previewCanvasEl.style.cursor = '';
+    }
+  }
+
+  function handleColorPickAtCoords(clickX, clickY, rect) {
+    const canvas = document.getElementById('preview-img-canvas');
+    if (!canvas) return;
+
+    // Translate to canvas drawing buffer coordinates
+    const canvasX = Math.floor((clickX / rect.width) * canvas.width);
+    const canvasY = Math.floor((clickY / rect.height) * canvas.height);
+    
+    if (canvasX >= 0 && canvasX < canvas.width && canvasY >= 0 && canvasY < canvas.height) {
+      try {
+        const ctx = canvas.getContext('2d');
+        const pixel = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+        
+        // Convert RGB to Hex
+        const r = pixel[0];
+        const g = pixel[1];
+        const b = pixel[2];
+        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        
+        // Update color input
+        const colorInput = document.getElementById('chroma-key-color');
+        if (colorInput) {
+          colorInput.value = hex;
+          colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+          colorInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        showToast('Color Selected ✓', `Chroma Key set to ${hex.toUpperCase()}`);
+      } catch (err) {
+        console.error('Failed to get pixel color:', err);
+        showToast('Selection failed', 'Could not extract pixel color from preview.', true);
+      }
+    }
+    resetChromaPickerState();
+  }
+
+  document.getElementById('btn-chroma-picker')?.addEventListener('click', e => {
+    e.stopPropagation();
+    state.pickingChromaColor = !state.pickingChromaColor;
+    const pickerBtn = document.getElementById('btn-chroma-picker');
+    if (state.pickingChromaColor) {
+      if (pickerBtn) {
+        pickerBtn.style.background = 'var(--accent)';
+        pickerBtn.style.borderColor = 'var(--accent)';
+        pickerBtn.style.color = '#fff';
+        pickerBtn.classList.add('active');
+      }
+      const previewCanvasEl = document.getElementById('preview-img-canvas');
+      if (previewCanvasEl) {
+        previewCanvasEl.style.cursor = 'crosshair';
+      }
+      showToast('Color Picker Active', 'Click on the video preview to pick a background color');
+    } else {
+      resetChromaPickerState();
+    }
+  });
+
+  // Global mousedown listener in capture phase to intercept color picking clicks
+  document.addEventListener('mousedown', e => {
+    if (!state.pickingChromaColor) return;
+    
+    const canvas = document.getElementById('preview-img-canvas');
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      
+      // If click falls inside the preview canvas box
+      if (clickX >= 0 && clickX <= rect.width && clickY >= 0 && clickY <= rect.height) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleColorPickAtCoords(clickX, clickY, rect);
+        return;
+      }
+    }
+    
+    // If clicked outside the preview canvas and not the button itself, cancel picking mode
+    const pickerBtn = document.getElementById('btn-chroma-picker');
+    if (pickerBtn && !pickerBtn.contains(e.target) && e.target.id !== 'chroma-key-color') {
+      resetChromaPickerState();
+      showToast('Color Picker Cancelled', 'Color selection was cancelled.');
+    }
+  }, true);
 
   // AI & Chroma Key Background Remover Click Handler
   document.getElementById('btn-editor-run-bg-remover')?.addEventListener('click', async () => {

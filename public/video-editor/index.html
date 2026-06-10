@@ -1422,7 +1422,15 @@ html.light .playhead-head {
         <div id="chroma-key-config" style="display:none; flex-direction:column; gap:10px; margin-bottom:14px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px; border-radius:8px">
           <div class="prop-row" style="display:flex; justify-content:space-between; align-items:center">
             <label style="font-size:11px;color:var(--text2)">Key Color</label>
-            <input type="color" id="chroma-key-color" value="#00b140" style="width:36px; height:22px; border:none; border-radius:4px; cursor:pointer"/>
+            <div style="display:flex; align-items:center; gap:6px">
+              <button id="btn-chroma-picker" title="Pick color from preview" style="background:transparent; border:1px solid var(--border2); color:var(--text); width:28px; height:22px; border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:all 0.15s ease">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m2 22 1-1c.6-.6 1.4-1 2.2-1h1.8L17 9.8c.8-.8.8-2 0-2.8l-2.2-2.2c-.8-.8-2-.8-2.8 0L2 14.8V16.6c0 .8-.4 1.6-1 2.2L0 20"/>
+                  <path d="m14 4 6 6"/>
+                </svg>
+              </button>
+              <input type="color" id="chroma-key-color" value="#00b140" style="width:36px; height:22px; border:none; border-radius:4px; cursor:pointer"/>
+            </div>
           </div>
           <div class="prop-group">
             <div class="prop-row" style="display:flex; justify-content:space-between"><label style="font-size:11px;color:var(--text2)">Similarity / Tolerance</label><span id="val-chroma-sim" style="font-size:11px;font-family:monospace;color:var(--text3)">40%</span></div>
