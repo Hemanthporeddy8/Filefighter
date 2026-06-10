@@ -754,10 +754,13 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     }
     
     try {
-      const threshold = isPlaying ? 0.15 : 0.03;
-      let shouldSeek = !vid._hasSeekedOnce || (isPlaying 
-        ? (!vid.seeking && Math.abs(vid.currentTime - localTime) > threshold)
-        : (Math.abs(vid.currentTime - localTime) > threshold));
+      const threshold = isPlaying ? 1.5 : 0.03;
+      const lastSeekTarget = vid._lastSeekTarget ?? -999;
+      const targetTimeDiff = Math.abs(lastSeekTarget - localTime);
+      
+      let shouldSeek = !vid._hasSeekedOnce || (isPlaying
+        ? (!vid.seeking && targetTimeDiff > 0.1 && (vid.paused || Math.abs(vid.currentTime - localTime) > threshold))
+        : (targetTimeDiff > 0.01 && Math.abs(vid.currentTime - localTime) > threshold));
         
       if (shouldSeek) {
         const now = performance.now();
@@ -774,6 +777,7 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
           vid._deferredSeekTimeout = setTimeout(() => {
             if (!stateMachine.is(EditorStates.PLAYING)) {
               vid.currentTime = localTime;
+              vid._lastSeekTarget = localTime;
               vid._lastSeekTs = performance.now();
               import('/video-editor/engine/render-scheduler.js').then(({ renderScheduler }) => {
                 renderScheduler.triggerSingleUpdate();
@@ -784,6 +788,7 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
         
         if (shouldSeek) {
           vid.currentTime = localTime;
+          vid._lastSeekTarget = localTime;
           vid._lastSeekTs = now;
           vid._hasSeekedOnce = true;
           if (vid._deferredSeekTimeout) {
