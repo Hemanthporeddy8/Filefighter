@@ -131,6 +131,11 @@ class TimelineVirtualizer {
 
           track.appendChild(el);
           this._nodeMap.set(item.id, el);
+        } else if (el.parentElement !== track) {
+          // Element exists in nodeMap but is detached or in wrong track —
+          // this happens after undo/redo, history restore, or track changes.
+          // Force re-append to the correct track so it becomes visible.
+          track.appendChild(el);
         }
 
         // Apply HTML template once or if it has modified parameters
@@ -186,6 +191,10 @@ class TimelineVirtualizer {
   }
 
   clearRecycler() {
+    // Remove all cached DOM elements from the DOM before clearing the map
+    for (const el of this._nodeMap.values()) {
+      if (el.parentElement) el.remove();
+    }
     this._nodeMap.clear();
   }
 }

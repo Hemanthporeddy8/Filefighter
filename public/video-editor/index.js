@@ -956,17 +956,25 @@ function updatePlayhead() {
     _playheadEl.style.left = px + 'px';
   }
   updateTimecode();
-  _scheduleAutoScroll();
+  // Only auto-scroll to follow playhead during active playback.
+  // When paused, user can freely scroll without the view snapping back.
+  if (stateMachine.is(EditorStates.PLAYING)) {
+    _scheduleAutoScroll();
+  }
 }
 
 // ── TIMELINE SCROLLING ────────────────────────────────────────
 let _autoScrollRaf = null;
 function _scheduleAutoScroll() {
+  // Guard: only auto-scroll when actively playing to avoid fighting manual scroll
+  if (!stateMachine.is(EditorStates.PLAYING)) return;
   if (_autoScrollRaf) return;
   _autoScrollRaf = requestAnimationFrame(_doAutoScroll);
 }
 function _doAutoScroll() {
   _autoScrollRaf = null;
+  // Double-check still playing in case state changed between schedule and execute
+  if (!stateMachine.is(EditorStates.PLAYING)) return;
   const scrollEl = document.getElementById('tracks-scroll');
   if (!scrollEl) return;
   const scrollLeft = scrollEl.scrollLeft;
@@ -1593,7 +1601,6 @@ function deleteLayer(itemId) {
   if (toDelete) {
     const deletedStart = toDelete.start;
     const deletedDuration = toDelete.duration;
-    const deletedTrack = toDelete.track;
 
     const isSrcShared = state.items.some(it => it.id !== toDelete.id && it.src === toDelete.src);
     const isProxyShared = state.items.some(it => it.id !== toDelete.id && it.proxySrc === toDelete.proxySrc);
@@ -1603,9 +1610,10 @@ function deleteLayer(itemId) {
     state.items = state.items.filter(c => c.id !== toDelete.id);
     deleteSessionFile(itemId); // Remove from IndexedDB session store
 
-    // Ripple shift subsequent clips in the same track
+    // Canva-style ripple: shift ALL clips on ALL tracks that start after the deleted clip's start
+    // This fills the gap created by deletion so clips stay attached with no dead space.
     state.items.forEach(item => {
-      if (item.track === deletedTrack && item.start > deletedStart) {
+      if (item.start > deletedStart) {
         item.start = Math.max(0, item.start - deletedDuration);
       }
     });
@@ -1613,6 +1621,8 @@ function deleteLayer(itemId) {
     if (state.activeLayer === itemId) {
       state.activeLayer = null;
     }
+    // Flush the deleted clip's DOM element from the virtualizer cache for a clean re-render
+    timelineVirtualizer.clearRecycler();
     pushHistory();
     computeTotalDuration();
     syncAudioGraph();
@@ -1666,6 +1676,9 @@ function setupEventListeners() {
     if (state.historyIndex > 0) {
       state.historyIndex--;
       state.items = state.history[state.historyIndex].map(i => ({...i, filters: {...i.filters}, transform: {...i.transform}}));
+      // Clear the timeline's DOM node cache so stale clip elements from deleted items
+      // don't persist in the view after the history state is restored.
+      timelineVirtualizer.clearRecycler();
       computeTotalDuration();
       renderAll();
       syncAudioGraph();
