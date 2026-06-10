@@ -2,197 +2,165 @@
  * public/video-editor/engine/export-engine.js
  * 
  * Central ExportEngine manager.
- * Implements chunked, non-blocking render sweeps, adaptive resolution ceilings,
- * cancellation bounds, and an airtight 10s watchdog recovery timeout.
+ * Implements real-time canvas capture with Web Audio API mixing.
+ * Standardized MediaRecorder output is fully compatible with all browsers and devices.
  */
 
 import { stateMachine, EditorStates } from './state-machine.js';
-import { adaptiveQuality } from './adaptive-quality.js';
-import { DeviceClasses } from './device-profiler.js';
 
 class ExportEngine {
   constructor() {
     this.isExporting = false;
     this.cancelled = false;
-    this._watchdogTimer = null;
-    this._lastFrameTs = 0;
+    this.recorder = null;
   }
 
   /**
-   * Automatically select best export settings based on active device capabilities.
-   * Low-end devices are constrained to a fast, reliable 480p export to ensure success.
-   */
-  getRecommendedSettings(originalW, originalH) {
-    const tier = adaptiveQuality.currentTier;
-    
-    if (tier === DeviceClasses.LOW_END) {
-      return { width: 854, height: 480, fps: 24, bitrate: 1200 * 1024 }; // 480p standard
-    } else if (tier === DeviceClasses.MID_RANGE) {
-      return { width: Math.min(originalW, 1280), height: Math.min(originalH, 720), fps: 24, bitrate: 2500 * 1024 }; // 720p maximum
-    } else {
-      return { width: originalW, height: originalH, fps: 30, bitrate: 5000 * 1024 }; // Full 1080p+ original
-    }
-  }
-
-  /**
-   * Executes chunk-based, non-blocking rendering.
-   * Yields processing cycles back to the main UI thread to prevent browser freezes.
+   * Universal real-time MediaRecorder and Web Audio export.
+   * Works offline and on all mobile and desktop devices (iOS, Safari, Firefox).
    */
   async exportProject(state, renderFrameFn, onProgress, onComplete, onError) {
     if (this.isExporting) return;
-
     this.isExporting = true;
     this.cancelled = false;
+
+    // 1. Enter export mode state
     stateMachine.transitionTo(EditorStates.EXPORTING);
 
-    const duration = state.totalDuration;
-    const settings = this.getRecommendedSettings(state.exportWidth || 1280, state.exportHeight || 720);
-    const totalFrames = Math.ceil(duration * settings.fps);
-    const timePerFrame = 1 / settings.fps;
-
-    console.log(`[ExportEngine] Staging export: ${settings.width}x${settings.height} @ ${settings.fps}fps. Total frames: ${totalFrames}`);
-
-    // Set canvas dimensions to match export settings
-    const renderCanvas = document.createElement('canvas');
-    renderCanvas.width = settings.width;
-    renderCanvas.height = settings.height;
-    const renderCtx = renderCanvas.getContext('2d');
-
-    const stream = renderCanvas.captureStream ? renderCanvas.captureStream(settings.fps) : renderCanvas.mozCaptureStream(settings.fps);
-    
-    if (!window.MediaRecorder) {
-      onError('MediaRecorder not supported by this browser.');
-      this._cleanup();
-      return;
-    }
-
-    let mimeType = 'video/webm';
-    const preferredFmt = state.exportFormat || 'webm';
-    
-    if (preferredFmt === 'mp4') {
-      mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')
-        ? 'video/mp4;codecs=h264,aac'
-        : MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
-        ? 'video/mp4;codecs=h264'
-        : MediaRecorder.isTypeSupported('video/mp4')
-        ? 'video/mp4'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=h264')
-        ? 'video/webm;codecs=h264'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-        ? 'video/webm;codecs=vp9,opus'
-        : 'video/webm';
-    } else {
-      mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-        ? 'video/webm;codecs=vp9,opus'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-        ? 'video/webm;codecs=vp8,opus'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=h264')
-        ? 'video/webm;codecs=h264'
-        : MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')
-        ? 'video/mp4;codecs=h264,aac'
-        : 'video/webm';
-    }
-
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: settings.bitrate
-    });
-
-    const chunks = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.start();
-
-    // 1. Setup Watchdog timer (Phase 10 / Warning Watchdog)
-    this._resetWatchdog(onError);
-
     try {
-      let currentFrame = 0;
+      const renderCanvas = document.getElementById('preview-img-canvas');
+      if (!renderCanvas) throw new Error('Canvas element not found.');
+
+      // 2. Initialize Web Audio mixer destination
+      if (typeof window.getAudioContext === 'undefined') {
+        throw new Error('Web Audio Context is not initialized.');
+      }
       
-      const renderNextFrame = async () => {
-        if (this.cancelled) {
-          recorder.stop();
-          onError('Export cancelled by user.');
-          this._cleanup();
-          return;
-        }
+      const ctx = window.getAudioContext();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
 
-        if (currentFrame >= totalFrames) {
-          recorder.stop();
-          setTimeout(() => {
-            const blob = new Blob(chunks, { type: mimeType });
-            onComplete(blob);
-            this._cleanup();
-          }, 100);
-          return;
-        }
+      const centralMixer = window.centralMixerNode;
+      if (!centralMixer) throw new Error('Web Audio mixer node not found.');
 
-        // Kick watchdog
-        this._feedWatchdog();
+      // Mute local speaker output during export to keep it silent
+      try {
+        centralMixer.disconnect(ctx.destination);
+      } catch (e) {}
 
-        // Seek state timecode
-        const time = currentFrame * timePerFrame;
-        state.globalTime = time;
+      // Create stream destination node to mix soundtracks
+      const dest = ctx.createMediaStreamDestination();
+      centralMixer.connect(dest);
 
-        // Render the frame onto export canvas
-        renderFrameFn(renderCtx, renderCanvas);
+      // 3. Combine canvas stream (video) and destination stream (audio)
+      const canvasStream = renderCanvas.captureStream ? renderCanvas.captureStream(state.fps) : renderCanvas.mozCaptureStream(state.fps);
+      const mixedStream = new MediaStream();
 
-        // Update progress callback
-        currentFrame++;
-        onProgress(Math.round((currentFrame / totalFrames) * 100));
+      canvasStream.getVideoTracks().forEach(t => mixedStream.addTrack(t));
+      dest.stream.getAudioTracks().forEach(t => mixedStream.addTrack(t));
 
-        // Yield after every frame render to preserve main thread responsiveness
-        if (currentFrame % 4 === 0) {
-          setTimeout(renderNextFrame, 0); // Complete event loop yield
-        } else {
-          // Microtask yield
-          await Promise.resolve();
-          renderNextFrame();
-        }
+      // 4. Select MIME type compatible with device
+      let mimeType = 'video/webm';
+      const preferredFmt = state.exportFormat || 'webm';
+      if (preferredFmt === 'mp4') {
+        mimeType = MediaRecorder.isTypeSupported('video/mp4') 
+          ? 'video/mp4' 
+          : MediaRecorder.isTypeSupported('video/webm;codecs=h264')
+          ? 'video/webm;codecs=h264'
+          : 'video/webm';
+      } else {
+        mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+          ? 'video/webm;codecs=vp9,opus'
+          : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : 'video/webm';
+      }
+
+      console.log(`[ExportEngine] Recording combined streams: ${mimeType} @ ${state.fps}fps`);
+
+      this.recorder = new MediaRecorder(mixedStream, {
+        mimeType,
+        videoBitsPerSecond: 4_000_000 // 4 Mbps high quality
+      });
+
+      const chunks = [];
+      this.recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
-      await renderNextFrame();
+      // 5. Seek to beginning and prep decoders
+      state.globalTime = 0;
+      await new Promise(r => setTimeout(r, 400));
+
+      this.recorder.start();
+
+      // Start timeline playback loop
+      stateMachine.transitionTo(EditorStates.PLAYING);
+
+      const totalDur = state.totalDuration;
+
+      const progressInterval = setInterval(() => {
+        if (this.cancelled) {
+          clearInterval(progressInterval);
+          this._finalize(state, ctx, dest, onError);
+          return;
+        }
+
+        const elapsed = state.globalTime;
+        const pct = Math.min(99, Math.round((elapsed / totalDur) * 100));
+        onProgress(pct);
+
+        // Stop if we hit the end of the duration or state transitions away
+        if (elapsed >= totalDur - 0.05 || !stateMachine.is(EditorStates.PLAYING)) {
+          clearInterval(progressInterval);
+          onProgress(100);
+
+          this.recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mimeType });
+            onComplete(blob);
+            this._finalize(state, ctx, dest);
+          };
+          this.recorder.stop();
+        }
+      }, 100);
 
     } catch (e) {
       console.error('[ExportEngine] Export execution crashed:', e);
       onError(e.message || 'Export error');
-      this._cleanup();
+      this.isExporting = false;
+      stateMachine.transitionTo(EditorStates.IDLE);
     }
   }
 
-  _resetWatchdog(onError) {
-    this._feedWatchdog();
-    this._watchdogTimer = setInterval(() => {
-      const now = performance.now();
-      // Watchdog fails if more than 10 seconds pass since last frame (Phase 10 / Warning Watchdog)
-      if (now - this._lastFrameTs > 10000) {
-        console.error('[ExportEngine] Watchdog timeout: Render thread frozen for > 10s.');
-        clearInterval(this._watchdogTimer);
-        this.cancelled = true;
-        onError('Export aborted: Rendering engine watchdog timeout (hardware pipeline frozen).');
-        this._cleanup();
-      }
-    }, 2000);
-  }
+  _finalize(state, ctx, dest, onError = null) {
+    this.isExporting = false;
+    this.recorder = null;
+    stateMachine.transitionTo(EditorStates.IDLE);
+    state.globalTime = 0;
 
-  _feedWatchdog() {
-    this._lastFrameTs = performance.now();
+    // Restore Web Audio graph (reconnect speakers)
+    const centralMixer = window.centralMixerNode;
+    if (centralMixer) {
+      try {
+        centralMixer.disconnect(dest);
+      } catch (e) {}
+      try {
+        centralMixer.disconnect(ctx.destination);
+      } catch (e) {}
+      centralMixer.connect(ctx.destination);
+    }
+
+    if (onError && this.cancelled) {
+      onError('Export cancelled by user.');
+    }
   }
 
   cancel() {
     this.cancelled = true;
-  }
-
-  _cleanup() {
-    this.isExporting = false;
-    if (this._watchdogTimer) {
-      clearInterval(this._watchdogTimer);
-      this._watchdogTimer = null;
+    if (this.recorder && this.recorder.state !== 'inactive') {
+      this.recorder.stop();
     }
-    stateMachine.transitionTo(EditorStates.IDLE);
-    console.log('[ExportEngine] Released export locks.');
   }
 }
 

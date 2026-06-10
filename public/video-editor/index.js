@@ -446,7 +446,7 @@ function renderFrame(st) {
   renderCtx.fillStyle = '#000';
   renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
   
-  const renderOrder = { 'v1': 1, 'v2': 2, 't1': 3, 'a1': 0 };
+  const renderOrder = { 'v1': 1, 'v2': 2, 'v3': 3, 't1': 4, 'a1': 0 };
   const activeItems = st.items
     .filter(i => st.globalTime >= i.start && st.globalTime < i.start + i.duration)
     .sort((a, b) => (renderOrder[a.track] || 0) - (renderOrder[b.track] || 0));
@@ -862,8 +862,16 @@ function updateMediaPlayback() {
         node.audio.playbackRate = speedMult;
       }
 
-      const targetTime = item.trimStart + (state.globalTime - item.start);
-      node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
+      const mediaDuration = node.audio.duration;
+      let targetTime = item.trimStart + (state.globalTime - item.start);
+      if (!isNaN(mediaDuration) && mediaDuration > 0) {
+        targetTime = Math.min(targetTime, mediaDuration);
+      }
+      targetTime = Math.max(0, targetTime);
+
+      if (node.gainNode) {
+        node.gainNode.gain.value = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
+      }
       
       if (isPlaying) {
         // Only seek once when entering range / starting playback, or if drift is massive (> 1.5 seconds)
@@ -911,16 +919,42 @@ function seekTo(t) {
   }
 }
 
+let audioCtx = null;
+let centralMixerNode = null;
+let exportAudioDestination = null;
+
+export function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    centralMixerNode = audioCtx.createGain();
+    centralMixerNode.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
 function syncAudioGraph() {
+  const ctx = getAudioContext();
   state.items.filter(i => i.type === 'video' || i.type === 'audio').forEach(item => {
     if (!memoryManager.audioNodesMap.has(item.id)) {
       const audio = document.createElement('audio');
       audio.src = item.src;
       audio.preload = 'auto';
-      memoryManager.audioNodesMap.set(item.id, { audio });
+      audio.crossOrigin = 'anonymous';
+      
+      const source = ctx.createMediaElementSource(audio);
+      const gainNode = ctx.createGain();
+      
+      source.connect(gainNode);
+      gainNode.connect(centralMixerNode);
+      
+      memoryManager.audioNodesMap.set(item.id, { audio, source, gainNode });
     }
     const node = memoryManager.audioNodesMap.get(item.id);
-    node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
+    // Control volume via Web Audio gain node for professional mixing
+    node.gainNode.gain.value = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
   });
   
   // Prune deleted sound nodes
@@ -929,6 +963,10 @@ function syncAudioGraph() {
       node.audio.pause();
       node.audio.removeAttribute('src');
       node.audio.load();
+      try {
+        node.source.disconnect();
+        node.gainNode.disconnect();
+      } catch (e) {}
       memoryManager.audioNodesMap.delete(id);
     }
   }
@@ -1022,6 +1060,7 @@ function _autoScrollDuringPlayback() {
 
 // ── TIMELINE VIRTUALIZATION UPDATES ─────────────────────────
 function renderTimeline() {
+  timelineVirtualizer.clearRecycler();
   timelineVirtualizer.virtualizeTimeline();
   updateLeftPanelClips();
   buildRuler();
@@ -1610,10 +1649,10 @@ function deleteLayer(itemId) {
     state.items = state.items.filter(c => c.id !== toDelete.id);
     deleteSessionFile(itemId); // Remove from IndexedDB session store
 
-    // Canva-style ripple: shift ALL clips on ALL tracks that start after the deleted clip's start
-    // This fills the gap created by deletion so clips stay attached with no dead space.
+    // Canva-style ripple: shift clips on the SAME track that start after the deleted clip's start
+    // This fills the gap created by deletion on this track without messing up other tracks.
     state.items.forEach(item => {
-      if (item.start > deletedStart) {
+      if (item.track === toDelete.track && item.start > deletedStart) {
         item.start = Math.max(0, item.start - deletedDuration);
       }
     });
@@ -1890,6 +1929,7 @@ function setupEventListeners() {
   const tracksScroll = document.getElementById('tracks-scroll');
   
   tracksScroll?.addEventListener('mousedown', e => {
+    if (!e.target.closest('.ruler-row') && !e.target.closest('.playhead-head')) return;
     if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
     _scrubbing = true;
     doScrub(e.clientX);
@@ -1910,6 +1950,7 @@ function setupEventListeners() {
   });
 
   tracksScroll?.addEventListener('touchstart', e => {
+    if (!e.target.closest('.ruler-row') && !e.target.closest('.playhead-head')) return;
     if (e.target.closest('.tl-trim-left') || e.target.closest('.tl-trim-right') || e.target.closest('.tl-clip') || e.target.closest('.tl-audio-block')) return;
     if (!e.touches[0]) return;
     _scrubbing = true;
@@ -1971,6 +2012,11 @@ function setupEventListeners() {
       lastPinchDist = 0;
     }, { passive: true });
   })();
+
+  // Virtualize timeline on horizontal scroll
+  tracksScroll?.addEventListener('scroll', () => {
+    timelineVirtualizer.virtualizeTimeline();
+  }, { passive: true });
 
   // ── PREVIEW ZOOM ──
   let previewZoom = 100;
@@ -2117,7 +2163,11 @@ function setupEventListeners() {
     if (item) {
       item.trimStart = parseFloat(e.target.value) || 0;
       item.duration = item.trimEnd - item.trimStart;
-      computeTotalDuration(); renderTimeline(); pushHistory();
+      computeTotalDuration();
+      renderTimeline();
+      updateMediaPlayback();
+      renderScheduler.triggerSingleUpdate();
+      pushHistory();
     }
   });
   document.getElementById('in-trim-end')?.addEventListener('change', e => {
@@ -2125,7 +2175,11 @@ function setupEventListeners() {
     if (item) {
       item.trimEnd = parseFloat(e.target.value) || item.duration;
       item.duration = item.trimEnd - item.trimStart;
-      computeTotalDuration(); renderTimeline(); pushHistory();
+      computeTotalDuration();
+      renderTimeline();
+      updateMediaPlayback();
+      renderScheduler.triggerSingleUpdate();
+      pushHistory();
     }
   });
 
@@ -2225,13 +2279,8 @@ function setupEventListeners() {
       if (!spanEl) return;
       const name = spanEl.textContent;
       if (name.includes('AI Background')) {
-        if (!aiBackgroundRemover.isDeviceSuitable()) {
-          showToast('⚠️ Performance notice', 'AI models run best on desktop profiles with high RAM.', true);
-        }
-        setProcessing(true, 'Checking AI Suite...', 'Loading placeholders sparsely...');
-        await aiBackgroundRemover.loadModelSparsely();
-        setProcessing(false);
-        showToast('Coming Soon! ✓', 'AI background remover placeholder loaded.');
+        const btn = document.getElementById('rail-btn-bg-remover');
+        if (btn) btn.click();
         return;
       }
       
@@ -2271,13 +2320,8 @@ function setupEventListeners() {
 
   // ── NEW AI TOOLS INITIALIZER ──
   document.getElementById('btn-run-ai-remover')?.addEventListener('click', async () => {
-    if (!aiBackgroundRemover.isDeviceSuitable()) {
-      showToast('⚠️ Performance notice', 'AI models run best on desktop profiles with high RAM.', true);
-    }
-    setProcessing(true, 'Checking AI Suite...', 'Loading AI models sparsely...');
-    await aiBackgroundRemover.loadModelSparsely();
-    setProcessing(false);
-    showToast('Coming Soon! ✓', 'AI background remover placeholder loaded.');
+    const btn = document.getElementById('rail-btn-bg-remover');
+    if (btn) btn.click();
   });
 
   // ── TIMELINE RESIZER ──
@@ -2492,6 +2536,7 @@ function setupEventListeners() {
         if (now - _dragPreviewThrottle > DRAG_PREVIEW_MS) {
           _dragPreviewThrottle = now;
           renderFrame(state);
+          updateMediaPlayback();
         }
       });
     }
@@ -2579,6 +2624,55 @@ function setupEventListeners() {
       btn.classList.add('active');
       showToast('Export format updated ✓', `Format set to ${fmt.toUpperCase()}`);
     });
+  });
+
+  // AI Background Remover Click Handler
+  document.getElementById('btn-editor-run-bg-remover')?.addEventListener('click', async () => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (!item) {
+      showToast('No clip selected', 'Please select a clip on the timeline first', true);
+      return;
+    }
+    if (item.type !== 'image' && item.type !== 'video') {
+      showToast('Unsupported clip', 'Background removal only works on video or image clips', true);
+      return;
+    }
+
+    setProcessing(true, 'Initializing AI...', 'Preparing models...');
+    try {
+      const newFile = await aiBackgroundRemover.removeBackground(item, (pct, statusText) => {
+        setProcessing(true, `AI Processing: ${Math.round(pct * 100)}%`, statusText);
+      });
+      
+      // Update item properties with the new transparent asset
+      item.file = newFile;
+      item.name = newFile.name;
+      item.src = memoryManager.trackBlob(URL.createObjectURL(newFile));
+      
+      if (item.type === 'image') {
+        item.thumbnail = item.src;
+      } else if (item.type === 'video') {
+        // Re-generate video thumbnail
+        const tempVid = document.createElement('video');
+        tempVid.src = item.src;
+        tempVid.preload = 'metadata';
+        await new Promise(r => { tempVid.onloadedmetadata = r; tempVid.onerror = r; });
+        item.thumbnail = await generateThumbnail(tempVid);
+        decoderPool.remove(item.id); // Flush hardware decoder cache
+      }
+      
+      // Persist the transparent file in IndexedDB session files store
+      await saveSessionFile(item.id, newFile);
+      
+      setProcessing(false);
+      pushHistory();
+      renderAll();
+      showToast('AI Success ✓', 'Background removed successfully!');
+    } catch (err) {
+      console.error('[AiBackgroundRemover] Error:', err);
+      setProcessing(false);
+      showToast('AI Error', err.message || 'Failed to remove background', true);
+    }
   });
 
   state.handleDrag = handleDrag;

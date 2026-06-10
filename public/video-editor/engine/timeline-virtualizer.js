@@ -60,8 +60,8 @@ class TimelineVirtualizer {
       inner.style.width = totalPx + 'px';
     }
 
-    // 2. Virtualize each track layer (fx1, v2, v1, a1, t1)
-    ['fx1', 'v2', 'v1', 'a1', 't1'].forEach(trackId => {
+    // 2. Virtualize each track layer (fx1, v3, v2, v1, a1, t1)
+    ['fx1', 'v3', 'v2', 'v1', 'a1', 't1'].forEach(trackId => {
       const track = document.getElementById('track-' + trackId);
       if (!track) return;
 
