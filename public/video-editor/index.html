@@ -1408,16 +1408,41 @@ html.light .playhead-head {
     </div>
 
     <div class="tab-panel" id="tab-bg-remover">
-      <div class="panel-header"><h3>AI Background Remover</h3></div>
+      <div class="panel-header"><h3>Background Remover / Chroma Key</h3></div>
       <div class="panel-body">
-        <div class="vol-tip">
-          <p><strong>Local AI Inference:</strong> Isolates the subject and removes the background of the selected image or video clip. Processes fully offline inside your browser.</p>
+        <div class="section-label" style="margin-bottom:8px">REMOVAL METHOD</div>
+        <div class="prop-field" style="margin-bottom:12px">
+          <select id="bg-remover-method" style="width:100%; background:var(--bg3); border:1px solid var(--border2); color:var(--text); padding:6px; border-radius:6px; font-family:inherit">
+            <option value="ai" selected>✨ AI Background Removal</option>
+            <option value="chroma">🟢 Chroma Key (Green Screen)</option>
+          </select>
         </div>
-        <div class="section-label" style="margin-bottom:8px">STATUS & TOOLS</div>
+
+        <!-- Chroma Key Configs Panel (shown only when Chroma Key is selected) -->
+        <div id="chroma-key-config" style="display:none; flex-direction:column; gap:10px; margin-bottom:14px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px; border-radius:8px">
+          <div class="prop-row" style="display:flex; justify-content:space-between; align-items:center">
+            <label style="font-size:11px;color:var(--text2)">Key Color</label>
+            <input type="color" id="chroma-key-color" value="#00b140" style="width:36px; height:22px; border:none; border-radius:4px; cursor:pointer"/>
+          </div>
+          <div class="prop-group">
+            <div class="prop-row" style="display:flex; justify-content:space-between"><label style="font-size:11px;color:var(--text2)">Similarity / Tolerance</label><span id="val-chroma-sim" style="font-size:11px;font-family:monospace;color:var(--text3)">40%</span></div>
+            <input type="range" class="prop-slider" id="sl-chroma-sim" min="5" max="100" value="40"/>
+          </div>
+          <div class="prop-group">
+            <div class="prop-row" style="display:flex; justify-content:space-between"><label style="font-size:11px;color:var(--text2)">Smoothness / Feather</label><span id="val-chroma-smooth" style="font-size:11px;font-family:monospace;color:var(--text3)">10%</span></div>
+            <input type="range" class="prop-slider" id="sl-chroma-smooth" min="0" max="100" value="10"/>
+          </div>
+          <div class="prop-group">
+            <div class="prop-row" style="display:flex; justify-content:space-between"><label style="font-size:11px;color:var(--text2)">Spill Reduction</label><span id="val-chroma-spill" style="font-size:11px;font-family:monospace;color:var(--text3)">30%</span></div>
+            <input type="range" class="prop-slider" id="sl-chroma-spill" min="0" max="100" value="30"/>
+          </div>
+        </div>
+
+        <div class="section-label" style="margin-bottom:8px">STATUS & ACTIONS</div>
         <div class="ai-card" id="editor-ai-card-remover" style="cursor:default">
           <div class="ai-badge" id="editor-bg-model-status">Inactive</div>
-          <div class="ai-card-title">Remove Background</div>
-          <div class="ai-card-desc" id="editor-bg-model-desc">Select a clip on the V1, V2, or V3 track and click below to process background removal locally.</div>
+          <div class="ai-card-title">Run Processing</div>
+          <div class="ai-card-desc" id="editor-bg-model-desc">Select a clip on the V1, V2, or V3 track and click below to execute background removal.</div>
           <button class="ai-btn-primary" id="btn-editor-run-bg-remover">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="margin-right:2px;"><path d="M8 2a6 6 0 1 1 0 12A6 6 0 0 1 8 2zM7.5 5v3h3V8.5h-3V11h-1V8.5h-3V8h3V5h1z"/></svg>
             Remove Background

@@ -332,10 +332,71 @@ class AiBackgroundRemover {
     });
   }
 
-  async removeBackground(item, onProgress) {
-    await this.loadModel((pct, msg) => {
-      if (onProgress) onProgress(pct * 0.25, `Initializing AI Model: ${msg}`);
-    });
+  applyChromaKey(imageData, keyColorHex, similarity, smoothness, spill) {
+    const { data } = imageData;
+    const keyColor = this.hexToRgb(keyColorHex);
+    
+    // Normalize parameters
+    const tol = (similarity / 100) * 255;
+    const smooth = (smoothness / 100) * 255;
+    const spillReduction = spill / 100;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i+1];
+      const b = data[i+2];
+      
+      // Calculate color distance (RGB Euclidean distance)
+      const dist = Math.sqrt((r - keyColor.r) ** 2 + (g - keyColor.g) ** 2 + (b - keyColor.b) ** 2);
+      
+      let alpha = 255;
+      if (dist < tol) {
+        alpha = 0;
+      } else if (dist < tol + smooth) {
+        alpha = Math.round(((dist - tol) / smooth) * 255);
+      }
+      
+      // Spill suppression (reduces green/blue outline spill on subject)
+      if (alpha > 0) {
+        if (keyColor.g > keyColor.r && keyColor.g > keyColor.b) {
+          // Green spill suppression: clamp green channel to average of red/blue
+          const avgRedBlue = (r + b) / 2;
+          if (g > avgRedBlue) {
+            const factor = spillReduction * (1 - alpha / 255);
+            data[i+1] = Math.round(g * (1 - factor) + avgRedBlue * factor);
+          }
+        } else if (keyColor.b > keyColor.r && keyColor.b > keyColor.g) {
+          // Blue spill suppression: clamp blue channel to average of red/green
+          const avgRedGreen = (r + g) / 2;
+          if (b > avgRedGreen) {
+            const factor = spillReduction * (1 - alpha / 255);
+            data[i+2] = Math.round(b * (1 - factor) + avgRedGreen * factor);
+          }
+        }
+      }
+      
+      data[i+3] = Math.min(data[i+3], alpha);
+    }
+    return imageData;
+  }
+
+  hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 255, b: 0 };
+  }
+
+  async removeBackground(item, onProgress, options = {}) {
+    const method = options.method || 'ai';
+
+    if (method === 'ai') {
+      await this.loadModel((pct, msg) => {
+        if (onProgress) onProgress(pct * 0.25, `Initializing AI Model: ${msg}`);
+      });
+    }
 
     if (item.type === 'image') {
       if (onProgress) onProgress(0.3, 'Loading image file...');
@@ -343,14 +404,21 @@ class AiBackgroundRemover {
       
       if (onProgress) onProgress(0.5, 'Analyzing image pixels...');
       const imgData = this.imageToImageData(img);
-      const tensor = this.preprocessImageData(imgData);
       
-      if (onProgress) onProgress(0.7, 'Running AI inference...');
-      const alpha = await this.infer(tensor);
-      const masked = this.applyAlphaMask(imgData, alpha);
-      
-      if (onProgress) onProgress(0.9, 'Assembling transparent PNG...');
-      const blob = await this.saveTransparentPNG(masked, img);
+      let blob;
+      if (method === 'chroma') {
+        if (onProgress) onProgress(0.7, 'Applying Chroma Key...');
+        const keyed = this.applyChromaKey(imgData, options.keyColor, options.similarity, options.smoothness, options.spill);
+        if (onProgress) onProgress(0.9, 'Assembling transparent PNG...');
+        blob = await this.saveTransparentPNG(keyed, img);
+      } else {
+        const tensor = this.preprocessImageData(imgData);
+        if (onProgress) onProgress(0.7, 'Running AI inference...');
+        const alpha = await this.infer(tensor);
+        const masked = this.applyAlphaMask(imgData, alpha);
+        if (onProgress) onProgress(0.9, 'Assembling transparent PNG...');
+        blob = await this.saveTransparentPNG(masked, img);
+      }
       
       if (onProgress) onProgress(1.0, 'Background removed!');
       return new File([blob], item.name.replace(/\.[^/.]+$/, "") + "_nobg.png", { type: "image/png" });
@@ -411,9 +479,15 @@ class AiBackgroundRemover {
         capCtx.drawImage(vid, 0, 0, W, H);
         
         const imgData = capCtx.getImageData(0, 0, W, H);
-        const tensor = this.preprocessImageData(imgData);
-        const alpha = await this.infer(tensor);
-        const masked = this.applyAlphaMask(imgData, alpha);
+        
+        let masked;
+        if (method === 'chroma') {
+          masked = this.applyChromaKey(imgData, options.keyColor, options.similarity, options.smoothness, options.spill);
+        } else {
+          const tensor = this.preprocessImageData(imgData);
+          const alpha = await this.infer(tensor);
+          masked = this.applyAlphaMask(imgData, alpha);
+        }
         
         outCtx.clearRect(0, 0, W, H);
         const tmp = document.createElement('canvas');

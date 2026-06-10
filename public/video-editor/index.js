@@ -940,7 +940,7 @@ function syncAudioGraph() {
   state.items.filter(i => i.type === 'video' || i.type === 'audio').forEach(item => {
     if (!memoryManager.audioNodesMap.has(item.id)) {
       const audio = document.createElement('audio');
-      audio.src = item.src;
+      audio.src = item.audioSrc || item.src;
       audio.preload = 'auto';
       audio.crossOrigin = 'anonymous';
       
@@ -2626,7 +2626,33 @@ function setupEventListeners() {
     });
   });
 
-  // AI Background Remover Click Handler
+  // Background Remover / Chroma Key Settings Listeners
+  document.getElementById('bg-remover-method')?.addEventListener('change', e => {
+    const method = e.target.value;
+    const configPanel = document.getElementById('chroma-key-config');
+    if (configPanel) {
+      configPanel.style.display = method === 'chroma' ? 'flex' : 'none';
+    }
+    const runBtn = document.getElementById('btn-editor-run-bg-remover');
+    if (runBtn) {
+      runBtn.textContent = method === 'chroma' ? '🟢 Run Chroma Key' : '✨ Remove Background';
+    }
+  });
+
+  document.getElementById('sl-chroma-sim')?.addEventListener('input', e => {
+    const val = document.getElementById('val-chroma-sim');
+    if (val) val.textContent = e.target.value + '%';
+  });
+  document.getElementById('sl-chroma-smooth')?.addEventListener('input', e => {
+    const val = document.getElementById('val-chroma-smooth');
+    if (val) val.textContent = e.target.value + '%';
+  });
+  document.getElementById('sl-chroma-spill')?.addEventListener('input', e => {
+    const val = document.getElementById('val-chroma-spill');
+    if (val) val.textContent = e.target.value + '%';
+  });
+
+  // AI & Chroma Key Background Remover Click Handler
   document.getElementById('btn-editor-run-bg-remover')?.addEventListener('click', async () => {
     const item = state.items.find(i => i.id === state.activeLayer);
     if (!item) {
@@ -2638,12 +2664,25 @@ function setupEventListeners() {
       return;
     }
 
-    setProcessing(true, 'Initializing AI...', 'Preparing models...');
+    const method = document.getElementById('bg-remover-method')?.value || 'ai';
+    const keyColor = document.getElementById('chroma-key-color')?.value || '#00b140';
+    const similarity = parseFloat(document.getElementById('sl-chroma-sim')?.value) || 40;
+    const smoothness = parseFloat(document.getElementById('sl-chroma-smooth')?.value) || 10;
+    const spill = parseFloat(document.getElementById('sl-chroma-spill')?.value) || 30;
+
+    const options = { method, keyColor, similarity, smoothness, spill };
+
+    setProcessing(true, method === 'chroma' ? 'Processing Chroma Key...' : 'Initializing AI...', 'Preparing frames...');
     try {
       const newFile = await aiBackgroundRemover.removeBackground(item, (pct, statusText) => {
-        setProcessing(true, `AI Processing: ${Math.round(pct * 100)}%`, statusText);
-      });
+        setProcessing(true, `${method === 'chroma' ? 'Chroma Key' : 'AI Processing'}: ${Math.round(pct * 100)}%`, statusText);
+      }, options);
       
+      // Preserve the original video audio source before updating src
+      if (item.type === 'video' && !item.audioSrc) {
+        item.audioSrc = item.src;
+      }
+
       // Update item properties with the new transparent asset
       item.file = newFile;
       item.name = newFile.name;
@@ -2667,11 +2706,11 @@ function setupEventListeners() {
       setProcessing(false);
       pushHistory();
       renderAll();
-      showToast('AI Success ✓', 'Background removed successfully!');
+      showToast('Success ✓', method === 'chroma' ? 'Chroma Key applied successfully!' : 'Background removed successfully!');
     } catch (err) {
-      console.error('[AiBackgroundRemover] Error:', err);
+      console.error('[BackgroundRemover] Error:', err);
       setProcessing(false);
-      showToast('AI Error', err.message || 'Failed to remove background', true);
+      showToast('Error', err.message || 'Failed to process background', true);
     }
   });
 
