@@ -860,20 +860,19 @@ function updateMediaPlayback() {
       const targetTime = item.trimStart + (state.globalTime - item.start);
       node.audio.volume = item.muted ? 0 : Math.min(1, Math.max(0, (item.volume ?? 1) * state.masterVolume));
       
-      const threshold = isPlaying ? 0.15 : 0.03;
-      const shouldSeek = isPlaying 
-        ? (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > threshold)
-        : (Math.abs(node.audio.currentTime - targetTime) > threshold);
-      
-      if (shouldSeek) {
-        node.audio.currentTime = targetTime;
-      }
-      
       if (isPlaying) {
+        // Only seek once when entering range / starting playback, or if drift is massive (> 1.5 seconds)
         if (node.audio.paused && !node.audio.seeking) {
+          node.audio.currentTime = targetTime;
           node.audio.play().catch(e => console.warn("Audio play blocked", e));
+        } else if (!node.audio.seeking && Math.abs(node.audio.currentTime - targetTime) > 1.5) {
+          node.audio.currentTime = targetTime;
         }
       } else {
+        // Accurate scrubbing sync when not playing
+        if (Math.abs(node.audio.currentTime - targetTime) > 0.03) {
+          node.audio.currentTime = targetTime;
+        }
         if (!node.audio.paused) node.audio.pause();
       }
     } else {
@@ -1361,11 +1360,7 @@ function selectLayer(id) {
   state.activeLayer = id;
   const item = state.items.find(i => i.id === id);
   if (item) {
-    // Jump playhead if it is outside the selected item's time bounds
-    const isPlayheadOverItem = state.globalTime >= item.start && state.globalTime < item.start + item.duration;
-    if (!isPlayheadOverItem) {
-      seekTo(item.start);
-    }
+    seekTo(item.start);
   }
   renderAll();
 }
