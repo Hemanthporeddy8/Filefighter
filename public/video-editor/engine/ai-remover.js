@@ -462,13 +462,24 @@ class AiBackgroundRemover {
         error: (e) => console.error('[VideoEncoder] error:', e)
       });
       
-      encoder.configure({
+      const encoderConfig = {
         codec: 'vp09.00.10.08',
         width: W,
         height: H,
         bitrate: 2_000_000,
         latencyMode: 'quality'
-      });
+      };
+      
+      try {
+        const check = await VideoEncoder.isConfigSupported({ ...encoderConfig, alpha: 'keep' });
+        if (check.supported) {
+          encoderConfig.alpha = 'keep';
+        }
+      } catch (e) {
+        console.warn('[VideoEncoder] alpha keep check failed, falling back:', e);
+      }
+      
+      encoder.configure(encoderConfig);
       
       for (let i = 0; i < totalFrames; i++) {
         const ts = i * step;

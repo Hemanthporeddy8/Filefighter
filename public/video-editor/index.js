@@ -692,6 +692,92 @@ function renderFrame(st) {
   }
 }
 
+// Offscreen canvas cache for real-time chroma keying to avoid frame allocations
+let chromaCanvas = null;
+let chromaCtx = null;
+
+function renderChromaKeyFrame(source, targetCtx, w, h, chromaKeyOpts) {
+  if (!chromaCanvas) {
+    chromaCanvas = document.createElement('canvas');
+  }
+  // Keep dimensions bounded to limit processing overhead (e.g. cap at 960x540 for speed)
+  const maxW = 960;
+  const maxH = 540;
+  let renderW = w;
+  let renderH = h;
+  if (renderW > maxW) {
+    const scale = maxW / renderW;
+    renderW = maxW;
+    renderH = renderH * scale;
+  }
+  
+  chromaCanvas.width = renderW;
+  chromaCanvas.height = renderH;
+  
+  if (!chromaCtx || chromaCanvas.width !== renderW || chromaCanvas.height !== renderH) {
+    chromaCtx = chromaCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  
+  // Draw current frame to offscreen canvas
+  chromaCtx.drawImage(source, 0, 0, renderW, renderH);
+  
+  // Apply chroma key filtering
+  const imgData = chromaCtx.getImageData(0, 0, renderW, renderH);
+  const data = imgData.data;
+  
+  // Parse key color
+  const keyHex = chromaKeyOpts.keyColor || '#00b140';
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(keyHex);
+  const keyColor = result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 255, b: 0 };
+  
+  const tol = (chromaKeyOpts.similarity / 100) * 255;
+  const smooth = (chromaKeyOpts.smoothness / 100) * 255;
+  const spillReduction = (chromaKeyOpts.spill || 0) / 100;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i+1];
+    const b = data[i+2];
+    
+    // RGB Euclidean distance
+    const dist = Math.sqrt((r - keyColor.r) ** 2 + (g - keyColor.g) ** 2 + (b - keyColor.b) ** 2);
+    
+    let alpha = 255;
+    if (dist < tol) {
+      alpha = 0;
+    } else if (dist < tol + smooth) {
+      alpha = Math.round(((dist - tol) / smooth) * 255);
+    }
+    
+    if (alpha > 0) {
+      if (keyColor.g > keyColor.r && keyColor.g > keyColor.b) {
+        const avgRedBlue = (r + b) / 2;
+        if (g > avgRedBlue) {
+          const factor = spillReduction * (1 - alpha / 255);
+          data[i+1] = Math.round(g * (1 - factor) + avgRedBlue * factor);
+        }
+      } else if (keyColor.b > keyColor.r && keyColor.b > keyColor.g) {
+        const avgRedGreen = (r + g) / 2;
+        if (b > avgRedGreen) {
+          const factor = spillReduction * (1 - alpha / 255);
+          data[i+2] = Math.round(b * (1 - factor) + avgRedGreen * factor);
+        }
+      }
+    }
+    
+    data[i+3] = Math.min(data[i+3], alpha);
+  }
+  
+  chromaCtx.putImageData(imgData, 0, 0);
+  
+  // Draw the keyed offscreen canvas onto the main context
+  targetCtx.drawImage(chromaCanvas, -w/2, -h/2, w, h);
+}
+
 function drawVisual(renderCtx, renderCanvas, item, localTime) {
   renderCtx.save();
   const cx = renderCanvas.width / 2;
@@ -813,7 +899,11 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
         const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
         const w = vid.videoWidth * fitScale;
         const h = vid.videoHeight * fitScale;
-        renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+        if (item.chromaKey) {
+          renderChromaKeyFrame(vid, renderCtx, w, h, item.chromaKey);
+        } else {
+          renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+        }
       }
     } catch (e) {
       console.warn("Video draw failed", e);
@@ -832,7 +922,11 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
       const fitScale = Math.min(renderCanvas.width / img.naturalWidth, renderCanvas.height / img.naturalHeight) || 1;
       const w = img.naturalWidth * fitScale;
       const h = img.naturalHeight * fitScale;
-      renderCtx.drawImage(img, -w/2, -h/2, w, h);
+      if (item.chromaKey) {
+        renderChromaKeyFrame(img, renderCtx, w, h, item.chromaKey);
+      } else {
+        renderCtx.drawImage(img, -w/2, -h/2, w, h);
+      }
     }
   }
   renderCtx.restore();
@@ -1474,6 +1568,40 @@ function renderInspector() {
     
     const ts = document.getElementById('in-trim-start'); if(ts) ts.value = item.trimStart.toFixed(2);
     const te = document.getElementById('in-trim-end'); if(te) te.value = item.trimEnd.toFixed(2);
+
+    // Sync sidebar background remover fields
+    const methodSelect = document.getElementById('bg-remover-method');
+    const configPanel = document.getElementById('chroma-key-config');
+    const runBtn = document.getElementById('btn-editor-run-bg-remover');
+    const statusBadge = document.getElementById('editor-bg-model-status');
+    
+    if (item.chromaKey) {
+      if (methodSelect) methodSelect.value = 'chroma';
+      if (configPanel) configPanel.style.display = 'flex';
+      if (runBtn) runBtn.textContent = '🟢 Run Chroma Key';
+      if (statusBadge) {
+        statusBadge.textContent = 'Active';
+        statusBadge.style.background = 'rgba(16,185,129,0.15)';
+        statusBadge.style.color = '#10b981';
+      }
+      
+      const colInput = document.getElementById('chroma-key-color'); if (colInput) colInput.value = item.chromaKey.keyColor;
+      const simSli = document.getElementById('sl-chroma-sim'); if (simSli) simSli.value = item.chromaKey.similarity;
+      const simVal = document.getElementById('val-chroma-sim'); if (simVal) simVal.textContent = item.chromaKey.similarity + '%';
+      const smoothSli = document.getElementById('sl-chroma-smooth'); if (smoothSli) smoothSli.value = item.chromaKey.smoothness;
+      const smoothVal = document.getElementById('val-chroma-smooth'); if (smoothVal) smoothVal.textContent = item.chromaKey.smoothness + '%';
+      const spillSli = document.getElementById('sl-chroma-spill'); if (spillSli) spillSli.value = item.chromaKey.spill;
+      const spillVal = document.getElementById('val-chroma-spill'); if (spillVal) spillVal.textContent = item.chromaKey.spill + '%';
+    } else {
+      if (methodSelect) methodSelect.value = 'ai';
+      if (configPanel) configPanel.style.display = 'none';
+      if (runBtn) runBtn.textContent = '✨ Remove Background';
+      if (statusBadge) {
+        statusBadge.textContent = 'Inactive';
+        statusBadge.style.background = 'rgba(239,68,68,0.15)';
+        statusBadge.style.color = '#ef4444';
+      }
+    }
     
     const px = document.getElementById('in-pos-x'); if(px) px.value = item.transform.x || 0;
     const py = document.getElementById('in-pos-y'); if(py) py.value = item.transform.y || 0;
@@ -2080,9 +2208,20 @@ function setupEventListeners() {
 
   document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
     const item = state.items.find(c => c.id === state.activeLayer);
-    if (item && item.filters) {
-      item.filters = { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, blur: 0 };
-      renderInspector(); renderFrame(state); pushHistory(); showToast('Filters reset');
+    if (item) {
+      if (item.filters) {
+        item.filters = { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, blur: 0 };
+      }
+      if (item.chromaKey) {
+        delete item.chromaKey;
+      }
+      if (item.originalSrc) {
+        item.src = item.originalSrc;
+        item.file = item.originalFile;
+        delete item.originalSrc;
+        delete item.originalFile;
+      }
+      renderInspector(); renderFrame(state); pushHistory(); showToast('Filters and Chroma Key reset');
     }
   });
 
@@ -2643,14 +2782,36 @@ function setupEventListeners() {
   document.getElementById('sl-chroma-sim')?.addEventListener('input', e => {
     const val = document.getElementById('val-chroma-sim');
     if (val) val.textContent = e.target.value + '%';
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.chromaKey) {
+      item.chromaKey.similarity = parseFloat(e.target.value);
+      renderFrame(state);
+    }
   });
   document.getElementById('sl-chroma-smooth')?.addEventListener('input', e => {
     const val = document.getElementById('val-chroma-smooth');
     if (val) val.textContent = e.target.value + '%';
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.chromaKey) {
+      item.chromaKey.smoothness = parseFloat(e.target.value);
+      renderFrame(state);
+    }
   });
   document.getElementById('sl-chroma-spill')?.addEventListener('input', e => {
     const val = document.getElementById('val-chroma-spill');
     if (val) val.textContent = e.target.value + '%';
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.chromaKey) {
+      item.chromaKey.spill = parseFloat(e.target.value);
+      renderFrame(state);
+    }
+  });
+  document.getElementById('chroma-key-color')?.addEventListener('input', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item && item.chromaKey) {
+      item.chromaKey.keyColor = e.target.value;
+      renderFrame(state);
+    }
   });
 
   // Eyedropper / Color Picker for Chroma Key
@@ -2771,9 +2932,32 @@ function setupEventListeners() {
     const smoothness = parseFloat(document.getElementById('sl-chroma-smooth')?.value) || 10;
     const spill = parseFloat(document.getElementById('sl-chroma-spill')?.value) || 30;
 
+    if (method === 'chroma') {
+      // Clear any previous AI background removal changes and restore original if needed
+      if (item.originalSrc) {
+        item.src = item.originalSrc;
+        item.file = item.originalFile;
+      } else {
+        item.originalSrc = item.src;
+        item.originalFile = item.file;
+      }
+      
+      item.chromaKey = { keyColor, similarity, smoothness, spill };
+      
+      showToast('Chroma Key Applied ✓', 'Applied chroma key transparency in real-time!');
+      pushHistory();
+      renderAll();
+      return;
+    }
+
+    // Clear chromaKey if switching to offline AI background remover
+    if (item.chromaKey) {
+      delete item.chromaKey;
+    }
+
     const options = { method, keyColor, similarity, smoothness, spill };
 
-    setProcessing(true, method === 'chroma' ? 'Processing Chroma Key...' : 'Initializing AI...', 'Preparing frames...');
+    setProcessing(true, 'Initializing AI...', 'Preparing frames...');
     try {
       const newFile = await aiBackgroundRemover.removeBackground(item, (pct, statusText) => {
         setProcessing(true, `${method === 'chroma' ? 'Chroma Key' : 'AI Processing'}: ${Math.round(pct * 100)}%`, statusText);
