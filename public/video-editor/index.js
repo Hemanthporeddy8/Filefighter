@@ -696,7 +696,9 @@ function renderFrame(st) {
 let chromaCanvas = null;
 let chromaCtx = null;
 
-function renderChromaKeyFrame(source, targetCtx, w, h, chromaKeyOpts) {
+function renderChromaKeyFrame(source, targetCtx, w, h, item) {
+  const chromaKeyOpts = item.chromaKey;
+  if (!chromaKeyOpts) return;
   if (!chromaCanvas) {
     chromaCanvas = document.createElement('canvas');
   }
@@ -718,8 +720,22 @@ function renderChromaKeyFrame(source, targetCtx, w, h, chromaKeyOpts) {
     chromaCtx = chromaCanvas.getContext('2d', { willReadFrequently: true });
   }
   
-  // Draw current frame to offscreen canvas
-  chromaCtx.drawImage(source, 0, 0, renderW, renderH);
+  // Crop calculations
+  const sourceW = source.videoWidth || source.naturalWidth || source.width || 1;
+  const sourceH = source.videoHeight || source.naturalHeight || source.height || 1;
+
+  const cropL = (item.transform?.cropLeft || 0) / 100;
+  const cropR = (item.transform?.cropRight || 0) / 100;
+  const cropT = (item.transform?.cropTop || 0) / 100;
+  const cropB = (item.transform?.cropBottom || 0) / 100;
+
+  const sx = cropL * sourceW;
+  const sy = cropT * sourceH;
+  const sw = Math.max(1, (1 - cropL - cropR) * sourceW);
+  const sh = Math.max(1, (1 - cropT - cropB) * sourceH);
+
+  // Draw current frame to offscreen canvas using crop
+  chromaCtx.drawImage(source, sx, sy, sw, sh, 0, 0, renderW, renderH);
   
   // Apply chroma key filtering
   const imgData = chromaCtx.getImageData(0, 0, renderW, renderH);
@@ -897,12 +913,24 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     try {
       if (vid.readyState >= 2 && vid.videoWidth) {
         const fitScale = Math.min(renderCanvas.width / vid.videoWidth, renderCanvas.height / vid.videoHeight) || 1;
-        const w = vid.videoWidth * fitScale;
-        const h = vid.videoHeight * fitScale;
+        
+        const cropL = (item.transform?.cropLeft || 0) / 100;
+        const cropR = (item.transform?.cropRight || 0) / 100;
+        const cropT = (item.transform?.cropTop || 0) / 100;
+        const cropB = (item.transform?.cropBottom || 0) / 100;
+
+        const sx = cropL * vid.videoWidth;
+        const sy = cropT * vid.videoHeight;
+        const sw = Math.max(1, (1 - cropL - cropR) * vid.videoWidth);
+        const sh = Math.max(1, (1 - cropT - cropB) * vid.videoHeight);
+
+        const dw = sw * fitScale;
+        const dh = sh * fitScale;
+
         if (item.chromaKey) {
-          renderChromaKeyFrame(vid, renderCtx, w, h, item.chromaKey);
+          renderChromaKeyFrame(vid, renderCtx, dw, dh, item);
         } else {
-          renderCtx.drawImage(vid, -w/2, -h/2, w, h);
+          renderCtx.drawImage(vid, sx, sy, sw, sh, -dw/2, -dh/2, dw, dh);
         }
       }
     } catch (e) {
@@ -920,12 +948,24 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
     }
     if (img.complete && img.naturalWidth) {
       const fitScale = Math.min(renderCanvas.width / img.naturalWidth, renderCanvas.height / img.naturalHeight) || 1;
-      const w = img.naturalWidth * fitScale;
-      const h = img.naturalHeight * fitScale;
+      
+      const cropL = (item.transform?.cropLeft || 0) / 100;
+      const cropR = (item.transform?.cropRight || 0) / 100;
+      const cropT = (item.transform?.cropTop || 0) / 100;
+      const cropB = (item.transform?.cropBottom || 0) / 100;
+
+      const sx = cropL * img.naturalWidth;
+      const sy = cropT * img.naturalHeight;
+      const sw = Math.max(1, (1 - cropL - cropR) * img.naturalWidth);
+      const sh = Math.max(1, (1 - cropT - cropB) * img.naturalHeight);
+
+      const dw = sw * fitScale;
+      const dh = sh * fitScale;
+
       if (item.chromaKey) {
-        renderChromaKeyFrame(img, renderCtx, w, h, item.chromaKey);
+        renderChromaKeyFrame(img, renderCtx, dw, dh, item);
       } else {
-        renderCtx.drawImage(img, -w/2, -h/2, w, h);
+        renderCtx.drawImage(img, sx, sy, sw, sh, -dw/2, -dh/2, dw, dh);
       }
     }
   }
@@ -1239,7 +1279,7 @@ async function handleVideoFiles(files) {
               id: uid(), type: 'video', name: file.name, file, src, thumbnail: '',
               start: getNextStartTime('v1'), duration: 15, trimStart: 0, trimEnd: 15, track: 'v1',
               filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
-              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0,cropLeft:0,cropRight:0,cropTop:0,cropBottom:0}, blendMode:'normal', opacity:100, volume:1,
               transition: {fadeIn:0,fadeOut:0}
             });
           }, 8000);
@@ -1265,7 +1305,7 @@ async function handleVideoFiles(files) {
               id: uid(), type: 'video', name: file.name, file, src, thumbnail: thumb,
               start: getNextStartTime('v1'), duration: vid.duration, trimStart: 0, trimEnd: vid.duration, track: 'v1',
               filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
-              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+              transform: {x:0,y:0,scaleX:1,scaleY:1,rotation:0,cropLeft:0,cropRight:0,cropTop:0,cropBottom:0}, blendMode:'normal', opacity:100, volume:1,
               transition: {fadeIn:0,fadeOut:0}
             });
           };
@@ -1278,7 +1318,7 @@ async function handleVideoFiles(files) {
             id: uid(), type: 'image', name: file.name, file, src, thumbnail: src,
             start: getNextStartTime('v2'), duration: 5, trimStart: 0, trimEnd: 5, track: 'v2',
             filters: {brightness:100,contrast:100,saturate:100,grayscale:0,sepia:0,blur:0},
-            transform: {x:0,y:0,scaleX:0.3,scaleY:0.3,rotation:0}, blendMode:'normal', opacity:100, volume:1,
+            transform: {x:0,y:0,scaleX:0.3,scaleY:0.3,rotation:0,cropLeft:0,cropRight:0,cropTop:0,cropBottom:0}, blendMode:'normal', opacity:100, volume:1,
             transition: {fadeIn:0,fadeOut:0}
           });
         }
@@ -1465,8 +1505,13 @@ function updateLeftPanelClips() {
         <div class="clip-info"><div class="clip-name" title="${clip.name}">${clip.name}</div></div>
       </div>
     `).join('');
-    clipsList.querySelectorAll('.clip-item').forEach(el => 
-      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+    clipsList.querySelectorAll('.clip-item').forEach(el => {
+      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showMediaContextMenu(e, el.dataset.id);
+      });
+    });
   }
 
   // Populate Images Grid
@@ -1474,12 +1519,17 @@ function updateLeftPanelClips() {
   if (imagesGrid) {
     const images = state.items.filter(i => i.type === 'image');
     imagesGrid.innerHTML = images.map(img => `
-      <div class="img-item ${state.activeLayer === img.id ? 'selected' : ''}" data-id="${img.id}" title="${img.name}">
+      <div class="img-item ${state.activeLayer === img.id ? 'selected' : ''}" data-id="${img.id}" title="${img.name}" style="cursor:pointer">
         <img src="${img.thumbnail || img.src}" draggable="false" />
       </div>
     `).join('');
-    imagesGrid.querySelectorAll('.img-item').forEach(el => 
-      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+    imagesGrid.querySelectorAll('.img-item').forEach(el => {
+      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showMediaContextMenu(e, el.dataset.id);
+      });
+    });
   }
 
   // Populate Audio List
@@ -1487,7 +1537,7 @@ function updateLeftPanelClips() {
   if (audioList) {
     const audios = state.items.filter(i => i.type === 'audio');
     audioList.innerHTML = audios.map(audio => `
-      <div class="audio-item ${state.activeLayer === audio.id ? 'selected' : ''}" data-id="${audio.id}">
+      <div class="audio-item ${state.activeLayer === audio.id ? 'selected' : ''}" data-id="${audio.id}" style="cursor:pointer">
         <div class="audio-thumb">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
         </div>
@@ -1497,8 +1547,13 @@ function updateLeftPanelClips() {
         </div>
       </div>
     `).join('');
-    audioList.querySelectorAll('.audio-item').forEach(el => 
-      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+    audioList.querySelectorAll('.audio-item').forEach(el => {
+      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showMediaContextMenu(e, el.dataset.id);
+      });
+    });
   }
 }
 
@@ -1608,6 +1663,11 @@ function renderInspector() {
     const sx = document.getElementById('in-scale-x'); if(sx) sx.value = item.transform.scaleX ?? 1;
     const sy = document.getElementById('in-scale-y'); if(sy) sy.value = item.transform.scaleY ?? 1;
     const rt = document.getElementById('in-rotation'); if(rt) rt.value = item.transform.rotation || 0;
+    
+    const cl = document.getElementById('in-crop-left'); if(cl) cl.value = item.transform.cropLeft || 0;
+    const cr = document.getElementById('in-crop-right'); if(cr) cr.value = item.transform.cropRight || 0;
+    const ct = document.getElementById('in-crop-top'); if(ct) ct.value = item.transform.cropTop || 0;
+    const cb = document.getElementById('in-crop-bottom'); if(cb) cb.value = item.transform.cropBottom || 0;
     
     const fi = document.getElementById('in-fade-in'); if(fi) fi.value = item.transition?.fadeIn || 0;
     const fo = document.getElementById('in-fade-out'); if(fo) fo.value = item.transition?.fadeOut || 0;
@@ -1909,6 +1969,8 @@ function setupEventListeners() {
   document.addEventListener('click', () => {
     const ctxMenu = document.getElementById('ctx-menu');
     if (ctxMenu) ctxMenu.classList.remove('show');
+    const mediaCtxMenu = document.getElementById('media-ctx-menu');
+    if (mediaCtxMenu) mediaCtxMenu.classList.remove('show');
   });
 
   // Position and show context menu
@@ -1922,6 +1984,49 @@ function setupEventListeners() {
     
     ctxMenu.dataset.targetId = itemId;
   };
+
+  // Position and show media context menu
+  window.showMediaContextMenu = function(e, itemId) {
+    const mediaCtxMenu = document.getElementById('media-ctx-menu');
+    if (!mediaCtxMenu) return;
+    
+    mediaCtxMenu.style.left = e.clientX + 'px';
+    mediaCtxMenu.style.top = e.clientY + 'px';
+    mediaCtxMenu.classList.add('show');
+    
+    mediaCtxMenu.dataset.targetId = itemId;
+
+    const item = state.items.find(i => i.id === itemId);
+    if (item) {
+      const isAudio = item.type === 'audio';
+      document.getElementById('media-ctx-v1').style.display = isAudio ? 'none' : 'flex';
+      document.getElementById('media-ctx-v2').style.display = isAudio ? 'none' : 'flex';
+      document.getElementById('media-ctx-v3').style.display = isAudio ? 'none' : 'flex';
+      document.getElementById('media-ctx-a1').style.display = isAudio ? 'flex' : 'none';
+    }
+  };
+
+  // Select media track from context menu
+  document.querySelectorAll('#media-ctx-menu .ctx-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const mediaCtxMenu = document.getElementById('media-ctx-menu');
+      const targetId = mediaCtxMenu?.dataset.targetId;
+      const track = el.dataset.track;
+      if (targetId && track) {
+        const item = state.items.find(i => i.id === targetId);
+        if (item) {
+          item.track = track;
+          item.start = getNextStartTime(track);
+          
+          selectLayer(item.id);
+          pushHistory();
+          updateMediaPlayback();
+          renderScheduler.triggerSingleUpdate();
+          showToast('Track Changed ✓', `Sent to track ${track.toUpperCase()}`);
+        }
+      }
+    });
+  });
 
   // Select item from context menu
   document.getElementById('ctx-select')?.addEventListener('click', () => {
@@ -2262,6 +2367,10 @@ function setupEventListeners() {
   bindTransformInput('in-scale-x', 'scaleX');
   bindTransformInput('in-scale-y', 'scaleY');
   bindTransformInput('in-rotation', 'rotation');
+  bindTransformInput('in-crop-left', 'cropLeft');
+  bindTransformInput('in-crop-right', 'cropRight');
+  bindTransformInput('in-crop-top', 'cropTop');
+  bindTransformInput('in-crop-bottom', 'cropBottom');
 
   document.getElementById('in-fade-in')?.addEventListener('input', e => {
     const item = state.items.find(i => i.id === state.activeLayer);
@@ -2291,7 +2400,16 @@ function setupEventListeners() {
   document.getElementById('btn-reset-transform')?.addEventListener('click', () => {
     const item = state.items.find(i => i.id === state.activeLayer);
     if (item) {
-      item.transform = { x: 0, y: 0, scaleX: item.type === 'image' ? 0.3 : 1, scaleY: item.type === 'image' ? 0.3 : 1, rotation: 0 };
+      item.transform = { 
+        x: 0, y: 0, 
+        scaleX: item.type === 'image' ? 0.3 : 1, 
+        scaleY: item.type === 'image' ? 0.3 : 1, 
+        rotation: 0,
+        cropLeft: 0,
+        cropRight: 0,
+        cropTop: 0,
+        cropBottom: 0
+      };
       item.transition = { fadeIn: 0, fadeOut: 0 };
       renderInspector(); renderFrame(state); pushHistory(); showToast('Transform reset');
     }
