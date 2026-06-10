@@ -2307,7 +2307,7 @@ function setupEventListeners() {
     });
     
     const clickedItem = activeItems.find(item => {
-      if (item.type !== 'image' && item.type !== 'text') return false;
+      if (item.type !== 'image' && item.type !== 'text' && item.type !== 'video') return false;
       const bounds = getItemBoundsOnScreen(item);
       if (!bounds) return false;
       
@@ -2333,7 +2333,7 @@ function setupEventListeners() {
 
   previewCanvas?.addEventListener('mousedown', e => {
     const item = state.items.find(i => i.id === state.activeLayer);
-    if (!item || (item.type !== 'image' && item.type !== 'text')) return;
+    if (!item || (item.type !== 'image' && item.type !== 'text' && item.type !== 'video')) return;
     if (e.target.dataset.handle) return;
     e.preventDefault();
     const rect = renderCanvas.getBoundingClientRect();
@@ -2347,7 +2347,7 @@ function setupEventListeners() {
 
   previewCanvas?.addEventListener('wheel', e => {
     const item = state.items.find(i => i.id === state.activeLayer);
-    if (!item || (item.type !== 'image' && item.type !== 'text')) return;
+    if (!item || (item.type !== 'image' && item.type !== 'text' && item.type !== 'video')) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.03 : 0.03;
     item.transform.scaleX = Math.max(0.05, Math.min(5, (item.transform.scaleX ?? 1) + delta));
@@ -2517,8 +2517,8 @@ function setupEventListeners() {
   const initialAspect = state.exportWidth / state.exportHeight;
   adaptiveQuality.applyResolution(initialAspect);
 
-  // Settings Panel: Resolution Clicks
-  document.querySelectorAll('#tab-settings [data-res]').forEach(btn => {
+  // Settings Panel & Volume Panel: Resolution Clicks
+  document.querySelectorAll('[data-res]').forEach(btn => {
     btn.addEventListener('click', () => {
       const res = btn.dataset.res;
       if (!res) return;
@@ -2527,8 +2527,8 @@ function setupEventListeners() {
       state.exportWidth = w;
       state.exportHeight = h;
       
-      document.querySelectorAll('#tab-settings [data-res]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      document.querySelectorAll('[data-res]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll(`[data-res="${res}"]`).forEach(b => b.classList.add('active'));
       
       const aspect = w / h;
       adaptiveQuality.applyResolution(aspect);
@@ -2642,8 +2642,8 @@ function updateSelectionOverlay() {
   selOverlay.style.borderRadius = '3px';
   selOverlay.style.pointerEvents = 'none';
 
-  const canInteract = item.type !== 'video';
-  const handleStyle = canInteract ? 'pointer-events:auto;' : '';
+  const canInteract = true;
+  const handleStyle = 'pointer-events:auto;';
   // Draw corner handles
   selOverlay.innerHTML = canInteract ? `
     <div data-handle="nw" style="position:absolute;width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:2px;top:-5px;left:-5px;cursor:nwse-resize;${handleStyle}"></div>
