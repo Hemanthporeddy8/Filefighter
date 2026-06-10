@@ -220,7 +220,13 @@ export default function DashboardLayout({
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowBanner(true);
+      
+      // Prevent spamming: only show banner if user hasn't dismissed it in the last 24 hours
+      const dismissedTime = localStorage.getItem('pwa-prompt-dismissed-time');
+      const now = Date.now();
+      if (!dismissedTime || now - parseInt(dismissedTime) > 24 * 60 * 60 * 1000) {
+        setShowBanner(true);
+      }
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -331,7 +337,14 @@ export default function DashboardLayout({
           <Button size="sm" variant="secondary" className="flex-shrink-0 h-8 text-xs px-3" onClick={() => setIsModalOpen(true)}>
             <Download className="h-3 w-3 mr-1" /> Install
           </Button>
-          <button onClick={() => setShowBanner(false)} className="text-primary-foreground/70 hover:text-primary-foreground flex-shrink-0 min-h-0 h-auto p-0" aria-label="Dismiss">
+          <button 
+            onClick={() => {
+              setShowBanner(false);
+              localStorage.setItem('pwa-prompt-dismissed-time', Date.now().toString());
+            }} 
+            className="text-primary-foreground/70 hover:text-primary-foreground flex-shrink-0 min-h-0 h-auto p-0" 
+            aria-label="Dismiss"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

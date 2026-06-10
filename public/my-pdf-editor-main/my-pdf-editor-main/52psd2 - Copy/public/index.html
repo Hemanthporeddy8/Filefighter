@@ -6,7 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Engine Demo</title>
     <link rel="icon" href="data:,">
-    <style>
+    <script>
+      // Apply initial theme immediately from localStorage if available
+      try {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+          document.documentElement.classList.add('light');
+        }
+      } catch (e) {}
+
+      // Listen to theme synchronization messages from parent Next.js app
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'theme-change') {
+          const theme = event.data.theme;
+          if (theme === 'light') {
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.remove('light');
+          }
+        }
+      });
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,6 +41,18 @@
             --text: #f8fafc;
             --text-dim: #94a3b8;
             --accent: #10b981;
+        }
+
+        html.light {
+            --bg: #f8fafc;
+            --surface: rgba(255, 255, 255, 0.7);
+            --border: rgba(0, 0, 0, 0.1);
+            --text: #0f172a;
+            --text-dim: #475569;
+        }
+
+        html.light body {
+            background: radial-gradient(circle at top left, #e0e7ff, #f8fafc);
         }
 
         body {

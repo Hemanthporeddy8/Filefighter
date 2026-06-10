@@ -20,7 +20,7 @@ const nextConfig = {
       // PDF editor nested path
       {
         source: '/pdf-editor',
-        destination: '/my-pdf-editor-main/my-pdf-editor-main/index.html',
+        destination: '/my-pdf-editor-main/my-pdf-editor-main/52psd2 - Copy/public/index.html',
       },
     ];
   },

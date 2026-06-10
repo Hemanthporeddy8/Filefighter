@@ -112,7 +112,8 @@ const BatchTab = (() => {
         ov.className='bi-overlay err'; ov.textContent='❌'; errors++;
       }
       $('batchCount').textContent=done+' done · '+errors+' err · '+(_files.length-done-errors)+' left';
-      await new Promise(r=>setTimeout(r,0));
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      await new Promise(r=>setTimeout(r, isMobile ? 150 : 30));
     }
     $('btnBatchDl').disabled=false;
     showToast('Batch done: '+done+' ✅ '+errors+' ❌', done>0?'success':'error');

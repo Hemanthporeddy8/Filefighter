@@ -107,10 +107,14 @@ export const state = {
   masterVolume: 1,
   fps: 30,
   tlZoom: 1.0,    // Timeline zoom multiplier (0.25 – 8×)
-  exportWidth: 1280,
-  exportHeight: 720,
+  exportWidth: 1920,
+  exportHeight: 1080,
   showToast: (title, desc = '', isError = false) => showToast(title, desc, isError)
 };
+
+// Preload watermark logo
+const watermarkImg = new Image();
+watermarkImg.src = '/icons/icon-192.png';
 
 let handleDragState = null;
 let canvasDrag = null;
@@ -196,6 +200,14 @@ export function applyTheme(theme) {
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (currentTheme === 'system') {
     applyTheme('system');
+  }
+});
+
+// Listen to theme synchronization messages from parent Next.js app
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'theme-change') {
+    const theme = event.data.theme;
+    applyTheme(theme);
   }
 });
 
@@ -427,9 +439,9 @@ function getAnimationTransform(item, globalTime) {
 
 // ── TELEMETRY SYSTEM DRAW CHECKS ──────────────────────────────
 function renderFrame(st) {
-  const renderCanvas = document.getElementById('preview-img-canvas');
+  const renderCanvas = st.canvas || document.getElementById('preview-img-canvas');
   if (!renderCanvas) return;
-  const renderCtx = renderCanvas.getContext('2d');
+  const renderCtx = st.ctx || renderCanvas.getContext('2d');
   
   renderCtx.fillStyle = '#000';
   renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
@@ -659,6 +671,24 @@ function renderFrame(st) {
   }
 
   updateSelectionOverlay();
+
+  // Draw watermark logo at the bottom-right corner of the canvas
+  if (watermarkImg && watermarkImg.complete && watermarkImg.naturalWidth) {
+    renderCtx.save();
+    renderCtx.globalAlpha = 0.4;
+    
+    const logoW = Math.max(32, Math.min(64, renderCanvas.width * 0.05));
+    const logoH = logoW * (watermarkImg.naturalHeight / watermarkImg.naturalWidth);
+    
+    const marginX = Math.max(10, renderCanvas.width * 0.02);
+    const marginY = Math.max(10, renderCanvas.height * 0.02);
+    
+    const x = renderCanvas.width - logoW - marginX;
+    const y = renderCanvas.height - logoH - marginY;
+    
+    renderCtx.drawImage(watermarkImg, x, y, logoW, logoH);
+    renderCtx.restore();
+  }
 }
 
 function drawVisual(renderCtx, renderCanvas, item, localTime) {
@@ -1292,11 +1322,51 @@ function updateLeftPanelClips() {
     clipsList.querySelectorAll('.clip-item').forEach(el => 
       el.addEventListener('click', () => selectLayer(el.dataset.id)));
   }
+
+  // Populate Images Grid
+  const imagesGrid = document.getElementById('images-grid');
+  if (imagesGrid) {
+    const images = state.items.filter(i => i.type === 'image');
+    imagesGrid.innerHTML = images.map(img => `
+      <div class="img-item ${state.activeLayer === img.id ? 'selected' : ''}" data-id="${img.id}" title="${img.name}">
+        <img src="${img.thumbnail || img.src}" draggable="false" />
+      </div>
+    `).join('');
+    imagesGrid.querySelectorAll('.img-item').forEach(el => 
+      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+  }
+
+  // Populate Audio List
+  const audioList = document.getElementById('audio-list');
+  if (audioList) {
+    const audios = state.items.filter(i => i.type === 'audio');
+    audioList.innerHTML = audios.map(audio => `
+      <div class="audio-item ${state.activeLayer === audio.id ? 'selected' : ''}" data-id="${audio.id}">
+        <div class="audio-thumb">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div class="clip-info">
+          <div class="clip-name" title="${audio.name}">${audio.name}</div>
+          <div class="clip-type">${formatTime(audio.duration)}</div>
+        </div>
+      </div>
+    `).join('');
+    audioList.querySelectorAll('.audio-item').forEach(el => 
+      el.addEventListener('click', () => selectLayer(el.dataset.id)));
+  }
 }
 
 // ── LAYER SELECTION ───────────────────────────────────────────
 function selectLayer(id) {
   state.activeLayer = id;
+  const item = state.items.find(i => i.id === id);
+  if (item) {
+    // Jump playhead if it is outside the selected item's time bounds
+    const isPlayheadOverItem = state.globalTime >= item.start && state.globalTime < item.start + item.duration;
+    if (!isPlayheadOverItem) {
+      seekTo(item.start);
+    }
+  }
   renderAll();
 }
 
@@ -1690,6 +1760,26 @@ function setupEventListeners() {
     }
   });
 
+  // Fit to screen from context menu
+  document.getElementById('ctx-fit')?.addEventListener('click', () => {
+    const ctxMenu = document.getElementById('ctx-menu');
+    const targetId = ctxMenu?.dataset.targetId;
+    if (targetId) {
+      const item = state.items.find(i => i.id === targetId);
+      if (item) {
+        if (!item.transform) item.transform = {};
+        item.transform.x = 0;
+        item.transform.y = 0;
+        item.transform.scaleX = 1.0;
+        item.transform.scaleY = 1.0;
+        item.transform.rotation = 0;
+        
+        pushHistory();
+        selectLayer(targetId);
+      }
+    }
+  });
+
   document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
     let next;
     if (currentTheme === 'system') next = 'light';
@@ -1714,7 +1804,7 @@ function setupEventListeners() {
     
     exportEngine.exportProject(
       state,
-      (ctx, canvas) => renderFrame({ items: state.items, globalTime: state.globalTime }),
+      (ctx, canvas) => renderFrame({ items: state.items, globalTime: state.globalTime, canvas, ctx }),
       (pct) => {
         setProcessing(true, `Exporting: ${pct}%`, 'Rendering video frames... Esc to cancel');
       },
@@ -2427,6 +2517,56 @@ function setupEventListeners() {
     renderInspector();
     renderFrame(state);
   }
+
+  // Apply active canvas aspect ratio on startup
+  const initialAspect = state.exportWidth / state.exportHeight;
+  adaptiveQuality.applyResolution(initialAspect);
+
+  // Settings Panel: Resolution Clicks
+  document.querySelectorAll('#tab-settings [data-res]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const res = btn.dataset.res;
+      if (!res) return;
+      
+      const [w, h] = res.split('x').map(Number);
+      state.exportWidth = w;
+      state.exportHeight = h;
+      
+      document.querySelectorAll('#tab-settings [data-res]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const aspect = w / h;
+      adaptiveQuality.applyResolution(aspect);
+      renderAll();
+      showToast('Resolution changed ✓', `Canvas set to ${w}x${h}`);
+    });
+  });
+
+  // Settings Panel: FPS Clicks
+  document.querySelectorAll('#tab-settings [data-fps]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fps = Number(btn.dataset.fps);
+      if (!fps) return;
+      state.fps = fps;
+      
+      document.querySelectorAll('#tab-settings [data-fps]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showToast('Frame rate updated ✓', `FPS set to ${fps}`);
+    });
+  });
+
+  // Settings Panel: Export Format Clicks
+  document.querySelectorAll('#tab-settings [data-fmt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fmt = btn.dataset.fmt;
+      if (!fmt) return;
+      state.exportFormat = fmt;
+      
+      document.querySelectorAll('#tab-settings [data-fmt]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showToast('Export format updated ✓', `Format set to ${fmt.toUpperCase()}`);
+    });
+  });
 
   state.handleDrag = handleDrag;
 }

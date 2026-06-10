@@ -190,7 +190,7 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
       'Free, private, runs in your browser',
     ],
     appName: 'Editroy PDF Text Editor',
-    iframeSrc: '/my-pdf-editor-main/my-pdf-editor-main/index.html',
+    iframeSrc: '/my-pdf-editor-main/my-pdf-editor-main/52psd2 - Copy/public/index.html',
     iframeHeight: 850,
     ogImage: '/icons/icon-512.png',
     keywords: [

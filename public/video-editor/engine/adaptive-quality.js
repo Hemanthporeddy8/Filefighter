@@ -55,32 +55,32 @@ class AdaptiveQualityManager {
     console.log(`[AdaptiveQuality] Configured profile: ${this.currentTier}`, this.activeConfig);
   }
 
-  applyResolution() {
+  applyResolution(aspect = 16 / 9) {
     if (!this.canvasElement) return;
     
     // Set preview canvas resolution based on active profile
-    const aspect = 16 / 9; // Core aspect ratio of Editroy
     const h = this.activeConfig.previewHeight;
     const w = Math.round(h * aspect);
     
     if (this.canvasElement.width !== w || this.canvasElement.height !== h) {
       this.canvasElement.width = w;
       this.canvasElement.height = h;
-      console.log(`[AdaptiveQuality] Canvas resolution set to: ${w}x${h} (Aspect Ratio: 16:9)`);
+      console.log(`[AdaptiveQuality] Canvas resolution set to: ${w}x${h} (Aspect Ratio: ${aspect})`);
     }
   }
 
   downgradeProfile() {
+    const aspect = this.canvasElement ? (this.canvasElement.width / this.canvasElement.height) : (16 / 9);
     if (this.currentTier === DeviceClasses.HIGH_END) {
       this.currentTier = DeviceClasses.MID_RANGE;
       this.activeConfig = { ...QualityProfiles[DeviceClasses.MID_RANGE] };
-      this.applyResolution();
+      this.applyResolution(aspect);
       console.warn('[AdaptiveQuality] Downgraded quality profile: HIGH_END ➔ MID_RANGE due to performance constraints');
       return true;
     } else if (this.currentTier === DeviceClasses.MID_RANGE) {
       this.currentTier = DeviceClasses.LOW_END;
       this.activeConfig = { ...QualityProfiles[DeviceClasses.LOW_END] };
-      this.applyResolution();
+      this.applyResolution(aspect);
       console.warn('[AdaptiveQuality] Emergency downgrade: MID_RANGE ➔ LOW_END. Throttled limits applied.');
       return true;
     }

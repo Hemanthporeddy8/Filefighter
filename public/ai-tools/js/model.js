@@ -8,7 +8,8 @@
 // Users never upload anything.
 // ══════════════════════════════════════════════════
 
-ort.env.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 2, 4);
+const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+ort.env.wasm.numThreads = isMobileDevice ? 1 : Math.min(navigator.hardwareConcurrency || 2, 4);
 ort.env.wasm.simd = true;
 
 const NexusModel = (() => {

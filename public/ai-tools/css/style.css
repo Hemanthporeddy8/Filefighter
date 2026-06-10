@@ -10,6 +10,7 @@
   --border:   #252525;
   --border2:  #303030;
   --accent:   #c8f135;
+  --accent2:  --accent2;
   --accent2:  #7fff6e;
   --red:      #ff3e3e;
   --text:     #efefef;
@@ -20,6 +21,33 @@
   --display:  'Bebas Neue', sans-serif;
   --r:        12px;
   --ph:       480px;
+
+  /* Hardcoded variable defaults for dark theme */
+  --header-bg: rgba(12,12,12,.9);
+  --overlay-bg: rgba(12,12,12,.82);
+  --checker-bg: #141414;
+  --checker-color: #1d1d1d;
+  --bi-overlay-bg: rgba(12,12,12,.65);
+  --bi-done-bg: rgba(12,12,12,.4);
+}
+
+html.light {
+  --bg:       #fcfcfc;
+  --surface:  #f4f4f4;
+  --card:     #ffffff;
+  --border:   #e2e2e2;
+  --border2:  #d0d0d0;
+  --text:     #121212;
+  --text2:    #555555;
+  --text3:    #888888;
+
+  /* Hardcoded variable overrides for light theme */
+  --header-bg: rgba(252,252,252,.9);
+  --overlay-bg: rgba(252,252,252,.82);
+  --checker-bg: #f9f9f9;
+  --checker-color: #e5e5e5;
+  --bi-overlay-bg: rgba(240,240,240,.65);
+  --bi-done-bg: rgba(240,240,240,.4);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -71,7 +99,7 @@ body {
   position: sticky; top: 0; z-index: 200;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 48px; height: 62px;
-  background: rgba(12,12,12,.9);
+  background: var(--header-bg);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(16px);
 }
@@ -205,13 +233,13 @@ body {
 }
 .panel-body.checker {
   background-image:
-    linear-gradient(45deg,#1d1d1d 25%,transparent 25%),
-    linear-gradient(-45deg,#1d1d1d 25%,transparent 25%),
-    linear-gradient(45deg,transparent 75%,#1d1d1d 75%),
-    linear-gradient(-45deg,transparent 75%,#1d1d1d 75%);
+    linear-gradient(45deg,var(--checker-color) 25%,transparent 25%),
+    linear-gradient(-45deg,var(--checker-color) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,var(--checker-color) 75%),
+    linear-gradient(-45deg,transparent 75%,var(--checker-color) 75%);
   background-size: 18px 18px;
   background-position: 0 0,0 9px,9px -9px,-9px 0;
-  background-color: #141414;
+  background-color: var(--checker-bg);
 }
 .panel-foot {
   padding: 13px 18px;
@@ -278,7 +306,7 @@ body {
 /* Processing overlay */
 .proc-overlay {
   position: absolute; inset: 0;
-  background: rgba(12,12,12,.82);
+  background: var(--overlay-bg);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 14px;
   backdrop-filter: blur(6px); z-index: 10;
@@ -469,13 +497,13 @@ body {
 .bi img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bi-overlay {
   position: absolute; inset: 0;
-  background: rgba(12,12,12,.65);
+  background: var(--bi-overlay-bg);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--mono); font-size: .7rem;
 }
 .bi-overlay.pending   { color: var(--text3); }
 .bi-overlay.working   { color: var(--accent); }
-.bi-overlay.done      { color: var(--accent2); background: rgba(12,12,12,.4); }
+.bi-overlay.done      { color: var(--accent2); background: var(--bi-done-bg); }
 .bi-overlay.err       { color: var(--red); }
 
 /* ═══════════════════
@@ -559,9 +587,25 @@ body {
    RESPONSIVE MISC
 ═══════════════════ */
 @media(max-width:600px){
+  :root {
+    --ph: 300px;
+  }
   .header { padding: 0 16px; }
   .header-nav { display: none; }
   .hero { padding: 48px 16px 32px; }
+  .tool-section { padding: 0 12px 40px; }
+  .tab-row {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-row::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    flex-shrink: 0;
+  }
 }
 
 /* ── Video output note ── */
@@ -601,13 +645,13 @@ body {
 }
 .modal-body.checker {
   background-image:
-    linear-gradient(45deg,#1d1d1d 25%,transparent 25%),
-    linear-gradient(-45deg,#1d1d1d 25%,transparent 25%),
-    linear-gradient(45deg,transparent 75%,#1d1d1d 75%),
-    linear-gradient(-45deg,transparent 75%,#1d1d1d 75%);
+    linear-gradient(45deg,var(--checker-color) 25%,transparent 25%),
+    linear-gradient(-45deg,var(--checker-color) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,var(--checker-color) 75%),
+    linear-gradient(-45deg,transparent 75%,var(--checker-color) 75%);
   background-size: 18px 18px;
   background-position: 0 0,0 9px,9px -9px,-9px 0;
-  background-color: #141414;
+  background-color: var(--checker-bg);
 }
 #batchModalCanvas { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
 .modal-foot {
@@ -618,7 +662,7 @@ body {
 /* ── Interactive Batch Card Done Hover ── */
 .bi-overlay.done {
   color: var(--accent2);
-  background: rgba(12,12,12,.5);
+  background: var(--bi-done-bg);
   cursor: none;
   transition: background .2s, color .2s;
 }
@@ -700,7 +744,7 @@ html.dark .logo-img,
   .cursor, .cursor-dot {
     display: none !important;
   }
-  body, button, a, [role="button"], .home-btn, .tab-btn {
+  * {
     cursor: auto !important;
   }
 }

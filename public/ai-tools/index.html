@@ -10,6 +10,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/ai-tools/css/style.css"/>
   <script>
+    // Apply initial theme immediately from localStorage if available
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      }
+    } catch (e) {
+      console.warn('Could not read initial theme from localStorage:', e);
+    }
+
     // Listen to theme synchronization messages from parent Next.js app
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'theme-change') {

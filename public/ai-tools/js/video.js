@@ -262,7 +262,11 @@ const VideoTab = (() => {
 
       // Smart throttle pacing: if smooth mode is active, sleep 45ms to let CPU cool down & prevent interface lag
       const throttleCheckbox = $('vThrottle');
-      const delayMs = (throttleCheckbox && throttleCheckbox.checked) ? 45 : 1;
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      let delayMs = (throttleCheckbox && throttleCheckbox.checked) ? 45 : 1;
+      if (isMobile) {
+        delayMs = Math.max(delayMs, 40); // Enforce at least 40ms on mobile
+      }
       await new Promise(r=>setTimeout(r, delayMs)); // yield to UI
     }
 
