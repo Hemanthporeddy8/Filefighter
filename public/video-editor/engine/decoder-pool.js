@@ -25,7 +25,7 @@ class VideoDecoderPool {
       return this._pool.get(item.id);
     }
 
-    const budget = adaptiveQuality.activeConfig.maxDecoders || 2;
+    const budget = Math.max(4, adaptiveQuality.activeConfig.maxDecoders || 4);
 
     // Budget enforcement
     if (this._pool.size >= budget) {

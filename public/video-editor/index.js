@@ -98,6 +98,7 @@ async function clearSessionFiles() {
 // ── GLOBAL STATE ──────────────────────────────────────────────
 export const state = {
   items: [], // Array of { id, type, file, src, proxySrc, thumbnail, start, duration, trimStart, trimEnd, track, volume, filters, transform, opacity, blendMode }
+  assets: [], // Array of unique uploaded media assets
   activeLayer: null,
   globalTime: 0,
   totalDuration: 30, // Default timeline length
@@ -1493,20 +1494,55 @@ function getNextStartTime(trackId) {
   return Math.max(...trackItems.map(i => i.start + i.duration));
 }
 
+function rebuildAssetsFromItems() {
+  if (!state.assets) state.assets = [];
+  const seenKeys = new Set(state.assets.map(a => a.name + '_' + a.type));
+  state.items.forEach(item => {
+    if (item.type === 'video' || item.type === 'image' || item.type === 'audio') {
+      const key = item.name + '_' + item.type;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        if (!item.assetId) item.assetId = uid();
+        state.assets.push({
+          id: item.assetId,
+          type: item.type,
+          name: item.name,
+          file: item.file,
+          src: item.src,
+          thumbnail: item.thumbnail,
+          duration: item.duration,
+          waveformPeaks: item.waveformPeaks
+        });
+      }
+    }
+  });
+}
+
 function updateLeftPanelClips() {
+  if (!state.assets) {
+    state.assets = [];
+  }
+  rebuildAssetsFromItems();
+
   const clipsList = document.getElementById('clips-list');
   const clipsSection = document.getElementById('clips-section');
   if (clipsList) {
-    const videos = state.items.filter(i => i.type === 'video');
+    const videos = state.assets.filter(i => i.type === 'video');
     if(clipsSection) clipsSection.style.display = videos.length ? 'block' : 'none';
     clipsList.innerHTML = videos.map(clip => `
-      <div class="clip-item ${state.activeLayer === clip.id ? 'selected' : ''}" data-id="${clip.id}" style="cursor:pointer">
+      <div class="clip-item" data-id="${clip.id}" style="cursor:pointer">
         <div class="clip-thumb">${clip.thumbnail ? `<img src="${clip.thumbnail}"/>` : ''}<div class="clip-dur">${formatTime(clip.duration)}</div></div>
         <div class="clip-info"><div class="clip-name" title="${clip.name}">${clip.name}</div></div>
       </div>
     `).join('');
     clipsList.querySelectorAll('.clip-item').forEach(el => {
-      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('click', () => {
+        const clip = state.assets.find(c => c.id === el.dataset.id);
+        const firstClip = state.items.find(i => i.assetId === el.dataset.id || (clip && i.name === clip.name));
+        if (firstClip) {
+          selectLayer(firstClip.id);
+        }
+      });
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         showMediaContextMenu(e, el.dataset.id);
@@ -1517,14 +1553,20 @@ function updateLeftPanelClips() {
   // Populate Images Grid
   const imagesGrid = document.getElementById('images-grid');
   if (imagesGrid) {
-    const images = state.items.filter(i => i.type === 'image');
+    const images = state.assets.filter(i => i.type === 'image');
     imagesGrid.innerHTML = images.map(img => `
-      <div class="img-item ${state.activeLayer === img.id ? 'selected' : ''}" data-id="${img.id}" title="${img.name}" style="cursor:pointer">
+      <div class="img-item" data-id="${img.id}" title="${img.name}" style="cursor:pointer">
         <img src="${img.thumbnail || img.src}" draggable="false" />
       </div>
     `).join('');
     imagesGrid.querySelectorAll('.img-item').forEach(el => {
-      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('click', () => {
+        const img = state.assets.find(c => c.id === el.dataset.id);
+        const firstClip = state.items.find(i => i.assetId === el.dataset.id || (img && i.name === img.name));
+        if (firstClip) {
+          selectLayer(firstClip.id);
+        }
+      });
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         showMediaContextMenu(e, el.dataset.id);
@@ -1535,9 +1577,9 @@ function updateLeftPanelClips() {
   // Populate Audio List
   const audioList = document.getElementById('audio-list');
   if (audioList) {
-    const audios = state.items.filter(i => i.type === 'audio');
+    const audios = state.assets.filter(i => i.type === 'audio');
     audioList.innerHTML = audios.map(audio => `
-      <div class="audio-item ${state.activeLayer === audio.id ? 'selected' : ''}" data-id="${audio.id}" style="cursor:pointer">
+      <div class="audio-item" data-id="${audio.id}" style="cursor:pointer">
         <div class="audio-thumb">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
         </div>
@@ -1548,7 +1590,13 @@ function updateLeftPanelClips() {
       </div>
     `).join('');
     audioList.querySelectorAll('.audio-item').forEach(el => {
-      el.addEventListener('click', () => selectLayer(el.dataset.id));
+      el.addEventListener('click', () => {
+        const audio = state.assets.find(c => c.id === el.dataset.id);
+        const firstClip = state.items.find(i => i.assetId === el.dataset.id || (audio && i.name === audio.name));
+        if (firstClip) {
+          selectLayer(firstClip.id);
+        }
+      });
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         showMediaContextMenu(e, el.dataset.id);
@@ -1996,7 +2044,7 @@ function setupEventListeners() {
     
     mediaCtxMenu.dataset.targetId = itemId;
 
-    const item = state.items.find(i => i.id === itemId);
+    const item = state.assets?.find(a => a.id === itemId);
     if (item) {
       const isAudio = item.type === 'audio';
       document.getElementById('media-ctx-v1').style.display = isAudio ? 'none' : 'flex';
@@ -2013,16 +2061,52 @@ function setupEventListeners() {
       const targetId = mediaCtxMenu?.dataset.targetId;
       const track = el.dataset.track;
       if (targetId && track) {
-        const item = state.items.find(i => i.id === targetId);
-        if (item) {
-          item.track = track;
-          item.start = getNextStartTime(track);
+        const asset = state.assets?.find(a => a.id === targetId);
+        if (asset) {
+          const item = {
+            id: uid(),
+            assetId: asset.id,
+            type: asset.type,
+            name: asset.name,
+            file: asset.file,
+            src: asset.src,
+            thumbnail: asset.thumbnail,
+            start: getNextStartTime(track),
+            duration: asset.duration,
+            trimStart: 0,
+            trimEnd: asset.duration,
+            track: track,
+            filters: { brightness: 100, contrast: 100, saturate: 100, grayscale: 0, sepia: 0, blur: 0 },
+            transform: { 
+              x: 0, y: 0, 
+              scaleX: asset.type === 'image' ? 0.3 : 1, 
+              scaleY: asset.type === 'image' ? 0.3 : 1, 
+              rotation: 0,
+              cropLeft: 0,
+              cropRight: 0,
+              cropTop: 0,
+              cropBottom: 0
+            },
+            blendMode: 'normal',
+            opacity: 100,
+            volume: 1,
+            transition: { fadeIn: 0, fadeOut: 0 }
+          };
+          if (asset.waveformPeaks) {
+            item.waveformPeaks = asset.waveformPeaks;
+          }
           
+          state.items.push(item);
+          
+          if (item.file) {
+            saveSessionFile(item.id, item.file).catch(err => console.error(err));
+          }
+
           selectLayer(item.id);
           pushHistory();
           updateMediaPlayback();
           renderScheduler.triggerSingleUpdate();
-          showToast('Track Changed ✓', `Sent to track ${track.toUpperCase()}`);
+          showToast('Added to Timeline ✓', `Sent to track ${track.toUpperCase()}`);
         }
       }
     });
