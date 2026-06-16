@@ -36,6 +36,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/document-utilities',
   ];
 
+  const infoPages = [
+    '/privacy',
+    '/terms',
+    '/about',
+    '/contact',
+  ];
+
   return [
     // Root
     {
@@ -57,6 +64,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
+    })),
+    // Compliance & Info pages
+    ...infoPages.map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.5,
     })),
   ];
 }
