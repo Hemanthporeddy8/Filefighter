@@ -3,6 +3,7 @@
 
 import type React from 'react';
 import { useEffect, Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import {
@@ -259,6 +260,15 @@ export default function DashboardLayout({
             <SidebarNav />
           </SidebarContent>
           <SidebarFooter className="p-3 mt-auto border-t border-sidebar-border group-data-[collapsible=icon]:p-2">
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-sidebar-foreground/60 px-1 mb-2.5 group-data-[collapsible=icon]:hidden border-b border-sidebar-border pb-2.5">
+              <Link href="/privacy" className="hover:text-sidebar-foreground transition-colors">Privacy Policy</Link>
+              <span>•</span>
+              <Link href="/terms" className="hover:text-sidebar-foreground transition-colors">Terms of Service</Link>
+              <span>•</span>
+              <Link href="/about" className="hover:text-sidebar-foreground transition-colors">About Us</Link>
+              <span>•</span>
+              <Link href="/contact" className="hover:text-sidebar-foreground transition-colors">Contact Support</Link>
+            </div>
             <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden min-w-0">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src="/icons/icon-192.png" alt="User" />
