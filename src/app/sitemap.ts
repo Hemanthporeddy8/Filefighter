@@ -31,8 +31,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const appPages = [
     '/dashboard',
-    '/image-editor',
-    '/video-editor',
     '/document-utilities',
   ];
 
