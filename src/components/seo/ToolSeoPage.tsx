@@ -94,19 +94,6 @@ export function ToolSeoPage({ tool }: Props) {
 
       <div className="tool-seo-page">
 
-        {/* ── Hero ── */}
-        <section className="tseo-hero">
-          <div className="tseo-hero-inner">
-            <h1 className="tseo-h1">{tool.h1}</h1>
-            <p className="tseo-tagline">{tool.tagline}</p>
-            <ul className="tseo-features">
-              {tool.features.map((f, i) => (
-                <li key={i}><span className="tseo-check">✓</span> {f}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
         {/* ── Tool Iframe ── */}
         <section className="tseo-tool-wrapper" aria-label={`${tool.appName} — interactive tool`}>
           <iframe
@@ -119,6 +106,19 @@ export function ToolSeoPage({ tool }: Props) {
             allow="camera; microphone; clipboard-write; autoplay; fullscreen"
             sandbox="allow-scripts allow-same-origin allow-downloads allow-forms allow-popups allow-modals"
           />
+        </section>
+
+        {/* ── Hero / Tool Info (Placed below the editor for better UX) ── */}
+        <section className="tseo-hero">
+          <div className="tseo-hero-inner">
+            <h1 className="tseo-h1">{tool.h1}</h1>
+            <p className="tseo-tagline">{tool.tagline}</p>
+            <ul className="tseo-features">
+              {tool.features.map((f, i) => (
+                <li key={i}><span className="tseo-check">✓</span> {f}</li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         {/* ── How it works ── */}
