@@ -24,11 +24,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' }
     ],
     apple: '/icons/apple-touch-icon.png',
-    shortcut: '/favicon.svg',
+    shortcut: '/icons/icon-192.png',
   },
   openGraph: {
     title: 'Editroy — AI-Powered Video & Document Editor',
