@@ -39,6 +39,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/terms',
     '/about',
     '/contact',
+    '/cookie-policy',
+    '/faq',
+    '/sitemap',
+  ];
+
+  const blogPages = [
+    '/blog',
+    '/blog/how-to-separate-vocals-from-music-online',
+    '/blog/how-to-compress-pdf-without-losing-quality',
+    '/blog/pdf-vs-word-which-format-to-use',
   ];
 
   return [
@@ -69,6 +79,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.5,
+    })),
+    // Blog pages
+    ...blogPages.map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
     })),
   ];
 }

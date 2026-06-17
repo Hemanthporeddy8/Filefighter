@@ -124,6 +124,9 @@ export default function TermsPage() {
             <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
             <Link href="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
             <Link href="/contact" className="hover:text-slate-300 transition-colors">Contact Support</Link>
+            <Link href="/faq" className="hover:text-slate-300 transition-colors">FAQ</Link>
+            <Link href="/cookie-policy" className="hover:text-slate-300 transition-colors">Cookie Policy</Link>
+            <Link href="/sitemap" className="hover:text-slate-300 transition-colors">Sitemap</Link>
           </div>
         </div>
       </footer>

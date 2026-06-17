@@ -289,16 +289,6 @@ export default function DashboardLayout({
               <SidebarTrigger />
             </div>
             <div className="flex items-center gap-2">
-              {/* Compliance Legal Links beside Download App button */}
-              <div className="hidden lg:flex items-center gap-3 text-xs text-muted-foreground mr-3">
-                <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-                <span>•</span>
-                <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-                <span>•</span>
-                <Link href="/about" className="hover:text-foreground transition-colors">About Us</Link>
-                <span>•</span>
-                <Link href="/contact" className="hover:text-foreground transition-colors">Contact Support</Link>
-              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -321,18 +311,34 @@ export default function DashboardLayout({
           </header>
 
           {/* Responsive main content */}
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto min-w-0">
-            <ErrorBoundary>
-              <Suspense fallback={
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-2/3"/>
-                  <Skeleton className="h-48 w-full"/>
-                  <Skeleton className="h-48 w-full"/>
-                </div>
-              }>
-                {children}
-              </Suspense>
-            </ErrorBoundary>
+          <main className="flex-1 flex flex-col justify-between p-3 sm:p-4 md:p-6 overflow-auto min-w-0">
+            <div className="flex-1 pb-8">
+              <ErrorBoundary>
+                <Suspense fallback={
+                  <div className="space-y-4">
+                    <Skeleton className="h-10 w-2/3"/>
+                    <Skeleton className="h-48 w-full"/>
+                    <Skeleton className="h-48 w-full"/>
+                  </div>
+                }>
+                  {children}
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+
+            {/* Premium Dashboard Footer */}
+            <footer className="pt-6 border-t border-border/40 text-center flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground mt-auto">
+              <p>&copy; {new Date().getFullYear()} Editroy. All rights reserved.</p>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+                <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+                <Link href="/about" className="hover:text-foreground transition-colors">About Us</Link>
+                <Link href="/contact" className="hover:text-foreground transition-colors">Contact Support</Link>
+                <Link href="/faq" className="hover:text-foreground transition-colors">FAQ</Link>
+                <Link href="/cookie-policy" className="hover:text-foreground transition-colors">Cookie Policy</Link>
+                <Link href="/sitemap" className="hover:text-foreground transition-colors">Sitemap</Link>
+              </div>
+            </footer>
           </main>
         </SidebarInset>
       </SidebarProvider>
