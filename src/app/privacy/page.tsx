@@ -51,14 +51,14 @@ export default function PrivacyPage() {
               At Editroy, accessible from <a href="https://www.editroy.com" className="text-indigo-400 hover:underline">https://www.editroy.com</a>, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by Editroy and how we use it.
             </p>
 
-            <h2 className="text-xl font-bold text-white mt-8 mb-2">1. Client-Side Data & Processing</h2>
+            <h2 className="text-xl font-bold text-white mt-8 mb-2">1. Client-Side Data & P2P File Transfers</h2>
             <p>
-              Unlike traditional web tools, Editroy processes all user-uploaded files (including videos, images, and audio tracks) **locally in your browser** using WebAssembly (Wasm) and HTML5 WebCodecs. 
+              Unlike traditional web tools, Editroy processes editing tasks **locally in your browser** using WebAssembly (Wasm) and HTML5 WebCodecs. In addition, our FileShare feature enables direct peer-to-peer (P2P) file transfers:
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-4">
-              <li>No media files are ever uploaded, sent, or saved to our servers.</li>
-              <li>Your creative content never leaves your computer, phone, or tablet.</li>
-              <li>All editing, AI background removal, and file exporting occurs offline in your browser's private memory sandbox.</li>
+              <li><strong>No Persistent Storage:</strong> No files are uploaded, saved, or persisted on our servers. All transfers occur directly browser-to-browser.</li>
+              <li><strong>P2P WebRTC Connection:</strong> File data is sent directly via WebRTC Data Channels. If a direct WebRTC connection fails, temporary signaling channels are used solely for relaying data in real-time without server-side logging or storage.</li>
+              <li><strong>Local Sandbox:</strong> All editing, compiling, and data assembly occurs offline in your browser's private memory sandbox.</li>
             </ul>
 
             <h2 className="text-xl font-bold text-white mt-8 mb-2">2. Log Files</h2>
