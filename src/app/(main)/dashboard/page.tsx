@@ -2,7 +2,7 @@
 
 export default function DashboardPage() {
   return (
-    <div className="w-full h-[calc(100vh-4rem)] flex justify-center bg-[#07070e] overflow-hidden">
+    <div className="w-full h-[calc(100vh-13rem)] flex justify-center bg-[#07070e] overflow-hidden">
       <iframe 
         src="/fileshare/index.html" 
         className="w-full h-full border-none"
