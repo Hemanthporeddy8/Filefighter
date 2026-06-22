@@ -143,7 +143,9 @@ html.embedded .card { padding: 0.65rem 0.5rem !important; }
 let lastWidth = window.innerWidth;
 function sendHeight() {
   setTimeout(() => {
-    const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+    const box = document.querySelector('.box');
+    if (!box) return;
+    const height = box.offsetHeight;
     window.parent.postMessage({ type: 'resize-iframe', height: height }, '*');
   }, 40);
 }
