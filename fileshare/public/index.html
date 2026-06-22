@@ -26,29 +26,29 @@
 }
 body{background:var(--bg);color:var(--t);font-family:'DM Sans',system-ui,sans-serif;min-height:100%;-webkit-font-smoothing:antialiased;
   background-image:linear-gradient(rgba(34,211,238,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.025) 1px,transparent 1px);background-size:38px 38px}
-.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1rem 0.5rem}
+.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0.75rem 0.25rem}
 .box{width:100%;max-width:450px}
-.card{background:var(--s);border:1px solid var(--b);border-radius:var(--rl);padding:1.25rem 1rem;backdrop-filter:blur(12px)}
+.card{background:var(--s);border:1px solid var(--b);border-radius:var(--rl);padding:0.85rem 0.75rem;backdrop-filter:blur(12px)}
 .fade{animation:fu .3s ease}
 @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap;}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;gap:1rem;flex-wrap:wrap;}
 .hdr-left{display:flex;flex-direction:column;align-items:flex-start}
 .logo{display:inline-flex;align-items:center;gap:.6rem;text-decoration:none;margin-bottom:.15rem}
-.li{width:32px;height:32px;background:var(--a);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.li svg{width:17px;height:17px}
-.ln{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--t)}
-.tg{font-size:.74rem;color:var(--m);letter-spacing:.05em;text-transform:uppercase}
+.li{width:30px;height:30px;background:var(--a);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.li svg{width:16px;height:16px}
+.ln{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:-.02em;color:var(--t)}
+.tg{font-size:.7rem;color:var(--m);letter-spacing:.05em;text-transform:uppercase}
 @media(max-width:480px){
   .hdr{justify-content:center;text-align:center;}
   .hdr-left{align-items:center;margin-bottom:0.5rem;}
   #header-auth{width:100%;justify-content:center;}
 }
-.mg{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:.5rem}
-.mb{position:relative;background:var(--s);border:1px solid var(--b);border-radius:var(--rl);padding:1rem 0.5rem;cursor:pointer;text-align:center;transition:all .2s;color:var(--t)}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.35rem}
+.mb{position:relative;background:var(--s);border:1px solid var(--b);border-radius:var(--rl);padding:0.65rem 0.4rem;cursor:pointer;text-align:center;transition:all .2s;color:var(--t)}
 .mb:hover{border-color:var(--bh);background:var(--ad);transform:translateY(-2px)}
-.mb .ic{font-size:1.5rem;margin-bottom:.35rem}
-.mb .lb{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700}
-.mb .sb{font-size:.65rem;color:var(--m);margin-top:.2rem}
+.mb .ic{font-size:1.35rem;margin-bottom:0.2rem}
+.mb .lb{font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700}
+.mb .sb{font-size:0.58rem;color:var(--m);margin-top:0.2rem}
 .pills{display:flex;justify-content:center;gap:.35rem;flex-wrap:wrap;margin-top:0.75rem}
 .pill{background:var(--bg2);border:1px solid var(--b);border-radius:99px;padding:.2rem .6rem;font-size:.62rem;color:var(--m2)}
 .btn-qmark{position:absolute;top:12px;right:12px;width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,0.06);color:var(--m);font-size:0.58rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all 0.15s;cursor:help;font-family:system-ui,sans-serif}
@@ -112,6 +112,9 @@ footer{text-align:center;font-size:.73rem;color:var(--m2);margin-top:2rem;paddin
 footer a{color:var(--m);text-decoration:none}
 footer a:hover{color:var(--a)}
 @media(max-width:460px){.card{padding:1.5rem 1.1rem}.cv{font-size:1.35rem;letter-spacing:.15em}.qr-row{flex-direction:column;align-items:center}.qrw canvas{width:150px;height:150px}}
+html.embedded .hdr, html.embedded footer { display: none !important; }
+html.embedded .wrap { padding: 0.15rem 0 !important; }
+html.embedded .card { padding: 0.65rem 0.5rem !important; }
 </style>
 </head>
 <body>
@@ -132,6 +135,9 @@ footer a:hover{color:var(--a)}
   </div>
 </div>
 <script>
+if (window.self !== window.top) {
+  document.documentElement.classList.add('embedded');
+}
 window.acceptedBatches = {};
 window.sendQueue = [];
 window.sendQueueIndex = 0;
