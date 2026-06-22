@@ -343,30 +343,6 @@ export default function DashboardLayout({
         </SidebarInset>
       </SidebarProvider>
 
-      {/* PWA Install Banner */}
-      {showBanner && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-primary text-primary-foreground px-4 py-3 rounded-xl shadow-2xl max-w-sm w-[calc(100%-2rem)]">
-          <img src="/icons/icon-192.png" alt="Editroy" className="w-8 h-8 rounded-lg flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold leading-tight">Install Editroy App</p>
-            <p className="text-xs opacity-80 leading-tight">Works offline, opens like an app</p>
-          </div>
-          <Button size="sm" variant="secondary" className="flex-shrink-0 h-8 text-xs px-3" onClick={() => setIsModalOpen(true)}>
-            <Download className="h-3 w-3 mr-1" /> Install
-          </Button>
-          <button 
-            onClick={() => {
-              setShowBanner(false);
-              localStorage.setItem('pwa-prompt-dismissed-time', Date.now().toString());
-            }} 
-            className="text-primary-foreground/70 hover:text-primary-foreground flex-shrink-0 min-h-0 h-auto p-0" 
-            aria-label="Dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
       {/* Guidance Modal */}
       <PwaInstallModal 
         isOpen={isModalOpen} 
