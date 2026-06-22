@@ -311,8 +311,8 @@ export default function DashboardLayout({
           </header>
 
           {/* Responsive main content */}
-          <main className="flex-1 flex flex-col justify-between p-3 sm:p-4 md:p-6 overflow-auto min-w-0">
-            <div className="flex-1 pb-8">
+          <main className="flex-1 flex flex-col justify-between p-3 sm:p-4 md:py-3 md:px-6 overflow-auto min-w-0">
+            <div className="flex-1 pb-2">
               <ErrorBoundary>
                 <Suspense fallback={
                   <div className="space-y-4">
@@ -327,7 +327,7 @@ export default function DashboardLayout({
             </div>
 
             {/* Premium Dashboard Footer */}
-            <footer className="pt-6 border-t border-border/40 text-center flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground mt-auto">
+            <footer className="pt-3 border-t border-border/40 text-center flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground mt-auto">
               <p>&copy; {new Date().getFullYear()} Editroy. All rights reserved.</p>
               <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                 <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>

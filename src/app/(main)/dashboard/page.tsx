@@ -8,7 +8,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.data && e.data.type === "resize-iframe" && typeof e.data.height === "number") {
-        setIframeHeight(`${e.data.height + 25}px`);
+        setIframeHeight(`${e.data.height + 4}px`);
       }
     };
     window.addEventListener("message", handleMessage);
