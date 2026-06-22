@@ -140,6 +140,7 @@ html.embedded .card { padding: 0.65rem 0.5rem !important; }
   </div>
 </div>
 <script>
+let lastWidth = window.innerWidth;
 function sendHeight() {
   setTimeout(() => {
     const height = document.documentElement.scrollHeight || document.body.scrollHeight;
@@ -149,7 +150,12 @@ function sendHeight() {
 if (window.self !== window.top) {
   document.documentElement.classList.add('embedded');
   window.addEventListener('load', sendHeight);
-  window.addEventListener('resize', sendHeight);
+  window.addEventListener('resize', () => {
+    if (window.innerWidth !== lastWidth) {
+      lastWidth = window.innerWidth;
+      sendHeight();
+    }
+  });
   window.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'request-height') sendHeight();
   });
