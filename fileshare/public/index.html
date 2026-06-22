@@ -116,8 +116,9 @@ footer{text-align:center;font-size:.73rem;color:var(--m2);margin-top:2rem;paddin
 footer a{color:var(--m);text-decoration:none}
 footer a:hover{color:var(--a)}
 @media(max-width:460px){.card{padding:1.5rem 1.1rem}.cv{font-size:1.35rem;letter-spacing:.15em}.qr-row{flex-direction:column;align-items:center}.qrw canvas{width:150px;height:150px}}
+html.embedded, html.embedded body { min-height: auto !important; height: auto !important; }
 html.embedded .hdr, html.embedded footer { display: none !important; }
-html.embedded .wrap { padding: 0.15rem 0 !important; }
+html.embedded .wrap { padding: 0.15rem 0 !important; min-height: auto !important; height: auto !important; }
 html.embedded .card { padding: 0.65rem 0.5rem !important; }
 </style>
 </head>

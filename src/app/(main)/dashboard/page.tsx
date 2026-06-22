@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const [iframeHeight, setIframeHeight] = useState("650px");
+  const [iframeHeight, setIframeHeight] = useState("360px");
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
