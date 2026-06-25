@@ -49,6 +49,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/blog/how-to-separate-vocals-from-music-online',
     '/blog/how-to-compress-pdf-without-losing-quality',
     '/blog/pdf-vs-word-which-format-to-use',
+    '/blog/how-to-send-large-files-online-free',
+    '/blog/how-to-remove-video-backgrounds-without-green-screen',
+    '/blog/how-to-compress-images-online-without-quality-loss',
   ];
 
   return [

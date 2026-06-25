@@ -11,6 +11,30 @@ export default function BlogIndexPage() {
 
   const articles = [
     {
+      title: "How to Send Large Files Online Free (No Limits 2026)",
+      description: "Discover how to transfer large files online for free without size limits. Learn about WebRTC P2P direct transfer, browser-to-browser sharing, and privacy.",
+      slug: "how-to-send-large-files-online-free",
+      date: "June 22, 2026",
+      readTime: "5 min read",
+      category: "File Sharing"
+    },
+    {
+      title: "How to Remove Video Backgrounds Without Green Screen",
+      description: "Learn how to remove video backgrounds without a green screen online for free. Step-by-step guide to video background removal using browser-based AI.",
+      slug: "how-to-remove-video-backgrounds-without-green-screen",
+      date: "June 23, 2026",
+      readTime: "5 min read",
+      category: "Video Tools"
+    },
+    {
+      title: "How to Compress Images Online Without Quality Loss",
+      description: "Learn how to optimize and compress PNG, JPG, and WebP images online for free. Boost page speeds and decrease storage without losing image quality.",
+      slug: "how-to-compress-images-online-without-quality-loss",
+      date: "June 24, 2026",
+      readTime: "4 min read",
+      category: "Image Tools"
+    },
+    {
       title: "How to Separate Vocals from Music Online for Free",
       description: "Learn how to separate vocals from music online for free using AI. Step-by-step guide to extracting instrumental tracks, stems, and vocals from any song.",
       slug: "how-to-separate-vocals-from-music-online",

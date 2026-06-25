@@ -47,6 +47,7 @@ import { Input } from '@/components/ui/input';
 import { useDocumentTool, MetaFields, PageNumberOptions, WatermarkOptions, HeaderFooterOptions } from '@/hooks/use-document-tool';
 import { FileUpload } from '@/components/app/file-upload';
 import { DocumentPreview } from '@/components/app/document-preview';
+import { TOOL_SEO } from '@/lib/seo';
 
 // --- UTILS ---
 const rangeToIndices = (range: string): number[] => {
@@ -1508,9 +1509,72 @@ export function DocumentUtilitiesClient({ slug }: { slug?: string }) {
     </div>
   );
 
+  const seoData = slug ? TOOL_SEO[slug] : null;
+
   return (
-    <div className="container py-16 max-w-7xl mx-auto min-h-screen">
+    <div className="container py-16 max-w-7xl mx-auto min-h-screen space-y-16">
       {activeToolId ? renderToolUI() : renderDashboard()}
+
+      {/* Unique SEO content below the active tool interface to solve low-value content */}
+      {activeToolId && seoData && (
+        <div className="mt-16 pt-16 border-t border-primary/10 space-y-16 animate-in fade-in duration-750">
+          
+          {/* Hero/Tagline Info */}
+          <div className="text-center max-w-3xl mx-auto space-y-6">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground/90 leading-tight">
+              {seoData.h1}
+            </h2>
+            <p className="text-muted-foreground text-md leading-relaxed">
+              {seoData.tagline}
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-4">
+              {seoData.features.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/80">
+                  <span className="text-primary font-bold">✓</span> {f}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* How It Works Steps */}
+          <div className="space-y-8">
+            <h3 className="text-xl font-black text-center tracking-tight uppercase tracking-wider text-muted-foreground/90">How It Works</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {seoData.howItWorks.map((step, i) => (
+                <div key={i} className="p-6 rounded-2xl border border-primary/5 bg-card/30 backdrop-blur-sm space-y-4 hover:border-primary/10 transition-colors">
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-black">
+                    {i + 1}
+                  </div>
+                  <div className="text-3xl">{step.icon}</div>
+                  <h4 className="text-md font-bold tracking-tight">{step.heading}</h4>
+                  <p className="text-xs text-muted-foreground/85 leading-relaxed">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="max-w-4xl mx-auto space-y-8">
+            <h3 className="text-xl font-black text-center tracking-tight uppercase tracking-wider text-muted-foreground/90">Frequently Asked Questions</h3>
+            <div className="space-y-4">
+              {seoData.faqs.map((faq, i) => (
+                <details key={i} className="group p-5 rounded-2xl border border-primary/5 bg-card/30 backdrop-blur-sm [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex items-center justify-between cursor-pointer focus:outline-none">
+                    <span className="font-bold text-sm text-foreground/95 tracking-tight">{faq.question}</span>
+                    <span className="transition-transform duration-200 group-open:rotate-180">
+                      <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="18" className="text-muted-foreground/60"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </span>
+                  </summary>
+                  <p className="mt-4 text-xs text-muted-foreground/85 leading-relaxed pl-3 border-l-2 border-primary/20">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }
