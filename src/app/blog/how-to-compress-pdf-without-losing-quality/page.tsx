@@ -5,7 +5,7 @@ import { ArrowLeft, Calendar, Clock, Sparkles, FileText, HelpCircle, CheckCircle
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: 'How to Compress a PDF Without Losing Quality (Free Methods 2026) | Editroy',
+  title: 'How to Compress a PDF Without Losing Quality (2026 Guide) | Editroy',
   description: 'Learn how to reduce PDF file size without losing quality. Free online methods to compress PDFs for email, web, and storage — step-by-step guide.',
   alternates: {
     canonical: 'https://www.editroy.com/blog/how-to-compress-pdf-without-losing-quality',

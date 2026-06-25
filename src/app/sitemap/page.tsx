@@ -45,7 +45,10 @@ export default function HTMLSitemapPage() {
   const blogArticles = [
     { label: "Guide: Separate Vocals from Music Online", href: "/blog/how-to-separate-vocals-from-music-online" },
     { label: "Guide: Compress PDF Without Quality Loss", href: "/blog/how-to-compress-pdf-without-losing-quality" },
-    { label: "Guide: PDF vs Word Document Comparison", href: "/blog/pdf-vs-word-which-format-to-use" }
+    { label: "Guide: PDF vs Word Document Comparison", href: "/blog/pdf-vs-word-which-format-to-use" },
+    { label: "Guide: Send Large Files Online Free", href: "/blog/how-to-send-large-files-online-free" },
+    { label: "Guide: Remove Video Backgrounds Without Green Screen", href: "/blog/how-to-remove-video-backgrounds-without-green-screen" },
+    { label: "Guide: Compress Images Online Without Quality Loss", href: "/blog/how-to-compress-images-online-without-quality-loss" }
   ];
 
   return (
@@ -60,14 +63,15 @@ export default function HTMLSitemapPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-slate-800 hover:bg-slate-900 text-slate-200"
-              onClick={() => router.push('/')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Home
-            </Button>
+            <Link href="/">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-800 hover:bg-slate-900 text-slate-200"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Home
+              </Button>
+            </Link>
           </div>
         </div>
       </header>

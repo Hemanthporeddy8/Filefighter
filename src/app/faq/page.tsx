@@ -64,14 +64,15 @@ export default function FAQPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-slate-800 hover:bg-slate-900 text-slate-200"
-              onClick={() => router.push('/')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Home
-            </Button>
+            <Link href="/">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-800 hover:bg-slate-900 text-slate-200"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Home
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -110,12 +111,13 @@ export default function FAQPage() {
             <p className="text-sm text-slate-500">
               Still have questions? Our support team is here to help.
             </p>
-            <Button 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
-              onClick={() => router.push('/contact')}
-            >
-              Contact Support
-            </Button>
+            <Link href="/contact">
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+              >
+                Contact Support
+              </Button>
+            </Link>
           </div>
         </div>
       </main>

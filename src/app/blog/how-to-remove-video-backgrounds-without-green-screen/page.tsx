@@ -5,7 +5,7 @@ import { ArrowLeft, Calendar, Clock, Video, Shield, Sparkles, HelpCircle } from 
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: 'How to Remove Video Backgrounds Without Green Screen (Free AI Tools) | Editroy',
+  title: 'How to Remove Video Backgrounds Without Green Screen (2026 Guide) | Editroy',
   description: 'Learn how to remove video backgrounds without a green screen online for free. Step-by-step guide to video background removal using browser-based AI.',
   alternates: {
     canonical: 'https://www.editroy.com/blog/how-to-remove-video-backgrounds-without-green-screen',

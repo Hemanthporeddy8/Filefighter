@@ -2,13 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { BookOpen, ArrowLeft, ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 export default function BlogIndexPage() {
-  const router = useRouter();
-
   const articles = [
     {
       title: "How to Send Large Files Online Free (No Limits 2026)",
@@ -72,14 +69,15 @@ export default function BlogIndexPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-slate-800 hover:bg-slate-900 text-slate-200"
-              onClick={() => router.push('/')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Home
-            </Button>
+            <Link href="/">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-800 hover:bg-slate-900 text-slate-200"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Home
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -102,10 +100,10 @@ export default function BlogIndexPage() {
           {/* Articles Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {articles.map((article, index) => (
-              <article 
+              <Link 
+                href={`/blog/${article.slug}`}
                 key={index} 
-                className="flex flex-col justify-between p-6 rounded-2xl border border-slate-900 bg-slate-950/40 hover:border-indigo-500/50 hover:bg-slate-950 transition-all duration-300 group cursor-pointer"
-                onClick={() => router.push(`/blog/${article.slug}`)}
+                className="flex flex-col justify-between p-6 rounded-2xl border border-slate-900 bg-slate-950/40 hover:border-indigo-500/50 hover:bg-slate-950 transition-all duration-300 group cursor-pointer text-left"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-xs">
@@ -134,7 +132,7 @@ export default function BlogIndexPage() {
                 <div className="flex items-center text-indigo-400 text-sm font-semibold mt-6 group-hover:text-indigo-300 transition-colors">
                   Read Article <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
 

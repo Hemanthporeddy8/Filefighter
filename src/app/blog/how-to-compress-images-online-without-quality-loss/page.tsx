@@ -5,7 +5,7 @@ import { ArrowLeft, Calendar, Clock, Image, Shield, Sparkles, HelpCircle } from 
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: 'How to Compress Images Online Without Quality Loss (Web Guide) | Editroy',
+  title: 'How to Compress Images Online Without Quality Loss (2026 Guide) | Editroy',
   description: 'Learn how to optimize and compress PNG, JPG, and WebP images online for free. Boost page speeds and decrease storage without losing image quality.',
   alternates: {
     canonical: 'https://www.editroy.com/blog/how-to-compress-images-online-without-quality-loss',

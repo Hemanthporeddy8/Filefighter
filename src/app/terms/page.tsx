@@ -21,14 +21,15 @@ export default function TermsPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-slate-800 hover:bg-slate-900 text-slate-200"
-              onClick={() => router.push('/')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Home
-            </Button>
+            <Link href="/">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-800 hover:bg-slate-900 text-slate-200"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Home
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -48,7 +49,7 @@ export default function TermsPage() {
 
           <div className="space-y-6 text-slate-300 leading-relaxed text-sm">
             <p>
-              Welcome to Editroy! These Terms of Service outline the rules and regulations for the use of Editroy's Website, located at <a href="https://www.editroy.com" className="text-indigo-400 hover:underline">https://www.editroy.com</a>.
+              Welcome to Editroy! These Terms of Service outline the rules and regulations for the use of Editroy\'s Website, located at <a href="https://www.editroy.com" className="text-indigo-400 hover:underline">https://www.editroy.com</a>.
             </p>
             <p>
               By accessing this website, we assume you accept these terms and conditions. Do not continue to use Editroy if you do not agree to take all of the terms and conditions stated on this page.
