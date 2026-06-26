@@ -466,14 +466,12 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load clean Monetag Vignette Banner script dynamically (Disabled completely to block low-quality download ads)
-    /*
+    // Load clean Monetag Vignette Banner script dynamically
     const script = document.createElement('script');
     script.dataset.zone = '11108858';
     script.src = 'https://n6wxm.com/vignette.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
-    */
 
     const interval = setInterval(() => {
       countdown--;
