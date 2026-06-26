@@ -16,8 +16,9 @@ export default function PrivacyPage() {
       <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-black/80 backdrop-blur-md">
         <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-2xl font-black tracking-tight text-white">
-              EDIT<span className="text-indigo-500">ROY</span>
+            <Link href="/" className="flex items-center gap-2 text-2xl font-black tracking-tight text-white">
+              <img src="/icons/icon-192.png" alt="Editroy Logo" className="h-8 w-8 object-contain logo-img" style={{ filter: 'invert(1) grayscale(1) brightness(10)' }} />
+              <span>EDIT<span className="text-indigo-500">ROY</span></span>
             </Link>
           </div>
           <div className="flex items-center gap-4">
