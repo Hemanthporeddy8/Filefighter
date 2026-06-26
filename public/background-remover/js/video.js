@@ -453,12 +453,14 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load Monetag In-Page Push script dynamically
+    // Load Monetag In-Page Push script dynamically (Disabled to prevent low-quality notification ads)
+    /*
     const script = document.createElement('script');
     script.dataset.zone = '11109524';
     script.src = 'https://nap5k.com/tag.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
+    */
 
     const interval = setInterval(() => {
       countdown--;
