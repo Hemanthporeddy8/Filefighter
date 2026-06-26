@@ -26,6 +26,12 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Ezoic Ads.txt Redirect
+      {
+        source: '/ads.txt',
+        destination: 'https://srv.adstxtmanager.com/19398/editroy.com',
+        permanent: true,
+      },
       // Legacy /ai-tools redirect to proper SEO landing page
       {
         source: '/tools',
