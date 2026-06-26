@@ -203,29 +203,36 @@ const VideoTab = (() => {
       await _seekTo(vid,ts);
 
       // ── Capture frame ──
-      capCtx.fillStyle='#ffffff'; // white BG for clean pixels
-      capCtx.fillRect(0,0,W,H);
+      if (bgMode === 'color') {
+        capCtx.clearRect(0, 0, W, H);
+      } else {
+        capCtx.fillStyle='#ffffff'; // white BG for clean pixels
+        capCtx.fillRect(0,0,W,H);
+      }
       capCtx.drawImage(vid,0,0,W,H);
       const imgData=capCtx.getImageData(0,0,W,H);
 
-      // ── AI inference ──
-      const tensor=preprocessImageData(imgData);
-      const alpha=await NexusModel.infer(tensor);
+      let result;
+      if (bgMode === 'color') {
+        // Chroma Key Mode (Bypasses AI segmentation entirely = zero lag)
+        result = applyChromaKey(imgData, bgColor);
+      } else {
+        // AI Segmenter Mode
+        const tensor=preprocessImageData(imgData);
+        const alpha=await NexusModel.infer(tensor);
 
-      // Re-read fresh (white BG)
-      capCtx.fillStyle='#ffffff';
-      capCtx.fillRect(0,0,W,H);
-      capCtx.drawImage(vid,0,0,W,H);
-      const fresh=capCtx.getImageData(0,0,W,H);
-      const result=applyAlphaMask(fresh,alpha);
+        // Re-read fresh (white BG)
+        capCtx.fillStyle='#ffffff';
+        capCtx.fillRect(0,0,W,H);
+        capCtx.drawImage(vid,0,0,W,H);
+        const fresh=capCtx.getImageData(0,0,W,H);
+        result=applyAlphaMask(fresh,alpha);
+      }
 
       // ── Composite background ──
       outCtx.clearRect(0,0,W,H);
 
-      if(bgMode==='color'){
-        outCtx.fillStyle=bgColor;
-        outCtx.fillRect(0,0,W,H);
-      } else if(bgMode==='image'&&_bgImg){
+      if(bgMode==='image'&&_bgImg){
         outCtx.drawImage(_bgImg,0,0,W,H);
       }
       // Draw the RGBA result (composites alpha over BG)
@@ -453,14 +460,12 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load Monetag In-Page Push script dynamically (Disabled to prevent low-quality notification ads)
-    /*
+    // Load clean Monetag Vignette Banner script dynamically
     const script = document.createElement('script');
-    script.dataset.zone = '11109524';
-    script.src = 'https://nap5k.com/tag.min.js';
+    script.dataset.zone = '11108858';
+    script.src = 'https://n6wxm.com/vignette.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
-    */
 
     const interval = setInterval(() => {
       countdown--;
@@ -584,6 +589,62 @@ const VideoTab = (() => {
     } else {
       showLocalAdOverlay('editroy_frames.zip', executeDownload);
     }
+  }
+
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 255, b: 0 };
+  }
+
+  function applyChromaKey(imageData, keyColorHex) {
+    const { data } = imageData;
+    const keyColor = hexToRgb(keyColorHex);
+    
+    const similarity = 40; 
+    const smoothness = 12;
+    const spill = 45;
+    
+    const tol = (similarity / 100) * 255;
+    const smooth = (smoothness / 100) * 255;
+    const spillReduction = spill / 100;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i+1];
+      const b = data[i+2];
+      
+      const dist = Math.sqrt((r - keyColor.r) ** 2 + (g - keyColor.g) ** 2 + (b - keyColor.b) ** 2);
+      
+      let alpha = 255;
+      if (dist < tol) {
+        alpha = 0;
+      } else if (dist < tol + smooth) {
+        alpha = Math.round(((dist - tol) / smooth) * 255);
+      }
+      
+      if (alpha > 0) {
+        if (keyColor.g > keyColor.r && keyColor.g > keyColor.b) {
+          const avgRedBlue = (r + b) / 2;
+          if (g > avgRedBlue) {
+            const factor = spillReduction * (1 - alpha / 255);
+            data[i+1] = Math.round(g * (1 - factor) + avgRedBlue * factor);
+          }
+        } else if (keyColor.b > keyColor.r && keyColor.b > keyColor.g) {
+          const avgRedGreen = (r + g) / 2;
+          if (b > avgRedGreen) {
+            const factor = spillReduction * (1 - alpha / 255);
+            data[i+2] = Math.round(b * (1 - factor) + avgRedGreen * factor);
+          }
+        }
+      }
+      
+      data[i+3] = Math.min(data[i+3], alpha);
+    }
+    return imageData;
   }
 
   function onModelLoad(){ if(_file) $('btnProcessVid').disabled=false; }

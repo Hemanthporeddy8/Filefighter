@@ -400,14 +400,12 @@ const ImageTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load Monetag In-Page Push script dynamically (Disabled to prevent low-quality notification ads)
-    /*
+    // Load clean Monetag Vignette Banner script dynamically
     const script = document.createElement('script');
-    script.dataset.zone = '11109524';
-    script.src = 'https://nap5k.com/tag.min.js';
+    script.dataset.zone = '11108858';
+    script.src = 'https://n6wxm.com/vignette.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
-    */
 
     const interval = setInterval(() => {
       countdown--;

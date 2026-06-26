@@ -293,7 +293,7 @@
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
               <p>Video preview</p>
             </div>
-            <video id="vidEl" controls style="display:none;max-width:100%;border-radius:8px"></video>
+            <video id="vidEl" controls style="display:none; max-width:100%; max-height:350px; width:auto; border-radius:8px; object-fit:contain; margin: 0 auto;"></video>
           </div>
 
           <div class="vid-progress" id="vidProgress" style="display:none">
@@ -312,7 +312,7 @@
 
           <div class="vid-done" id="vidDone" style="display:none">
             <p class="done-msg" id="vidDoneMsg">✅ Done!</p>
-            <video id="vidOutputEl" controls style="max-width:100%; border-radius:8px; display:none; margin-bottom:15px; border:1px solid var(--border2)"></video>
+            <video id="vidOutputEl" controls style="max-width:100%; max-height:350px; width:auto; border-radius:8px; display:none; margin-bottom:15px; border:1px solid var(--border2); object-fit:contain; margin: 0 auto;"></video>
             <div class="dl-row" style="margin-bottom:15px">
               <button class="btn-primary" id="btnDlVid" style="display:none">⬇ Download WebM Video</button>
               <button class="btn-ghost" id="btnDlZip" style="display:none">⬇ Download PNG ZIP</button>
