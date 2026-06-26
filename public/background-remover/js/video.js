@@ -73,14 +73,19 @@ const VideoTab = (() => {
   }
 
   async function _process(){
-    if(window.ensureModelLoaded) {
-      try {
-        await window.ensureModelLoaded();
-      } catch(e) {
-        return;
+    const bgMode = document.querySelector('input[name="vbg"]:checked').value;
+    if (bgMode !== 'color') {
+      if(window.ensureModelLoaded) {
+        try {
+          await window.ensureModelLoaded();
+        } catch(e) {
+          return;
+        }
       }
+      if(!NexusModel.ready()||!_file) return;
+    } else {
+      if(!_file) return;
     }
-    if(!NexusModel.ready()||!_file) return;
     _stopped=false; _frames=[]; _videoBlob=null;
     $('vidOutputEl').src='';
     $('vidOutputEl').style.display='none';
@@ -328,6 +333,7 @@ const VideoTab = (() => {
 
     $('btnStopVid').style.display='none';
     $('btnProcessVid').style.display='';
+    $('vidProgress').style.display='none'; // Hide progress panel when finished
 
     const total_t=(performance.now()-t0)/1000;
 
@@ -460,12 +466,14 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load clean Monetag Vignette Banner script dynamically
+    // Load clean Monetag Vignette Banner script dynamically (Disabled completely to block low-quality download ads)
+    /*
     const script = document.createElement('script');
     script.dataset.zone = '11108858';
     script.src = 'https://n6wxm.com/vignette.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
     if (target) target.appendChild(script);
+    */
 
     const interval = setInterval(() => {
       countdown--;
@@ -601,7 +609,7 @@ const VideoTab = (() => {
   }
 
   function applyChromaKey(imageData, keyColorHex) {
-    const { data } = imageData;
+    const data = imageData.data;
     const keyColor = hexToRgb(keyColorHex);
     
     const similarity = 40; 
@@ -612,29 +620,44 @@ const VideoTab = (() => {
     const smooth = (smoothness / 100) * 255;
     const spillReduction = spill / 100;
     
-    for (let i = 0; i < data.length; i += 4) {
+    const tolSq = tol * tol;
+    const tolSmoothSq = (tol + smooth) * (tol + smooth);
+    
+    const kr = keyColor.r;
+    const kg = keyColor.g;
+    const kb = keyColor.b;
+    const isGreenKey = (kg > kr && kg > kb);
+    const isBlueKey = (kb > kr && kb > kg);
+    
+    const len = data.length;
+    for (let i = 0; i < len; i += 4) {
       const r = data[i];
       const g = data[i+1];
       const b = data[i+2];
       
-      const dist = Math.sqrt((r - keyColor.r) ** 2 + (g - keyColor.g) ** 2 + (b - keyColor.b) ** 2);
+      const rd = r - kr;
+      const gd = g - kg;
+      const bd = b - kb;
+      
+      const distSq = rd * rd + gd * gd + bd * bd;
       
       let alpha = 255;
-      if (dist < tol) {
+      if (distSq < tolSq) {
         alpha = 0;
-      } else if (dist < tol + smooth) {
+      } else if (distSq < tolSmoothSq) {
+        const dist = Math.sqrt(distSq);
         alpha = Math.round(((dist - tol) / smooth) * 255);
       }
       
       if (alpha > 0) {
-        if (keyColor.g > keyColor.r && keyColor.g > keyColor.b) {
-          const avgRedBlue = (r + b) / 2;
+        if (isGreenKey) {
+          const avgRedBlue = (r + b) >> 1;
           if (g > avgRedBlue) {
             const factor = spillReduction * (1 - alpha / 255);
             data[i+1] = Math.round(g * (1 - factor) + avgRedBlue * factor);
           }
-        } else if (keyColor.b > keyColor.r && keyColor.b > keyColor.g) {
-          const avgRedGreen = (r + g) / 2;
+        } else if (isBlueKey) {
+          const avgRedGreen = (r + g) >> 1;
           if (b > avgRedGreen) {
             const factor = spillReduction * (1 - alpha / 255);
             data[i+2] = Math.round(b * (1 - factor) + avgRedGreen * factor);
@@ -642,7 +665,7 @@ const VideoTab = (() => {
         }
       }
       
-      data[i+3] = Math.min(data[i+3], alpha);
+      data[i+3] = data[i+3] < alpha ? data[i+3] : alpha;
     }
     return imageData;
   }

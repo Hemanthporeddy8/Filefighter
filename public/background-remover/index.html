@@ -288,32 +288,40 @@
         </div>
 
         <div class="vid-right">
-          <div class="vid-preview-box" id="vidPreviewBox">
-            <div class="vid-idle" id="vidIdle">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-              <p>Video preview</p>
+          <!-- Previews Row (Side-by-side) -->
+          <div class="vid-previews-row" style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-start; width: 100%;">
+            <div class="vid-preview-box" id="vidPreviewBox" style="flex: 1; min-width: 240px; margin: 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="panel-head" style="margin-bottom: 4px;"><span class="plabel">ORIGINAL VIDEO</span></div>
+              <div class="vid-idle" id="vidIdle">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                <p>Video preview</p>
+              </div>
+              <video id="vidEl" controls style="display:none; max-width:100%; max-height:350px; width:auto; border-radius:8px; object-fit:contain; margin: 0 auto;"></video>
             </div>
-            <video id="vidEl" controls style="display:none; max-width:100%; max-height:350px; width:auto; border-radius:8px; object-fit:contain; margin: 0 auto;"></video>
+
+            <div class="vid-progress" id="vidProgress" style="display:none; flex: 1; min-width: 240px; margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex-direction: column;">
+              <div class="panel-head" style="margin-bottom: 12px;"><span class="plabel">PROCESSING PREVIEW</span></div>
+              <div class="vp-head" style="margin-bottom: 8px;">
+                <span id="vpTitle" style="font-weight: 700;">Processing…</span>
+                <span class="vp-pct" id="vpPct" style="font-weight: 700; color: var(--accent);">0%</span>
+              </div>
+              <div class="vp-track" style="margin-bottom: 12px;"><div class="vp-fill" id="vpFill"></div></div>
+              <div class="vp-stats" style="margin-bottom: 16px;">
+                <span id="vpFrames">0/0</span>
+                <span id="vpFps">— fps</span>
+                <span id="vpEta">ETA —</span>
+              </div>
+              <div style="text-align: center;">
+                <canvas id="vpLive" width="180" height="100" style="border-radius:6px; border:1px solid #2a2a2a; max-width:100%; height:auto;"></canvas>
+              </div>
+            </div>
           </div>
 
-          <div class="vid-progress" id="vidProgress" style="display:none">
-            <div class="vp-head">
-              <span id="vpTitle">Processing…</span>
-              <span class="vp-pct" id="vpPct">0%</span>
-            </div>
-            <div class="vp-track"><div class="vp-fill" id="vpFill"></div></div>
-            <div class="vp-stats">
-              <span id="vpFrames">0/0</span>
-              <span id="vpFps">— fps</span>
-              <span id="vpEta">ETA —</span>
-            </div>
-            <canvas id="vpLive" width="180" height="100" style="border-radius:6px;margin-top:10px;border:1px solid #2a2a2a"></canvas>
-          </div>
-
-          <div class="vid-done" id="vidDone" style="display:none">
-            <p class="done-msg" id="vidDoneMsg">✅ Done!</p>
+          <!-- Result Panel (Result Down) -->
+          <div class="vid-done" id="vidDone" style="display:none; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <p class="done-msg" id="vidDoneMsg" style="font-weight: 700; margin-bottom: 12px;">✅ Done!</p>
             <video id="vidOutputEl" controls style="max-width:100%; max-height:350px; width:auto; border-radius:8px; display:none; margin-bottom:15px; border:1px solid var(--border2); object-fit:contain; margin: 0 auto;"></video>
-            <div class="dl-row" style="margin-bottom:15px">
+            <div class="dl-row" style="margin-bottom:15px; display:flex; gap:10px; flex-wrap:wrap;">
               <button class="btn-primary" id="btnDlVid" style="display:none">⬇ Download WebM Video</button>
               <button class="btn-ghost" id="btnDlZip" style="display:none">⬇ Download PNG ZIP</button>
             </div>
