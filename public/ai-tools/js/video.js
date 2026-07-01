@@ -466,13 +466,8 @@ const VideoTab = (() => {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     
-    // Load clean Monetag Vignette Banner script dynamically
-    const script = document.createElement('script');
-    script.dataset.zone = '11108858';
-    script.src = 'https://n6wxm.com/vignette.min.js';
     const target = [document.documentElement, document.body].filter(Boolean).pop();
-    if (target) target.appendChild(script);
-
+    
     const interval = setInterval(() => {
       countdown--;
       countLabel.textContent = countdown;
@@ -493,12 +488,11 @@ const VideoTab = (() => {
         btn.style.cssText = 'width: 100%; padding: 10px; background: #c8f135; color: #0a0a0a; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;';
         btn.onclick = () => {
           if (document.body.contains(overlay)) document.body.removeChild(overlay);
-          if (target && target.contains(script)) target.removeChild(script);
           
-          // 1. Clean up any push notification banners injected by the Monetag script
+          // 1. Clean up any leftover DOM elements injected during download
           const currentBodyChildren = Array.from(document.body.children);
           currentBodyChildren.forEach(child => {
-            if (!existingBodyChildren.includes(child) && child !== overlay && child !== script) {
+            if (!existingBodyChildren.includes(child) && child !== overlay) {
               child.remove();
             }
           });

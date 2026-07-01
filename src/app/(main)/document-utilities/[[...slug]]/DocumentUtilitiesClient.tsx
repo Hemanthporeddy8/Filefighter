@@ -1536,12 +1536,28 @@ export function DocumentUtilitiesClient({ slug }: { slug?: string }) {
             </div>
           </div>
 
+          {/* What is section (if present) */}
+          {seoData.whatIs && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left max-w-5xl mx-auto border-t border-primary/10 pt-16">
+              <div className="space-y-4">
+                <h3 className="text-xl font-black text-foreground/90 tracking-tight">What is {activeTool?.name}?</h3>
+                <p className="text-sm text-muted-foreground/85 leading-relaxed">{seoData.whatIs}</p>
+              </div>
+              {seoData.whyUse && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-black text-foreground/90 tracking-tight">Why Use Editroy?</h3>
+                  <p className="text-sm text-muted-foreground/85 leading-relaxed">{seoData.whyUse}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* How It Works Steps */}
-          <div className="space-y-8">
+          <div className="space-y-8 border-t border-primary/10 pt-16">
             <h3 className="text-xl font-black text-center tracking-tight uppercase tracking-wider text-muted-foreground/90">How It Works</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {seoData.howItWorks.map((step, i) => (
-                <div key={i} className="p-6 rounded-2xl border border-primary/5 bg-card/30 backdrop-blur-sm space-y-4 hover:border-primary/10 transition-colors">
+                <div key={i} className="p-6 rounded-2xl border border-primary/5 bg-card/30 backdrop-blur-sm space-y-4 hover:border-primary/10 transition-colors text-left">
                   <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-black">
                     {i + 1}
                   </div>
@@ -1551,12 +1567,26 @@ export function DocumentUtilitiesClient({ slug }: { slug?: string }) {
                 </div>
               ))}
             </div>
+
+            {/* Detailed step-by-step list (if present) */}
+            {seoData.howToUse && (
+              <div className="mt-12 pt-12 border-t border-dashed border-primary/10 text-left max-w-3xl mx-auto">
+                <h4 className="text-md font-black mb-6 text-center tracking-tight">Detailed Step-by-Step Instructions</h4>
+                <ol className="list-decimal pl-6 space-y-4">
+                  {seoData.howToUse.map((step, i) => (
+                    <li key={i} className="text-sm text-muted-foreground/85 leading-relaxed">
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
 
           {/* FAQ Section */}
-          <div className="max-w-4xl mx-auto space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8 border-t border-primary/10 pt-16">
             <h3 className="text-xl font-black text-center tracking-tight uppercase tracking-wider text-muted-foreground/90">Frequently Asked Questions</h3>
-            <div className="space-y-4">
+            <div className="space-y-4 text-left">
               {seoData.faqs.map((faq, i) => (
                 <details key={i} className="group p-5 rounded-2xl border border-primary/5 bg-card/30 backdrop-blur-sm [&_summary::-webkit-details-marker]:hidden">
                   <summary className="flex items-center justify-between cursor-pointer focus:outline-none">
@@ -1572,6 +1602,18 @@ export function DocumentUtilitiesClient({ slug }: { slug?: string }) {
               ))}
             </div>
           </div>
+
+          {/* Notes & Limitations (if present) */}
+          {seoData.notesLimitations && (
+            <div className="max-w-3xl mx-auto border-t border-primary/10 pt-16 text-left">
+              <div className="p-6 rounded-2xl border border-yellow-500/10 bg-yellow-500/2 backdrop-blur-sm space-y-3">
+                <h4 className="text-sm font-black text-yellow-500 flex items-center gap-2">
+                  <span>⚠️</span> Notes & Limitations
+                </h4>
+                <p className="text-xs text-muted-foreground/85 leading-relaxed">{seoData.notesLimitations}</p>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

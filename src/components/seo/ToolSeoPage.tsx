@@ -121,8 +121,28 @@ export function ToolSeoPage({ tool }: Props) {
           </div>
         </section>
 
-        {/* ── How it works ── */}
-        <section className="tseo-section" id="how-it-works">
+        {/* ── What is section (if present) ── */}
+        {tool.whatIs && (
+          <section className="tseo-section" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="tseo-container">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '48px', textAlign: 'left' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text)' }}>What is {tool.appName}?</h2>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--muted)', lineHeight: '1.75' }}>{tool.whatIs}</p>
+                </div>
+                {tool.whyUse && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text)' }}>Why Use Editroy?</h2>
+                    <p style={{ fontSize: '0.95rem', color: 'var(--muted)', lineHeight: '1.75' }}>{tool.whyUse}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── How it works (Original 3 Steps) ── */}
+        <section className="tseo-section" id="how-it-works" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="tseo-container">
             <h2 className="tseo-section-title">How It Works</h2>
             <div className="tseo-steps">
@@ -135,11 +155,27 @@ export function ToolSeoPage({ tool }: Props) {
                 </div>
               ))}
             </div>
+
+            {/* ── Detailed step-by-step list (if present) ── */}
+            {tool.howToUse && (
+              <div style={{ marginTop: '64px', paddingTop: '48px', borderTop: '1px dashed var(--border)', textAlign: 'left' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '24px', textAlign: 'center' }}>
+                  Detailed Step-by-Step Instructions
+                </h3>
+                <ol style={{ listStyleType: 'decimal', paddingLeft: '24px', maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {tool.howToUse.map((step, i) => (
+                    <li key={i} style={{ fontSize: '0.95rem', color: 'var(--muted)', lineHeight: '1.7' }}>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </section>
 
         {/* ── FAQ ── */}
-        <section className="tseo-section tseo-faq-section" id="faq">
+        <section className="tseo-section tseo-faq-section" id="faq" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="tseo-container">
             <h2 className="tseo-section-title">Frequently Asked Questions</h2>
             <div className="tseo-faqs">
@@ -152,6 +188,22 @@ export function ToolSeoPage({ tool }: Props) {
             </div>
           </div>
         </section>
+
+        {/* ── Notes & Limitations (if present) ── */}
+        {tool.notesLimitations && (
+          <section className="tseo-section" style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.01)', textAlign: 'left' }}>
+            <div className="tseo-container" style={{ maxWidth: '720px' }}>
+              <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid rgba(200, 241, 53, 0.15)', background: 'rgba(200, 241, 53, 0.02)' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--accent)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠️</span> Notes & Limitations
+                </h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--muted)', lineHeight: '1.65' }}>
+                  {tool.notesLimitations}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── Related Tools ── */}
         <section className="tseo-section tseo-related-section">

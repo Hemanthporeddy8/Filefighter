@@ -87,9 +87,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         
-        {/* Monetag Verification Meta Tag */}
-        <meta name="monetag" content="9d1909b918f90c97e1b342ca4c836a05" />
-        
+
         {/* PWA: register service worker */}
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {

@@ -4,11 +4,7 @@ const nextConfig = {
   swcMinify: false,
   async rewrites() {
     return [
-      // Static HTML tool embeds
-      {
-        source: '/video-editor',
-        destination: '/video-editor/index.html',
-      },
+
       {
         source: '/background-remover',
         destination: '/background-remover/index.html',

@@ -47,6 +47,14 @@ export interface ToolSeoMeta {
   iframeSrc: string;
   /** Minimum iframe height in px */
   iframeHeight?: number;
+  /** Detailed 'What is [Tool]' text (2-3 sentences) */
+  whatIs?: string;
+  /** Detailed 'Why use Editroy's [Tool]' text (2-3 sentences) */
+  whyUse?: string;
+  /** Detailed 'How to use' numbered steps (4-6 steps) */
+  howToUse?: string[];
+  /** Detailed 'Notes & Limitations' text (2-3 sentences) */
+  notesLimitations?: string;
 }
 
 const BASE = 'https://www.editroy.com';
@@ -93,6 +101,16 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
       { label: 'Video BG Remover', href: '/video-background-remover', icon: '🎬' },
       { label: 'Audio Separator', href: '/audio-separator', icon: '🎵' },
     ],
+    whatIs: 'The AI Image Background Remover is a powerful browser-based cutout tool designed to remove backgrounds from any image instantly. Utilizing advanced edge-detection neural networks, it separates foreground subjects (such as people, products, or pets) from the background in a single click. The tool generates clean, transparent PNG cutouts that are perfect for graphic designers, e-commerce listings, and content creators.',
+    whyUse: 'Editroy offers total privacy; your photos are never sent to a backend server or used for AI training datasets. It is completely free, does not add any watermarks, and does not require registration. Processing is instant because it eliminates server upload and download queue times.',
+    howToUse: [
+      'Select or drag and drop any image (PNG, JPG, or WebP) into the active upload area.',
+      'The background remover will immediately initialize the local AI segmentation model.',
+      'Click the "Remove Background" button to automatically identify and isolate the subject edges.',
+      'Preview the transparent cutout against the checkerboard grid pattern to inspect edge accuracy.',
+      'Click the "Download PNG" button to export the final high-resolution transparent image to your device.'
+    ],
+    notesLimitations: 'Extremely low-contrast images where the subject matches the background color may require manual touch-ups. Since the tool operates client-side using WebGPU/WebGL, it performs best on modern browsers with hardware acceleration enabled.',
   },
 
   'audio-separator': {
@@ -123,16 +141,27 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
       { icon: '💾', heading: 'Download each stem', body: 'Download vocals-only, instrumentals-only, or individual stems as separate files.' },
     ],
     faqs: [
-      { question: 'What audio formats does the separator support?', answer: 'MP3, WAV, FLAC, OGG and M4A are all supported.' },
-      { question: 'Does the audio separation run on my device?', answer: 'Yes. Processing happens entirely in your browser using WebAssembly. No audio is ever sent to a server.' },
-      { question: 'Can I use it to make karaoke tracks?', answer: 'Absolutely. Just separate the vocals and use the instrumental stem as your karaoke backing track.' },
-      { question: 'Is this tool free?', answer: 'Yes — completely free with no signup, no watermark and no credit system.' },
+      { question: 'Which audio formats are supported for vocal removal?', answer: 'We support popular formats including MP3, WAV, AAC, FLAC, and WebM files up to 20MB.' },
+      { question: 'How long does it take to separate vocals from a track?', answer: 'Separation typically takes between 10 to 30 seconds, depending on the track length and your device\'s local processing hardware.' },
+      { question: 'Do I need an internet connection to use the vocal remover?', answer: 'You need an active internet connection to load the page and model weights once, but the audio processing itself is fully offline.' },
+      { question: 'Will the output audio quality be high?', answer: 'Yes, our model isolates stems without degrading the source audio, exporting high-fidelity WAV or MP3 outputs.' },
+      { question: 'Is there a limit on how many tracks I can split per day?', answer: 'Since all calculations are done on your own computer, there are no daily limits, usage credits, or subscriptions.' },
     ],
     relatedTools: [
       { label: 'Video Editor', href: '/video-editor-online', icon: '🎬' },
       { label: 'Background Remover', href: '/bg-remover-online', icon: '✂️' },
       { label: 'Image Editor', href: '/edit-image-online', icon: '🖼️' },
     ],
+    whatIs: 'The Audio Separator by Editroy is a state-of-the-art AI tool that splits vocals and instrumental stems from any audio file. Utilizing high-fidelity AI models running entirely in your browser, it analyzes your music tracks to isolate voices from background instrumentation with professional clarity. It is perfect for karaoke enthusiasts, music producers, and cover artists who need clean backing tracks or isolated vocals.',
+    whyUse: 'Unlike other online vocal removers that upload your copyrighted tracks to cloud servers, Editroy keeps your audio files 100% private. It operates entirely on-device, offering fast separation speeds without requiring high bandwidth. It is free, has no subscription fees, and outputs uncompressed audio quality.',
+    howToUse: [
+      'Upload your music file by clicking the upload panel or dragging and dropping an audio file (MP3, WAV, WebM) into the interface.',
+      'Select the processing model and extraction type (Vocals only, Instrumentals only, or split into multiple stems).',
+      'Click the "Process Audio" button to start the local separation, which leverages your device\'s GPU/CPU capabilities.',
+      'Wait for the browser-based AI to analyze the frequencies and isolate the vocal frequencies from the instruments.',
+      'Play the preview tracks directly in the interface and download the finished, high-quality audio stems to your device.'
+    ],
+    notesLimitations: 'Because the separation algorithm is running locally using WebGL/WebGPU inside your browser, devices with older processors or limited RAM may experience slower performance. For the best results, upload clean, studio-recorded audio tracks rather than noisy live recordings.',
   },
 
   'video-background-remover': {
@@ -361,15 +390,27 @@ export const TOOL_SEO: Record<string, ToolSeoMeta> = {
       { icon: '💾', heading: 'Download merged PDF', body: 'Get your single combined PDF file in one click.' },
     ],
     faqs: [
-      { question: 'How many PDFs can I merge at once?', answer: 'You can merge as many PDF files as you need — there is no limit.' },
-      { question: 'Is the PDF merger free?', answer: 'Yes — completely free, no signup and no watermark.' },
-      { question: 'Does merging affect PDF quality?', answer: 'No. All pages are merged at their original quality with no re-compression.' },
+      { question: 'Is there a limit to the number of PDFs I can merge at once?', answer: 'There are no arbitrary limits imposed by our servers. You can merge as many documents as your browser and system memory (RAM) can comfortably process.' },
+      { question: 'Do my files get uploaded to Editroy servers?', answer: 'Absolutely not. Editroy operates on a client-side architecture where all PDF compilation runs inside your browser using WebAssembly. Your files never leave your device.' },
+      { question: 'Will merging PDFs reduce the quality of the documents or text?', answer: 'No, merging does not compress or modify the original elements. The images, formatting, text fonts, and layouts are preserved in their original high-resolution state.' },
+      { question: 'Can I merge password-protected PDF files?', answer: 'To merge encrypted files, you must first decrypt or unlock them. Our tool cannot merge secure documents without their password due to client-side security policies.' },
+      { question: 'Which browsers are compatible with the PDF merger?', answer: 'It is fully compatible with all modern browsers, including Google Chrome, Mozilla Firefox, Apple Safari, Microsoft Edge, and mobile browser variants.' },
     ],
     relatedTools: [
       { label: 'Split PDF', href: '/split-pdf-online', icon: '✂️' },
       { label: 'Compress PDF', href: '/compress-pdf-online', icon: '📉' },
       { label: 'PDF to Word', href: '/pdf-to-word-online', icon: '📄' },
     ],
+    whatIs: 'Merge PDF by Editroy is a highly efficient, browser-based utility designed to combine multiple PDF documents into a single, unified file. Whether you need to compile monthly reports, organize study materials, or join scanned receipts into a single document, this tool offers a seamless solution. Unlike traditional PDF converters, all merging processes occur entirely client-side on your local device, ensuring that sensitive documents are never uploaded to any remote servers.',
+    whyUse: 'Editroy’s Merge PDF is completely private and secure since your files remain on your device at all times. It is 100% free with no registration, daily limits, or watermarks. The tool is incredibly fast as it avoids the time-consuming process of uploading and downloading files from remote servers.',
+    howToUse: [
+      'Click the "Choose Files" button or drag and drop your target PDF files directly into the active upload area.',
+      'Arrange the order of your documents by dragging each file card to your preferred sequence.',
+      'Once the layout is organized, click the "Merge PDF" button to initiate the local compilation process.',
+      'The tool will assemble the pages of your files into a single document using your browser\'s processing power.',
+      'Click the "Download" button to save the merged PDF file instantly back to your device.'
+    ],
+    notesLimitations: 'The merging speed depends entirely on your local hardware\'s memory and CPU capacity since everything runs client-side. Large files (exceeding 100MB in total) may cause brief browser freezing on older devices. Ensure that all uploaded files are valid PDF formats to avoid errors during compiling.',
   },
 
   'split-pdf-online': {

@@ -39,29 +39,7 @@ export function AdExportOverlay({ isOpen, onClose, onComplete, fileName = 'file'
     return () => clearInterval(interval);
   }, [isOpen, onComplete]);
 
-  // Dynamically inject the Monetag Vignette Ad script when the overlay is open
-  useEffect(() => {
-    if (!isOpen) return;
 
-    try {
-      const script = document.createElement('script');
-      script.dataset.zone = '11108858';
-      script.src = 'https://n6wxm.com/vignette.min.js';
-      
-      const target = [document.documentElement, document.body].filter(Boolean).pop();
-      if (target) {
-        target.appendChild(script);
-      }
-
-      return () => {
-        if (target && target.contains(script)) {
-          target.removeChild(script);
-        }
-      };
-    } catch (e) {
-      console.error('[Monetag] Failed to inject Vignette script:', e);
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
