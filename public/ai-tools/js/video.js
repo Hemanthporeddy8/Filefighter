@@ -174,13 +174,24 @@ const VideoTab = (() => {
           error: (e) => console.error('[VideoEncoder] Error:', e)
         });
 
-        encoder.configure({
+        const encoderConfig = {
           codec: 'vp09.00.10.08',
           width: W,
           height: H,
           bitrate: 8_000_000, // 8 Mbps — pristine professional quality
           latencyMode: 'quality'
-        });
+        };
+
+        try {
+          const check = await VideoEncoder.isConfigSupported({ ...encoderConfig, alpha: 'keep' });
+          if (check.supported) {
+            encoderConfig.alpha = 'keep';
+          }
+        } catch (e) {
+          console.warn('[VideoEncoder] Alpha keep check failed:', e);
+        }
+
+        encoder.configure(encoderConfig);
 
         if (audioBuffer && typeof AudioEncoder !== 'undefined') {
           audioEncoder = new AudioEncoder({
