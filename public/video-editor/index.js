@@ -928,8 +928,10 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
         const dw = sw * fitScale;
         const dh = sh * fitScale;
 
-        if (item.chromaKey) {
-          renderChromaKeyFrame(vid, renderCtx, dw, dh, item);
+        if (item.chromaKey || item.isTransparent) {
+          const activeChromaKey = item.chromaKey || { keyColor: '#000000', similarity: 12, smoothness: 5, spill: 0 };
+          const tempItem = { ...item, chromaKey: activeChromaKey };
+          renderChromaKeyFrame(vid, renderCtx, dw, dh, tempItem);
         } else {
           renderCtx.drawImage(vid, sx, sy, sw, sh, -dw/2, -dh/2, dw, dh);
         }
@@ -963,8 +965,10 @@ function drawVisual(renderCtx, renderCanvas, item, localTime) {
       const dw = sw * fitScale;
       const dh = sh * fitScale;
 
-      if (item.chromaKey) {
-        renderChromaKeyFrame(img, renderCtx, dw, dh, item);
+      if (item.chromaKey || item.isTransparent) {
+        const activeChromaKey = item.chromaKey || { keyColor: '#000000', similarity: 12, smoothness: 5, spill: 0 };
+        const tempItem = { ...item, chromaKey: activeChromaKey };
+        renderChromaKeyFrame(img, renderCtx, dw, dh, tempItem);
       } else {
         renderCtx.drawImage(img, sx, sy, sw, sh, -dw/2, -dh/2, dw, dh);
       }
@@ -1704,6 +1708,11 @@ function renderInspector() {
         statusBadge.style.background = 'rgba(239,68,68,0.15)';
         statusBadge.style.color = '#ef4444';
       }
+    }
+
+    const transparentToggle = document.getElementById('editor-bg-transparent-toggle');
+    if (transparentToggle) {
+      transparentToggle.checked = !!item.isTransparent;
     }
     
     const px = document.getElementById('in-pos-x'); if(px) px.value = item.transform.x || 0;
@@ -2981,6 +2990,14 @@ function setupEventListeners() {
     }
   });
 
+  document.getElementById('editor-bg-transparent-toggle')?.addEventListener('change', e => {
+    const item = state.items.find(i => i.id === state.activeLayer);
+    if (item) {
+      item.isTransparent = e.target.checked;
+      renderAll();
+    }
+  });
+
   document.getElementById('sl-chroma-sim')?.addEventListener('input', e => {
     const val = document.getElementById('val-chroma-sim');
     if (val) val.textContent = e.target.value + '%';
@@ -3145,6 +3162,7 @@ function setupEventListeners() {
       }
       
       item.chromaKey = { keyColor, similarity, smoothness, spill };
+      item.isTransparent = true; // Force transparent rendering
       
       showToast('Chroma Key Applied ✓', 'Applied chroma key transparency in real-time!');
       pushHistory();
@@ -3189,6 +3207,7 @@ function setupEventListeners() {
       
       // Persist the transparent file in IndexedDB session files store
       await saveSessionFile(item.id, newFile);
+      item.isTransparent = true; // Force transparent rendering
       
       setProcessing(false);
       pushHistory();
