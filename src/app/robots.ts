@@ -7,7 +7,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/admin/', '/_next/', '/image-editor', '/video-editor'],
+        disallow: [
+          '/api/', 
+          '/admin/', 
+          '/_next/', 
+          '/dashboard/image-editor', 
+          '/dashboard/video-editor'
+        ],
       },
     ],
     sitemap: 'https://www.editroy.com/sitemap.xml',
