@@ -33,6 +33,18 @@ const NexusModel = (() => {
 
   async function autoLoad(onProgress){
     try {
+      const isOffline = !navigator.onLine;
+      if (isOffline) {
+        console.log('[NexusModel] Offline detected. Loading cached INT8 quantized model directly...');
+        if(onProgress) onProgress(0.5, 'Loading offline model (CPU)…');
+        _session = await ort.InferenceSession.create(MODEL_URL_INT8, {
+          executionProviders: ['wasm'],
+          graphOptimizationLevel: 'all',
+        });
+        if(onProgress) onProgress(1.0, 'AI Ready (Offline CPU Mode)');
+        return true;
+      }
+
       const hasWebGPU = await checkWebGPUSupport();
       
       if (hasWebGPU) {

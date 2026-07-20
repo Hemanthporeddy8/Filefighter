@@ -12,6 +12,7 @@ const PRECACHE_ASSETS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/background-remover/models/manthnet_nexus_v2_int8.onnx',
   '/ai-tools',
   '/ai-tools/index.html',
   '/ai-tools/css/style.css',

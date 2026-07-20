@@ -16,7 +16,7 @@ const NexusModel = (() => {
   let _session = null;
 
   // ── Paths to your models in the models directory ──
-  const MODEL_URL_INT8 = '/ai-tools/models/manthnet_nexus_v2_int8.onnx';
+  const MODEL_URL_INT8 = '/background-remover/models/manthnet_nexus_v2_int8.onnx';
   const MODEL_URL_FP32 = '/ai-tools/models/manthnet_nexus_v2.onnx';
 
   function ready(){ return !!_session; }
@@ -33,6 +33,18 @@ const NexusModel = (() => {
 
   async function autoLoad(onProgress){
     try {
+      const isOffline = !navigator.onLine;
+      if (isOffline) {
+        console.log('[NexusModel] Offline detected. Loading cached INT8 quantized model directly...');
+        if(onProgress) onProgress(0.5, 'Loading offline model (CPU)…');
+        _session = await ort.InferenceSession.create(MODEL_URL_INT8, {
+          executionProviders: ['wasm'],
+          graphOptimizationLevel: 'all',
+        });
+        if(onProgress) onProgress(1.0, 'AI Ready (Offline CPU Mode)');
+        return true;
+      }
+
       const hasWebGPU = await checkWebGPUSupport();
       
       if (hasWebGPU) {

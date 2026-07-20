@@ -63,6 +63,19 @@ class AiBackgroundRemover {
     if (this.isLoaded) return true;
     
     await this.ensureOrtLoaded();
+    const isOffline = !navigator.onLine;
+    if (isOffline) {
+      console.log('[AiBackgroundRemover] Offline detected. Loading cached INT8 quantized model directly...');
+      if (onProgress) onProgress(0.5, 'Loading offline model (CPU)...');
+      this._session = await ort.InferenceSession.create(this.MODEL_URL_INT8, {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all',
+      });
+      this.isLoaded = true;
+      if (onProgress) onProgress(1.0, 'Model Loaded (Offline CPU Mode)');
+      return true;
+    }
+
     const hasWebGPU = await this.checkWebGPUSupport();
     
     if (hasWebGPU) {
