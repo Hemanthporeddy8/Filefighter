@@ -63,11 +63,31 @@ export default function HomePage() {
     },
     {
       q: 'Do I need to sign up or create an account?',
-      a: 'No. You can use all our tools (including background removal, vocal separation, PDF editing, and file sharing) instantly without giving an email or setting up an account.',
+      a: 'No. You can use all our tools — including background removal, vocal separation, PDF editing, video editing, and file sharing — instantly without giving an email address or setting up an account. There are no hidden fees or premium tiers.',
     },
     {
       q: 'Is there a file size limit for PDF compression or conversion?',
-      a: 'Since processing is done on your local hardware inside the browser sandbox, there are no hard limits enforced by our servers. Very large files may depend on your device memory (RAM) capacity.',
+      a: 'Since processing is done on your local hardware inside the browser sandbox, there are no hard limits enforced by our servers. Very large files may depend on your device memory (RAM) capacity. Most modern computers handle files up to several hundred megabytes without difficulty.',
+    },
+    {
+      q: 'What makes Editroy different from other online tools?',
+      a: 'The most important difference is privacy. Tools like Canva, VEED.io, Clideo, and most other online editors upload your files to their cloud servers for processing. Editroy processes everything locally inside your browser — your images, videos, PDFs, and audio files never leave your device.',
+    },
+    {
+      q: 'Can I use Editroy on my phone or tablet?',
+      a: 'Yes. All Editroy tools work on Android and iOS devices via the browser. For the best mobile experience, use Google Chrome or Safari with hardware acceleration enabled. You can also install Editroy as a Progressive Web App (PWA) from your mobile browser for an app-like experience.',
+    },
+    {
+      q: 'How does the AI background removal work without uploading files?',
+      a: 'Our AI background remover uses ONNX machine learning models that run entirely in your browser using WebAssembly and WebGPU. When you use the tool, the AI model is downloaded once to your browser cache, and then all background segmentation is computed locally on your device using your CPU or GPU.',
+    },
+    {
+      q: 'What is P2P file sharing and how does it protect my privacy?',
+      a: 'P2P (peer-to-peer) file sharing means files are transferred directly from one device to another without passing through any central server. When you use Editroy\'s file sharing feature, your files travel directly to the recipient\'s device using encrypted WebRTC connections, ensuring nobody in between can see or store your data.',
+    },
+    {
+      q: 'Can I install Editroy as an app on my device?',
+      a: 'Yes! Editroy is a Progressive Web App (PWA), which means you can install it directly from your browser without visiting an app store. On Chrome and Edge, click the install icon in the address bar. On iOS Safari, use "Add to Home Screen". Once installed, it works offline and feels like a native application.',
     },
   ];
 
