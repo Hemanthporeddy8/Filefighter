@@ -14,6 +14,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { AdBanner } from "@/components/app/AdBanner";
 
 export const metadata: Metadata = {
   title: 'Editroy — Free AI Video, Audio & Document Utilities Online',
@@ -184,8 +185,13 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Sponsored Ad Banner */}
+      <div className="container max-w-4xl mx-auto px-4 py-4">
+        <AdBanner />
+      </div>
+
       {/* Tools Catalog */}
-      <section className="py-20 px-4">
+      <section className="py-16 px-4">
         <div className="container max-w-6xl mx-auto space-y-16">
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold text-white tracking-tight">Explore Our Web Applications</h2>

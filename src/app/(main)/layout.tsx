@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { ErrorBoundary } from '@/components/app/error-boundary';
 import { AdExportOverlay } from '@/components/app/AdExportOverlay';
+import { AdBanner } from '@/components/app/AdBanner';
 
 
 const EditroyIcon = ({ className = "h-8 w-8", style }: { className?: string; style?: React.CSSProperties }) => (
@@ -324,6 +325,11 @@ export default function DashboardLayout({
                   {children}
                 </Suspense>
               </ErrorBoundary>
+            </div>
+
+            {/* Adsterra CPM Banner */}
+            <div className="py-2 flex justify-center">
+              <AdBanner />
             </div>
 
             {/* Premium Dashboard Footer */}
