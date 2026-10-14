@@ -13,7 +13,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import type { EditorApi } from "../editor/useEditor";
 import type { Clip, Track } from "../types";
 import { cn } from "../utils/cn";
@@ -47,6 +47,7 @@ export function Timeline({ editor }: { editor: EditorApi }) {
   const pps = state.pixelsPerSecond;
   const duration = Math.max(editor.duration, 8);
   const width = Math.max(800, duration * pps + 120);
+  const lastScrubUi = useRef(0);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -57,7 +58,11 @@ export function Timeline({ editor }: { editor: EditorApi }) {
       const t = Math.max(0, x / pps);
       if (drag.type === "playhead") {
         editor.timeRef.current = t;
-        editor.setState((s) => ({ ...s, currentTime: t, playing: false }));
+        const now = performance.now();
+        if (now - lastScrubUi.current > 40) {
+          lastScrubUi.current = now;
+          editor.setState((s) => ({ ...s, currentTime: t, playing: false }));
+        }
         return;
       }
       if (!drag.id) return;
@@ -88,9 +93,13 @@ export function Timeline({ editor }: { editor: EditorApi }) {
       }
     };
     const onUp = () => {
-      if (drag && drag.type !== "playhead") {
-        const c = editor.state.clips.find((x) => x.id === drag.id);
-        if (c) editor.updateClip(c.id, { start: c.start, duration: c.duration, inPoint: c.inPoint, outPoint: c.outPoint });
+      if (drag) {
+        if (drag.type === "playhead") {
+          editor.setState((s) => ({ ...s, currentTime: editor.timeRef.current, playing: false }));
+        } else {
+          const c = editor.state.clips.find((x) => x.id === drag.id);
+          if (c) editor.updateClip(c.id, { start: c.start, duration: c.duration, inPoint: c.inPoint, outPoint: c.outPoint });
+        }
       }
       setDrag(null);
     };
@@ -281,19 +290,28 @@ function Playhead({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if (ref.current) {
+      ref.current.style.transform = `translateX(${(playing ? timeRef.current : time) * pps}px)`;
+    }
+    if (!playing) return;
     let raf = 0;
     const loop = () => {
       if (ref.current) {
-        const t = playing ? timeRef.current : time;
-        ref.current.style.transform = `translateX(${t * pps}px)`;
+        ref.current.style.transform = `translateX(${timeRef.current * pps}px)`;
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [pps, playing, time, timeRef]);
+
   return (
-    <div ref={ref} className="pointer-events-none absolute top-0 z-20 h-full" style={{ transform: `translateX(${time * pps}px)` }}>
+    <div
+      ref={ref}
+      data-playhead
+      className="pointer-events-none absolute top-0 z-20 h-full"
+      style={{ transform: `translateX(${time * pps}px)` }}
+    >
       <div className="absolute -top-7 left-1/2 h-7 w-0">
         <div className="absolute -left-1.5 top-0 h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-emerald-400" />
       </div>
@@ -302,7 +320,13 @@ function Playhead({
   );
 }
 
-function TrackHead({ track, onChange }: { track: Track; onChange: (p: Partial<Track>) => void }) {
+const TrackHead = memo(function TrackHead({
+  track,
+  onChange,
+}: {
+  track: Track;
+  onChange: (p: Partial<Track>) => void;
+}) {
   return (
     <div className="flex h-14 items-center gap-1 border-b border-zinc-800/60 px-2">
       <div className="min-w-0 flex-1">
@@ -322,9 +346,9 @@ function TrackHead({ track, onChange }: { track: Track; onChange: (p: Partial<Tr
       ) : null}
     </div>
   );
-}
+});
 
-function ClipView({
+const ClipView = memo(function ClipView({
   clip,
   pps,
   selected,
@@ -386,4 +410,4 @@ function ClipView({
       <div className="relative z-10 px-2 text-[9px] text-white/70">{clip.duration.toFixed(2)}s</div>
     </div>
   );
-}
+});
