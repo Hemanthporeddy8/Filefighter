@@ -5,7 +5,7 @@ export default function DashboardVideoEditorPage() {
   return (
     <div className="w-full flex justify-center bg-[#07070e]">
       <iframe 
-        src="/video-editor/index.html?v=3.1" 
+        src="/video-editor/index.html?v=4.0" 
         style={{ height: 'calc(100vh - 64px)', minHeight: '800px' }}
         className="w-full border-none"
         title="Video Editor"
