@@ -227,27 +227,24 @@ export function seekMedia(el: HTMLMediaElement, time: number): Promise<void> {
       return;
     }
     const t = Math.max(0, Math.min(time, isFinite(el.duration) ? el.duration - 0.001 : time));
-    if (Math.abs(el.currentTime - t) < 0.03) {
+    if (Math.abs(el.currentTime - t) < 0.04) {
       resolve();
       return;
     }
-    let cleanupTimeout: any = null;
     const done = () => {
       el.removeEventListener("seeked", done);
-      if (cleanupTimeout) clearTimeout(cleanupTimeout);
       resolve();
     };
-    el.addEventListener("seeked", done, { once: true });
+    el.addEventListener("seeked", done);
     try {
       el.currentTime = t;
     } catch {
-      el.removeEventListener("seeked", done);
       resolve();
       return;
     }
-    cleanupTimeout = setTimeout(() => {
+    setTimeout(() => {
       el.removeEventListener("seeked", done);
       resolve();
-    }, 150);
+    }, 280);
   });
 }

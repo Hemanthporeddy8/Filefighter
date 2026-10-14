@@ -37,45 +37,11 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
     if (!ctx) return;
     let raf = 0;
 
-    const lastRenderTime = { current: -1 };
-    let lastState = stateRef.current;
-
-    const containerSize = {
-      w: wrapRef.current?.clientWidth || 960,
-      h: wrapRef.current?.clientHeight || 540,
-    };
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined" && wrapRef.current) {
-      ro = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-            containerSize.w = entry.contentRect.width;
-            containerSize.h = entry.contentRect.height;
-            lastRenderTime.current = -1; // force re-render on resize
-          }
-        }
-      });
-      ro.observe(wrapRef.current);
-    }
-
     const tick = (now: number) => {
       const ed = editorRef.current;
       const s = stateRef.current;
       const { project, clips, tracks, assets } = s;
-      const isPlaying = playingRef.current;
-      const currTime = ed.timeRef.current;
-
-      const timeChanged = Math.abs(currTime - lastRenderTime.current) > 0.001;
-      const stateChanged = s !== lastState;
-
-      // When paused and idle, avoid any calculations or DOM operations
-      if (!isPlaying && !timeChanged && !stateChanged) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      lastState = s;
-
-      if (isPlaying) {
+      if (playingRef.current) {
         if (lastRef.current == null) lastRef.current = now;
         const dt = Math.min(0.08, (now - lastRef.current) / 1000);
         lastRef.current = now;
@@ -91,8 +57,7 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
           }
         }
         ed.timeRef.current = t;
-        // Throttle React state updates to 5 times per second to prevent timeline re-render stutter
-        if (now - lastUi.current > 200) {
+        if (now - lastUi.current > 50) {
           lastUi.current = now;
           ed.setState((st) => ({ ...st, currentTime: t }));
         }
@@ -110,10 +75,9 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
             }
             if (v.paused) {
               v.currentTime = sourceTime(clip, t);
-              v.play().catch(() => {});
-            } else if (!v.seeking && Math.abs(v.currentTime - sourceTime(clip, t)) > 0.4) {
-              // Only re-sync when drift is significant to avoid decoder stutter
-              v.currentTime = sourceTime(clip, t);
+              v.play().catch(() => {
+                /* ignore */
+              });
             }
           } else if (!v.paused) v.pause();
         }
@@ -129,8 +93,7 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
           if (!v.paused) v.pause();
           if (isActive(clip, t)) {
             const st = sourceTime(clip, t);
-            // Guard against flooding decoder while seeking
-            if (!v.seeking && Math.abs(v.currentTime - st) > 0.04) {
+            if (Math.abs(v.currentTime - st) > 0.05) {
               try {
                 v.currentTime = st;
               } catch {
@@ -142,8 +105,8 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
         syncPreviewAudio(t, false, clips, tracks, assets, pool, s.volume, s.muted);
       }
 
-      const maxW = containerSize.w;
-      const maxH = containerSize.h;
+      const maxW = wrapRef.current?.clientWidth || 960;
+      const maxH = wrapRef.current?.clientHeight || 540;
       const ar = project.width / project.height;
       let w = maxW;
       let h = w / ar;
@@ -151,24 +114,18 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
         h = maxH;
         w = h * ar;
       }
-      
-      // Adaptive resolution cap for smooth preview performance
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
-      const targetW = Math.min(960, Math.max(320, Math.round(w * dpr)));
-      const targetH = Math.max(2, Math.round(targetW / ar));
-      const rw = targetW - (targetW % 2);
-      const rh = targetH - (targetH % 2);
-
+      const scale = Math.min(1, 1280 / Math.max(project.width, project.height));
+      const rw = Math.max(2, Math.round(project.width * scale));
+      const rh = Math.max(2, Math.round(project.height * scale));
       if (canvas.width !== rw) canvas.width = rw;
       if (canvas.height !== rh) canvas.height = rh;
       canvas.style.width = `${Math.round(w)}px`;
       canvas.style.height = `${Math.round(h)}px`;
 
-      lastRenderTime.current = ed.timeRef.current;
       renderComposition(ctx, {
         width: rw,
         height: rh,
-        time: ed.timeRef.current,
+        time: editor.timeRef.current,
         clips,
         tracks,
         assets,
@@ -177,14 +134,10 @@ export function Preview({ editor, canvasRef }: { editor: EditorApi; canvasRef: R
         showGrid: s.showGrid,
         showSafeArea: s.showSafeArea,
       });
-
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      if (ro) ro.disconnect();
-    };
+    return () => cancelAnimationFrame(raf);
   }, [canvasRef, duration, editor, pool]);
 
   const step = (frames: number) => {
