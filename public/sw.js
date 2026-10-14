@@ -1,8 +1,8 @@
-// Editroy Service Worker v1.1
+// Editroy Service Worker v1.2
 // Handles offline caching, faster loads, and PWA install support
 
-const CACHE_NAME = 'editroy-v2';
-const STATIC_CACHE = 'editroy-static-v2';
+const CACHE_NAME = 'editroy-v3';
+const STATIC_CACHE = 'editroy-static-v3';
 
 // Assets to cache on install (app shell)
 const PRECACHE_ASSETS = [
@@ -71,20 +71,6 @@ const PRECACHE_ASSETS = [
   '/my-pdf-editor-main/my-pdf-editor-main/52psd2 - Copy/public/engine/writer/pdf_writer.js',
   '/my-pdf-editor-main/my-pdf-editor-main/52psd2 - Copy/public/engine/writer/xlsx_writer.js',
   '/video-editor/index.html',
-  '/video-editor/index.js',
-  '/video-editor/engine/adaptive-quality.js',
-  '/video-editor/engine/ai-remover.js',
-  '/video-editor/engine/decoder-pool.js',
-  '/video-editor/engine/device-profiler.js',
-  '/video-editor/engine/export-engine.js',
-  '/video-editor/engine/memory-manager.js',
-  '/video-editor/engine/render-scheduler.js',
-  '/video-editor/engine/session-store.js',
-  '/video-editor/engine/state-machine.js',
-  '/video-editor/engine/task-queue.js',
-  '/video-editor/engine/timeline-virtualizer.js',
-  '/video-editor/engine/video-proxy.js',
-  '/video-editor/workers/audio-processor.js',
   'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js',
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
@@ -138,7 +124,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/ai-tools/') ||
     url.pathname.startsWith('/background-remover/') ||
-    url.pathname.startsWith('/video-editor/') ||
     url.pathname.startsWith('/my-pdf-editor-main/') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.ico') ||
