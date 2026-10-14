@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #0e0e11;
+  --panel: #141417;
+  --panel-2: #101013;
+  --panel-3: #1a1a1f;
+  --line: rgba(255, 255, 255, 0.06);
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+  --field: #1c1c21;
+  --stage-dot: rgba(255, 255, 255, 0.045);
+  --hover: rgba(255, 255, 255, 0.06);
+  --stage-bg: #0e0e11;
+}
+
+[data-theme="light"] {
+  --app-bg: #ececf0;
+  --panel: #ffffff;
+  --panel-2: #f6f6f8;
+  --panel-3: #ffffff;
+  --line: rgba(9, 9, 11, 0.09);
+  --text: #18181b;
+  --muted: #52525b;
+  --faint: #71717a;
+  --field: #f4f4f6;
+  --stage-dot: rgba(9, 9, 11, 0.07);
+  --hover: rgba(9, 9, 11, 0.06);
+  --stage-bg: #dcdce2;
+}
+
+.lumina {
+  background: var(--app-bg);
+  color: var(--text);
+}
+.surface { background: var(--panel); }
+.surface-2 { background: var(--panel-2); }
+.surface-3 { background: var(--panel-3); }
+.border-line { border-color: var(--line); }
+.text-main { color: var(--text); }
+.text-muted { color: var(--muted); }
+.text-faint { color: var(--faint); }
+.field { background: var(--field); }
+.stage-bg { background: var(--stage-bg); }
+
+.lumina input,
+.lumina select,
+.lumina textarea { color: var(--text); }
+.lumina select option { background: var(--panel); color: var(--text); }
+
+/* range slider thumbs */
+.lumina input[type="range"] {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+.lumina input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  background: #8b5cf6;
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+.lumina input[type="range"]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  background: #8b5cf6;
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+/* thin scrollbars */
+.lumina ::-webkit-scrollbar { width: 10px; height: 10px; }
+.lumina ::-webkit-scrollbar-track { background: transparent; }
+.lumina ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
